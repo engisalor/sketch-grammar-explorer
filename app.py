@@ -3,13 +3,10 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
 from dash.dependencies import Input, Output
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
-import requests
+import plotly.express as px
+# import requests
 # import dash_auth
 import pandas as pd
-import plotly.express as px
-import numpy as np
 
 #### GET DATA
 dfAPI = pd.read_csv("freqs_data.csv")
@@ -22,6 +19,16 @@ dtGRAM = dfSTATSrels[["ref#", "relation", "cql"]].set_index("ref#").T.to_dict("l
 text_types = sorted(dfAPI["text type"].unique())
 text_types = [x for x in text_types if x not in ["author", "title", "keywords"]]
 
+#### GENERATE DATAFRAME FOR FACETED GRAPH
+dfNEW = pd.DataFrame()
+for x in ['fpm','rel']:
+    dftemp = dfAPI
+    dftemp['int'] = dftemp[x] 
+    dftemp['stat'] = x
+    dfNEW = dfNEW.append(dftemp, ignore_index=True)
+
+dfNEW.sort_values(by="#").head()
+dfNEW.drop(columns=['rel', 'fpm'], inplace=True)
 
 #### APP
 # get authentication pairs
@@ -69,41 +76,20 @@ app.layout = html.Div(
         ),
         html.H2(children="Sketch Grammar Explorer"),
         html.Div(
-            [
-                html.Div(
-                    [html.P(children="select text type")], style={"width": "250px"}
-                ),
-                # html.Div([html.P("adjust figure height")], style={"width": "220px"}),
-            ],
-            style={
-                "display": "inline-flex",
-                "width": "100%",
-                "justify-content": "center",
-            },
-        ),
-        html.Div(
-            [
+            [html.P(children="select text type"),
                 dcc.Dropdown(
                     id="DDtext_types",
                     options=[{"label": i, "value": i} for i in text_types],
                     value=["genre"],
                     clearable=False,
                     multi=True,
-                    style={"width": "230px"},
+                    style={"width": "560px"},
                 ),
-                # html.Div(
-                #     [
-                #         dcc.RangeSlider(
-                #             id="SLheight", min=200, max=1200, step=50, value=[600]
-                #         )
-                #     ],
-                #     style={"width": "250px"},
-                # ),
             ],
             style={
                 "display": "inline-flex",
                 "width": "100%",
-                "justify-content": "center",
+                "justify-content": "right",
             },
         ),
         html.Div([dcc.Graph(id="graph1")]),
@@ -131,7 +117,7 @@ app.layout = html.Div(
                                 "freq ",
                                 "fpm ",
                                 "rel ",
-                            ],  # space is to avoid altering 'relation' column
+                            ],  # trailing space is to avoid altering 'relation' column
                             labelStyle={"display": "inline-block"},
                         ),
                     ],
@@ -253,96 +239,28 @@ app.layout = html.Div(
     dash.dependencies.Output("graph1", "figure"),
     [
         dash.dependencies.Input("DDtext_types", "value"),
-        # dash.dependencies.Input("SLheight", "value"),
     ],
 )
 def update_graph(DDtext_types):
-    dffAPI = dfAPI.loc[dfAPI["text type"].isin(DDtext_types)]
+    dffAPI = dfNEW.loc[dfNEW["text type"].isin(DDtext_types)]
     dffAPI = dffAPI.loc[(dffAPI["ref#"] < 75) & (dffAPI["ref#"] > 0)].sort_values(by="ref#")
 
-    # fig = make_subplots(rows=1, cols=2, specs=[[{}, {}]], shared_xaxes=False, shared_yaxes=True, horizontal_spacing=0.001)
-
-    # fig.append_trace(go.Bar(x=dffAPI["rel"], y=dffAPI["value"], 
-    #     orientation="h", 
-    #     # color=[dtGRAM[x][0] for x in dffAPI["ref#"]],
-    #     # color_discrete_sequence=px.colors.qualitative.Alphabet,
-    #     ), 1, 1)
-
-    # fig.append_trace(go.Bar(x=dffAPI["fpm"], y=dffAPI["value"], 
-    #     orientation="h", 
-    #     # color=[dtGRAM[x][0] for x in dffAPI["ref#"]],
-    #     # color_discrete_sequence=px.colors.qualitative.Alphabet,
-    #     ), 1, 2)
-
-    fig = px.bar(dffAPI, x="rel", y="value", 
+    fig = px.bar(dffAPI, x="int", y="value", 
         orientation="h", 
         color=[dtGRAM[x][0] for x in dffAPI["ref#"]],
         color_discrete_sequence=px.colors.qualitative.Dark24,
+        facet_col='stat',
         )
 
-
+    fig.update_xaxes(matches=None, title='')
+    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
     fig.update_layout(
-        yaxis={'categoryorder':'category descending'},
+        yaxis={'categoryorder':'category descending', 'title':""},
         height=max([500,len(dffAPI['value'].unique())*20]),
-        width=1000, # fixed so browser size won't affect layout
-        legend_title="<b>relation</b>",
-        legend=dict(itemclick="toggleothers", itemdoubleclick="toggle")
+        width=1050,
+        legend_title="relation",
+        legend=dict(itemclick="toggleothers", itemdoubleclick="toggle"),
         )
-    
-
-    # fig.update_xaxes(matches=None)
-    # fig = make_subplots(
-    #     rows=2,
-    #     cols=1,
-    #     # shared_xaxes=True,  # AVOID adds ghost columns
-    #     vertical_spacing=0.03,
-    # )
-    # # add bar traces
-    # for i in dtGRAM.keys():
-    #     value = dffAPI.loc[dffAPI["ref#"] == i]["value"]
-    #     fig.add_trace(
-    #         go.Bar(
-    #             name="",
-    #             legendgroup=i,
-    #             x=value,
-    #             y=dffAPI.loc[dffAPI["ref#"] == i]["rel"],
-    #             text=["(" + str(i) + ") " + dtGRAM[i][0] for x in dffAPI["ref#"]],
-    #             hovertemplate="<b>%{text}</b><br>"
-    #             + "<b>value</b>: %{x}<br>"
-    #             + "<b>rel</b>: %{y:.2f}<br>",
-    #         ),
-    #         row=2,
-    #         col=1,
-    #     )
-    #     fig.add_trace(
-    #         go.Bar(
-    #             name="(" + str(i) + ")",
-    #             legendgroup=i,
-    #             x=value,
-    #             y=dffAPI.loc[dffAPI["ref#"] == i]["fpm"],
-    #             text=["(" + str(i) + ") " + dtGRAM[i][0] for x in dffAPI["ref#"]],
-    #             customdata=dffAPI.loc[dffAPI["ref#"] == i]["freq"],
-    #             hovertemplate="<b>%{text}</b><br>"
-    #             + "<b>value</b>: %{x}<br>"
-    #             + "<b>fpm</b>: %{y:.2f}<br>"
-    #             + "<b>freq</b>: %{customdata}<br>",
-    #         ),
-    #         row=1,
-    #         col=1,
-    #     )
-    # # Update figure properties
-    # fig.update_layout(
-    #     # xaxis={'categoryorder':'category ascending'},  # AVOID adds ghost columns
-    #     height=SLheight[0],
-    #     barmode="stack",
-    #     title_text="<b>distribution by text type values<b>",
-    #     legend_title="<b>relation</b>",
-    #     legend=dict(itemclick="toggleothers", itemdoubleclick="toggle"),
-    # )
-    # fig.update_xaxes(showticklabels=False, row=1, col=1)
-    # fig.update_yaxes(title_text="<b>fpm</b>", row=1, col=1)
-    # fig.update_yaxes(title_text="<b>rel</b>", row=2, col=1)
-    # fig.update_xaxes(title_text="<b>" + DDtext_types + "</b>", row=2, col=1)
 
     return fig
 
