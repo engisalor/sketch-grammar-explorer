@@ -30,6 +30,22 @@ for x in ['fpm','rel']:
 dfNEW.sort_values(by="#").head()
 dfNEW.drop(columns=['rel', 'fpm'], inplace=True)
 
+#### GET CQL INDEXES GROUPED BY RELATION
+with open("grammar.txt") as f:
+    lines = [line.rstrip() for line in f]
+lines = lines[lines.index("### Pilar's relations start here") :]
+# get indexes of CQL lines
+cqllines = [i for i, x in enumerate(lines) if "[" in x]
+# get indexes of relations
+rel_lines = [i for i, x in enumerate(lines) if '="%w"' in x]
+rel_names = [lines[i] for i in rel_lines]
+rel_names = [i.replace('=', '') for i in rel_names]
+# make dict of ref# by relation type 
+rel_list = {}
+for i in range (0, len(rel_lines)-1):
+    rel_list[i] = [x for x in cqllines if x in range(rel_lines[i],rel_lines[i+1])]
+rel_list[len(rel_lines)-1] = [x for x in cqllines if x in range(rel_lines[-1],len(lines))]
+
 #### APP
 # get authentication pairs
 # with open("auth_app.txt") as f:
@@ -76,14 +92,31 @@ app.layout = html.Div(
         ),
         html.H2(children="Sketch Grammar Explorer"),
         html.Div(
-            [html.P(children="select text type"),
+            [html.P(children="text type",style={"width":"100px"}),
                 dcc.Dropdown(
                     id="DDtext_types",
                     options=[{"label": i, "value": i} for i in text_types],
-                    value=["genre"],
-                    clearable=False,
-                    multi=True,
-                    style={"width": "560px"},
+                    value="genre",
+                    clearable=True,
+                    multi=False,
+                    style={"width": "400px"},
+                ),
+            ],
+            style={
+                "display": "inline-flex",
+                "width": "100%",
+                "justify-content": "right",
+            },
+        ),
+                html.Div(
+            [html.P(children="relation",style={"width":"100px"}),
+                dcc.Dropdown(
+                    id="DD_relation",
+                    options=[{"label": relationnames[i], "value": i} for i in range(0,len(relationnames))],
+                    value=0,
+                    clearable=True,
+                    multi=False,
+                    style={"width": "400px"},
                 ),
             ],
             style={
@@ -239,29 +272,33 @@ app.layout = html.Div(
     dash.dependencies.Output("graph1", "figure"),
     [
         dash.dependencies.Input("DDtext_types", "value"),
+        dash.dependencies.Input("DD_relation", "value"),
     ],
 )
-def update_graph(DDtext_types):
-    dffAPI = dfNEW.loc[dfNEW["text type"].isin(DDtext_types)]
-    dffAPI = dffAPI.loc[(dffAPI["ref#"] < 75) & (dffAPI["ref#"] > 0)].sort_values(by="ref#")
-
-    fig = px.bar(dffAPI, x="int", y="value", 
-        orientation="h", 
-        color=[dtGRAM[x][0] for x in dffAPI["ref#"]],
-        color_discrete_sequence=px.colors.qualitative.Dark24,
-        facet_col='stat',
-        )
-
-    fig.update_xaxes(matches=None, title='')
-    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
-    fig.update_layout(
-        yaxis={'categoryorder':'category descending', 'title':""},
-        height=max([500,len(dffAPI['value'].unique())*20]),
-        width=1050,
-        legend_title="relation",
-        legend=dict(itemclick="toggleothers", itemdoubleclick="toggle"),
-        )
-
+def update_graph(DDtext_types,DD_relation):
+    try:
+        # filter by text type and relation
+        dffAPI = dfNEW.loc[(dfNEW["ref#"].isin(rel_list[DD_relation])) & (dfNEW["text type"] == DDtext_types)].sort_values(by="ref#")
+        # graph
+        fig = px.scatter()
+        fig = px.bar(dffAPI, x="int", y="value", 
+            orientation="h", 
+            color=[dtGRAM[x][0] for x in dffAPI["ref#"]],
+            color_discrete_sequence=px.colors.qualitative.Dark24,
+            facet_col='stat',
+            )
+        print(dffAPI["value"].unique())
+        fig.update_xaxes(matches=None, title='')
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+        fig.update_layout(
+            yaxis={'categoryorder':'category descending', 'title':""},
+            height=max([500,len(dffAPI['value'].unique())*20]),
+            width=1050,
+            legend_title="relation",
+            legend=dict(itemclick="toggleothers", itemdoubleclick="toggle"),
+            )
+    except:
+        fig = px.scatter()
     return fig
 
 
