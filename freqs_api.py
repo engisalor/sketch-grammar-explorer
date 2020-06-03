@@ -15,23 +15,22 @@ with open("grammar.txt") as f:
     lines = [line.rstrip() for line in f]
 lines = lines[lines.index("### Pilar's relations start here") :]
 
-# get indexes of CQL lines
+# get indexes of CQL expressions
 cqllines = [i for i, x in enumerate(lines) if "[" in x]
 
-# make dict of gramrels & CQL
+# make dict of relations & CQL expressions
 dt = {}
 for i in range(0, len(cqllines)):
     rslice = reversed(lines[: cqllines[i]])
-    gramrel = next((x for x in rslice if "#" in x), ["NA"])
-    dt[cqllines[i]] = [gramrel, lines[cqllines[i]]]
+    relation = next((x for x in rslice if "#" in x), ["NA"])
+    dt[cqllines[i]] = [relation, lines[cqllines[i]]]
 
-# modify default attribute syntax ("N.*" becomes [tag="N.*"])
+# modify default attribute syntax ("N.*" to [tag="N.*"])
 for x in dt:
     dt[x][1] = re.sub('(?<!=)("[\|\.\*A-Z]+")', "[tag=\g<0>]", dt[x][1])
 
     # do requests
-    # for x in dt: # all queries
-    # for x in [145]: # single query by ref#
+    for x in dt: # or "for x in [INDEX]:" for a single query
     base_url = "https://api.sketchengine.eu/bonito/run.cgi/"
     query_type = "freqs?"
     cql_query = dt[x][1]
@@ -46,17 +45,17 @@ for x in dt:
     }
 
     d = requests.get(base_url + query_type, params=data).json()
-    d
 
     # save
     np.save("freqs/freqs" + str(x) + ".npy", d)
 
     # sleep
     time.sleep(4)
-    # Sketch Engine usage policy:
-    # <50 requests, no waiting
-    # <900 requests, 4 seconds per query
-    # 2000< requests, 44 seconds per query
 
-# load a file
+# Sketch Engine usage policy:
+# <50 requests, no waiting
+# <900 requests, 4 seconds per query
+# 2000< requests, 44 seconds per query
+
+# to load a file
 # freqs = np.load('freqs/freqs145.npy',allow_pickle='TRUE').item()
