@@ -17,7 +17,9 @@ dfSTATSttypes = pd.read_csv("freqs_stats_ttypes.csv")
 dtGRAM = dfSTATSrels[["ref#", "relation", "cql"]].set_index("ref#").T.to_dict("list")
 # exclude text types with too many values from graph
 text_types = sorted(dfAPI["text type"].unique())
-text_types = [x for x in text_types if x not in ["author", "title", "keywords"]]
+text_types = [x for x in text_types if x not in ["Author", "Title", "Keywords"]]
+# TODO drop these data points from df before uploading to app
+
 
 #### GENERATE DATAFRAME FOR FACETED GRAPH
 dfNEW = pd.DataFrame()
@@ -40,6 +42,9 @@ cqllines = [i for i, x in enumerate(lines) if "[" in x]
 rel_lines = [i for i, x in enumerate(lines) if '="%w"' in x]
 rel_names = [lines[i] for i in rel_lines]
 rel_names = [i.replace('=', '') for i in rel_names]
+rel_names = [i.replace('"%w"', '') for i in rel_names]
+rel_names = [i.replace('.../ ', ' / ') for i in rel_names]
+rel_names = [i.replace('...', '') for i in rel_names]
 # make dict of ref# by relation type 
 rel_list = {}
 for i in range (0, len(rel_lines)-1):
@@ -92,13 +97,13 @@ app.layout = html.Div(
         ),
         html.H2(children="Sketch Grammar Explorer"),
         html.Div(
-            [html.P(children="text type",style={"width":"100px"}),
+            [html.P(children="Text type",style={"width":"100px"}),
                 dcc.Dropdown(
                     id="DDtext_types",
                     options=[{"label": i, "value": i} for i in text_types],
-                    value="genre",
+                    value=["Genre"],
                     clearable=True,
-                    multi=False,
+                    multi=True,
                     style={"width": "400px"},
                 ),
             ],
@@ -109,13 +114,13 @@ app.layout = html.Div(
             },
         ),
                 html.Div(
-            [html.P(children="relation",style={"width":"100px"}),
+            [html.P(children="Relation",style={"width":"100px"}),
                 dcc.Dropdown(
                     id="DD_relation",
-                    options=[{"label": relationnames[i], "value": i} for i in range(0,len(relationnames))],
-                    value=0,
+                    options=[{"label": rel_names[i], "value": i} for i in range(0,len(rel_names))],
+                    value=[0],
                     clearable=True,
-                    multi=False,
+                    multi=True,
                     style={"width": "400px"},
                 ),
             ],
@@ -128,7 +133,7 @@ app.layout = html.Div(
         html.Div([dcc.Graph(id="graph1")]),
         html.Div(
             [
-                html.H6(children="descriptive stats"),
+                html.H6(children="Summary of frequency data"),
                 html.Div(
                     [
                         dcc.RadioItems(
@@ -242,7 +247,7 @@ app.layout = html.Div(
                     [
                         dcc.Markdown(
                             """
-            > ###### filter usage
+            > ###### Filter usage
             > * numbers: 
             >   * e.g. "79" (quotes required) 
             >   * results will include 79 & 23.79
@@ -276,9 +281,12 @@ app.layout = html.Div(
     ],
 )
 def update_graph(DDtext_types,DD_relation):
+    rel_all = [rel_list[x] for x in DD_relation]
+    # print(rel_all)
+    rel_all = [i for s in rel_all for i in s]
+    # filter by text type and relation
+    dffAPI = dfNEW.loc[(dfNEW["ref#"].isin(rel_all)) & (dfNEW["text type"].isin(DDtext_types))].sort_values(by="ref#")
     try:
-        # filter by text type and relation
-        dffAPI = dfNEW.loc[(dfNEW["ref#"].isin(rel_list[DD_relation])) & (dfNEW["text type"] == DDtext_types)].sort_values(by="ref#")
         # graph
         fig = px.scatter()
         fig = px.bar(dffAPI, x="int", y="value", 
@@ -287,14 +295,13 @@ def update_graph(DDtext_types,DD_relation):
             color_discrete_sequence=px.colors.qualitative.Dark24,
             facet_col='stat',
             )
-        print(dffAPI["value"].unique())
         fig.update_xaxes(matches=None, title='')
         fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
         fig.update_layout(
             yaxis={'categoryorder':'category descending', 'title':""},
-            height=max([500,len(dffAPI['value'].unique())*20]),
-            width=1050,
-            legend_title="relation",
+            height=max([250,len(dffAPI['value'].unique())*35]),
+            width=1000,
+            legend_title="Pattern",
             legend=dict(itemclick="toggleothers", itemdoubleclick="toggle"),
             )
     except:
