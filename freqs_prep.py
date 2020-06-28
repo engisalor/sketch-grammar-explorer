@@ -77,6 +77,8 @@ for x in ['genre']:
 for x in ['domain']:
     dfAPI.loc[dfAPI['text type'].eq(x), 'value'] = dfAPI.loc[dfAPI['text type'].eq(x), 'value'].str.title()
     dfAPI.loc[dfAPI['text type'].eq(x), 'value'] = dfAPI.loc[dfAPI['text type'].eq(x), 'value'].str.replace(' And ',' and ')
+    dfAPI.loc[dfAPI['text type'].eq(x), 'value'] = dfAPI.loc[dfAPI['text type'].eq(x), 'value'].str.replace('Domain','domain')
+
 
 dfAPI["text type"] = dfAPI["text type"].str.title()
 dfAPI['value'] = dfAPI['value'].str.replace('/Na','/NA')
