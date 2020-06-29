@@ -2,6 +2,20 @@
 
 ## Usage
 
+### Filtering Table Data
+
+* numbers: 
+  * e.g. "79" (quotes required)
+  * results will include 79 & 23.79
+* greater, lesser & equals signs:
+  * e.g. >=64, !=author & <102
+  * quotes usually optional
+* text
+  * e.g. atmospheric sciences
+  * quotes usually optional
+
+## Recreating the Data Set
+
 None of the data are provided in this repository, so follow these steps for initial setup.
 
 ### Python prep
