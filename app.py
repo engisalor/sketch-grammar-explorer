@@ -93,6 +93,13 @@ app.layout = html.Div(
                     [
                         html.Div(
                             dcc.Link(
+                                "README & source code",
+                                href="https://github.com/engisalor/sketch-grammar-explorer",
+                                target="blank",
+                            )
+                        ),
+                        html.Div(
+                            dcc.Link(
                                 "LexiCon Research Group",
                                 href="https://ecolexicon.ugr.es/",
                                 target="blank",
