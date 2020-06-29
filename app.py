@@ -4,6 +4,7 @@ import dash_html_components as html
 import dash_table
 from dash.dependencies import Input, Output
 import plotly.express as px
+from colour import Color
 
 # import requests
 # import dash_auth
@@ -53,6 +54,22 @@ for i in range(0, len(rel_lines) - 1):
 rel_list[len(rel_lines) - 1] = [
     x for x in cqllines if x in range(rel_lines[-1], len(lines))
 ]
+# make continuous color scales
+# colors defined with https://www.w3schools.com/colors/colors_picker.asp using the lighter/darker scale values at 90% (lighest) and 10% (darkest)
+colorRanges = [
+    [Color("#ccccff"), Color("#000033")],  # blue
+    [Color("#ffccff"), Color("#330033")],  # pink
+    [Color("#ccffdd"), Color("#003311")],  # green
+    [Color("#fff2cc"), Color("#332600")],  # yellow
+    [Color("#ccffff"), Color("#003333")],  # turquoise
+]
+dtCOLORS = {}
+for x in range(0, len(rel_list)):
+    colorlist = list(colorRanges[x][0].range_to(colorRanges[x][1], len(rel_list[x])))
+    dttemp = {
+        dtGRAM[rel_list[x][y]][0]: str(colorlist[y]) for y in range(0, len(rel_list[x]))
+    }
+    dtCOLORS = {**dtCOLORS, **dttemp}
 
 #### APP
 # get authentication pairs
@@ -138,6 +155,25 @@ app.layout = html.Div(
                 "display": "inline-flex",
                 "width": "100%",
                 "justify-content": "right",
+            },
+        ),
+        html.Div(
+            [
+                html.P("Colors", style={"width": "80px"}),
+                dcc.RadioItems(
+                    id="RAD_colors",
+                    options=[
+                        {"label": "continuous", "value": "cont"},
+                        {"label": "discrete", "value": "disc"},
+                    ],
+                    value="cont",
+                    labelStyle={"display": "inline-block"},
+                ),
+            ],
+            style={
+                "display": "inline-flex",
+                "width": "100%",
+                "justify-content": "left",
             },
         ),
         html.Div([dcc.Graph(id="graph1")]),
@@ -288,11 +324,11 @@ app.layout = html.Div(
     [
         dash.dependencies.Input("DDtext_types", "value"),
         dash.dependencies.Input("DD_relation", "value"),
+        dash.dependencies.Input("RAD_colors", "value"),
     ],
 )
-def update_graph(DDtext_types, DD_relation):
+def update_graph(DDtext_types, DD_relation, RAD_colors):
     rel_all = [rel_list[x] for x in DD_relation]
-    # print(rel_all)
     rel_all = [i for s in rel_all for i in s]
     # filter by text type and relation
     dffAPI = dfNEW.loc[
@@ -301,15 +337,29 @@ def update_graph(DDtext_types, DD_relation):
     try:
         # graph
         fig = px.scatter()
-        fig = px.bar(
-            dffAPI,
-            x="int",
-            y="value",
-            orientation="h",
-            color=[dtGRAM[x][0] for x in dffAPI["ref#"]],
-            color_discrete_sequence=px.colors.qualitative.Dark24,
-            facet_col="stat",
-        )
+        activeRels = [dtGRAM[x][0] for x in dffAPI["ref#"]]
+        discrete = {x: dtCOLORS[x] for x in set(activeRels)}
+        # color types
+        if RAD_colors == "cont":
+            fig = px.bar(
+                dffAPI,
+                x="int",
+                y="value",
+                orientation="h",
+                color=activeRels,
+                color_discrete_map=discrete,
+                facet_col="stat",
+            )
+        else:
+            fig = px.bar(
+                dffAPI,
+                x="int",
+                y="value",
+                orientation="h",
+                color=activeRels,
+                color_discrete_sequence=px.colors.qualitative.Dark24,
+                facet_col="stat",
+            )
         fig.update_xaxes(matches=None, title="")
         fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
         fig.update_layout(
