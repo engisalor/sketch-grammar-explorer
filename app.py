@@ -10,6 +10,10 @@ from colour import Color
 # import dash_auth
 import pandas as pd
 
+# TODO move more data prep to prep script
+# TODO update table columns
+# TODO remove unwanted columns before uploading to server
+
 #### GET DATA
 dfAPI = pd.read_csv("freqs_data.csv")
 dfAPI["#"] = dfAPI.index
@@ -252,7 +256,7 @@ app.layout = html.Div(
                     style={"width": "100%"},
                 ),
                 html.Br(),
-                html.H6(children="all records"),
+                html.H6(children="All records"),
                 html.Div(
                     [
                         dash_table.DataTable(

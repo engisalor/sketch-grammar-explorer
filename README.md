@@ -1,8 +1,33 @@
 # Sketch Grammar Explorer
 
+## About
+
+Sketch Grammar Explorer (SGE) is a [Dash](https://dash.plotly.com/) web application to help visualize the data for a semantic sketch grammar. The SGE retrieves frequencies from the [Sketch Engine](https://www.sketchengine.eu/) corpus management system using Python scripts and API calls. The app then generates interactive graphs that show how sketch grammar concordances are distributed in a corpus.
+
+The SGE is meant to help evaluate and improve the EcoLexicon Semantic Sketch Grammar (ESSG), from the University of Granada's [LexiCon research group](https://lexicon.ugr.es/). The app analyzes concordances from the EcoLexicon corpus, a collection of specialized environmental texts used as the source data for the [EcoLexicon terminological knowledge base](http://ecolexicon.ugr.es/).
+
+What is a semantic sketch grammar? It is a kind of knowledge extraction tool meant to automate the process of finding useful information in texts. This kind of grammar looks for pairs of terms that have specific semantic relations so that linguists can map how terms relate to each other within a discipline.
+
+The SGE focuses on exploring how concordances are distributed in a corpus by text types, such as genre, domain, and editor. It is also an attempt to
+
+
+
+
+
 ## Usage
 
-### Filtering Table Data
+### Graphs
+
+* Use dropdowns to select the desired conceptual relation and text type
+* Change colors from continuous to discrete depending on what data you want to compare
+
+* Select and deselect legend items:
+  * single click to toggle between all/one item
+  * double click to add/remove items from current selection
+  
+![](selecting_patterns.gif)
+
+### Tables
 
 * numbers: 
   * e.g. "79" (quotes required)
@@ -48,9 +73,9 @@ auth = dash_auth.BasicAuth(app, VALID_USERNAME_PASSWORD_PAIRS)
 
 #### Add sketch grammar
 
-Supply a file named `grammar.txt` that contains the desired sketch grammar. These are available on Sketch Engine in the corpus details page.
+Supply a file named `grammar.txt` that contains the desired sketch grammar. The EcoLexicon Semantic Sketch Grammar is available [here](https://ecolexicon.ugr.es/ecolexicon_sketch_file.html).
 
-If using a sketch grammar other than EcoLexicon's, additional changes are necessary (see Customization).
+If using a sketch grammar other than EcoLexicon's, adapting the Python scripts is necessary.
 
 #### Get corpus info
 
@@ -62,13 +87,8 @@ Run `freqs_api.py` to collect frequency data for each CQL expression.
 
 #### Process data
 
-Run `freqs_prep.py` to process the data, generate statistics, and save it in several .csv files.
+Run `freqs_prep.py` to process the data, generate statistics, and save it in .csv files.
 
 ## Using other corpora
 
-Below are general instructions for using other corpora.
-
-Refer to Sketch Engine and Dash documentation for details:
-
-* <https://www.sketchengine.eu/documentation/api-documentation/>
-* <https://dash.plotly.com/>
+Refer to [Sketch Engine](https://www.sketchengine.eu/documentation/api-documentation/) and [Dash](https://dash.plotly.com/) to customize the app.
