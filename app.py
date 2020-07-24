@@ -5,38 +5,28 @@ import dash_table
 from dash.dependencies import Input, Output
 import plotly.express as px
 from colour import Color
+import pandas as pd
 
 # import requests
 # import dash_auth
-import pandas as pd
-
-# TODO move more data prep to prep script
-# TODO update table columns
-# TODO remove unwanted columns before uploading to server
 
 #### GET DATA
 dfAPI = pd.read_csv("freqs_data.csv")
-dfAPI["#"] = dfAPI.index
 dfSTATSrels = pd.read_csv("freqs_stats_rels.csv")
 dfSTATSttypes = pd.read_csv("freqs_stats_ttypes.csv")
 # make dict for graph hover values (quicker than w/ dataframes)
 dtGRAM = dfSTATSrels[["ref#", "relation", "cql"]].set_index("ref#").T.to_dict("list")
-# exclude text types with too many values from graph
+# get text types
 text_types = sorted(dfAPI["text type"].unique())
-text_types = [x for x in text_types if x not in ["Author", "Title", "Keywords"]]
-# TODO drop these data points from df before uploading to app
 
-
-#### GENERATE DATAFRAME FOR FACETED GRAPH
-dfNEW = pd.DataFrame()
+#### MAKE FACETED GRAPH DATAFRAME
+dfGRAPH = pd.DataFrame()
 for x in ["fpm", "rel"]:
     dftemp = dfAPI
     dftemp["int"] = dftemp[x]
     dftemp["stat"] = x
-    dfNEW = dfNEW.append(dftemp, ignore_index=True)
-
-dfNEW.sort_values(by="#").head()
-dfNEW.drop(columns=["rel", "fpm"], inplace=True)
+    dfGRAPH = dfGRAPH.append(dftemp, ignore_index=True)
+dfGRAPH.drop(columns=["rel", "fpm"], inplace=True)
 
 #### GET CQL INDEXES GROUPED BY RELATION
 with open("grammar.txt") as f:
@@ -58,8 +48,9 @@ for i in range(0, len(rel_lines) - 1):
 rel_list[len(rel_lines) - 1] = [
     x for x in cqllines if x in range(rel_lines[-1], len(lines))
 ]
-# make continuous color scales
-# colors defined with https://www.w3schools.com/colors/colors_picker.asp using the lighter/darker scale values at 90% (lighest) and 10% (darkest)
+
+#### MAKE CONTINUOUS COLOR SCALE
+# https://www.w3schools.com/colors/colors_picker.asp using the lighter/darker scale values at 90% (lightest) and 10% (darkest)
 colorRanges = [
     [Color("#ccccff"), Color("#000033")],  # blue
     [Color("#ffccff"), Color("#330033")],  # pink
@@ -199,7 +190,7 @@ app.layout = html.Div(
                                 {"label": x, "value": x}
                                 for x in ["text type", "relation"]
                             ],
-                            value="text type",
+                            value="relation",
                             labelStyle={"display": "inline-block"},
                         ),
                         dcc.Checklist(
@@ -265,7 +256,7 @@ app.layout = html.Div(
                             columns=[
                                 {"id": c, "name": c}
                                 for c in [
-                                    "#",
+                                    # "data point",
                                     "ref#",
                                     "text type",
                                     "value",
@@ -319,8 +310,8 @@ def update_graph(DDtext_types, DD_relation, RAD_colors):
     rel_all = [rel_list[x] for x in DD_relation]
     rel_all = [i for s in rel_all for i in s]
     # filter by text type and relation
-    dffAPI = dfNEW.loc[
-        (dfNEW["ref#"].isin(rel_all)) & (dfNEW["text type"].isin(DDtext_types))
+    dffAPI = dfGRAPH.loc[
+        (dfGRAPH["ref#"].isin(rel_all)) & (dfGRAPH["text type"].isin(DDtext_types))
     ].sort_values(by="ref#")
     try:
         # graph

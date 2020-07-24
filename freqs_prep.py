@@ -3,7 +3,7 @@ import numpy as np
 import glob
 import re
 
-#### DATA COLLECTION
+#### MAKE REFERENCE DICTIONARY
 # read grammar file
 with open("grammar.txt") as f:
     lines = [line.rstrip() for line in f]
@@ -16,9 +16,15 @@ for i in range(0, len(cqllines)):
     rslice = reversed(lines[: cqllines[i]])
     gramrel = next((x for x in rslice if "#" in x), ["NA"])
     dtGRAM[cqllines[i]] = [gramrel, lines[cqllines[i]]]
+# update CQL expressions
+for x in dtGRAM:
+    # change default attribute syntax ("N.*" to [tag="N.*"])
+    dtGRAM[x][1] = re.sub('(?<!=)("[\|\.\*A-Z]+")', "[tag=\g<0>]", dtGRAM[x][1]) 
+    # limit to within sentence
+    dtGRAM[x][1] = dtGRAM[x][1] + ' within <s/>'
 
-#### DATA PREP
-# merge all freqs files into dataframe
+#### MAKE DATAFRAME
+# merge all freqs files
 filesAPI = glob.glob("freqs/" + "*.npy")
 dfAPI = pd.DataFrame()
 # process individual files
@@ -78,11 +84,17 @@ for x in ['domain']:
     dfAPI.loc[dfAPI['text type'].eq(x), 'value'] = dfAPI.loc[dfAPI['text type'].eq(x), 'value'].str.title()
     dfAPI.loc[dfAPI['text type'].eq(x), 'value'] = dfAPI.loc[dfAPI['text type'].eq(x), 'value'].str.replace(' And ',' and ')
     dfAPI.loc[dfAPI['text type'].eq(x), 'value'] = dfAPI.loc[dfAPI['text type'].eq(x), 'value'].str.replace('Domain','domain')
-
-
 dfAPI["text type"] = dfAPI["text type"].str.title()
 dfAPI['value'] = dfAPI['value'].str.replace('/Na','/NA')
 dfAPI['value'] = dfAPI['value'].str.replace('/na','/NA')
+
+#### OTHER
+# change index (for displaying in alldata table)
+# dfAPI["data point"] = range(0,len(dfAPI))
+# dfAPI.sort_values(by="data point")
+# drop rows from unwanted text types
+drops = dfAPI[dfAPI['text type'].isin(["Author", "Title", "Keywords", "Variant", "Year", "Country"])].index
+dfAPI.drop(drops, inplace=True)
 
 #### STATISTICS
 # comparing all relations
@@ -97,8 +109,6 @@ for y in ["freq", "fpm", "rel"]:
     dfSTATSrels[y + " max"] = [dfAPI.loc[dfAPI["ref#"] == i][y].max() for i in dtGRAM]
     dfSTATSrels[y + " mean"] = [dfAPI.loc[dfAPI["ref#"] == i][y].mean() for i in dtGRAM]
     dfSTATSrels[y + " std"] = [dfAPI.loc[dfAPI["ref#"] == i][y].std() for i in dtGRAM]
-    # dfSTATSrels[y + " skew"] = [dfAPI.loc[dfAPI["ref#"] == i][y].skew() for i in dtGRAM]
-    # dfSTATSrels[y + " kurt"] = [dfAPI.loc[dfAPI["ref#"] == i][y].kurt() for i in dtGRAM]
 
 # comparing text types
 dfSTATSttypes = pd.DataFrame()
@@ -124,14 +134,6 @@ for y in ["freq", "fpm", "rel"]:
         dfAPI.loc[dfAPI["text type"] == x][y].std()
         for x in sorted(dfAPI["text type"].unique())
     ]
-    # dfSTATSttypes[y + " skew"] = [
-    #     dfAPI.loc[dfAPI["text type"] == x][y].skew()
-    #     for x in sorted(dfAPI["text type"].unique())
-    # ]
-    # dfSTATSttypes[y + " kurt"] = [
-    #     dfAPI.loc[dfAPI["text type"] == x][y].kurt()
-    #     for x in sorted(dfAPI["text type"].unique())
-    # ]
 
 #### SAVE FILES
 dfAPI.to_csv("freqs_data.csv", index=False)
