@@ -3,6 +3,13 @@ import numpy as np
 import time
 import re
 
+### 
+# this script saves api calls for each expression in a sketch grammar 
+# expressions are identified by line number (starting at 0)
+# grammar.txt is based on Sketch Engine's sketch grammar file
+# modifications may be needed to run a new file for first time 
+###
+
 # get login credentials
 with open("auth_api.txt") as f:
     LOGIN = dict(x.rstrip().split(":") for x in f)
@@ -25,12 +32,15 @@ for i in range(0, len(cqllines)):
     relation = next((x for x in rslice if "#" in x), ["NA"])
     dt[cqllines[i]] = [relation, lines[cqllines[i]]]
 
-# modify default attribute syntax ("N.*" to [tag="N.*"])
+# modify CQL expressions
 for x in dt:
-    dt[x][1] = re.sub('(?<!=)("[\|\.\*A-Z]+")', "[tag=\g<0>]", dt[x][1])
+    # change default attribute syntax ("N.*" to [tag="N.*"])
+    dt[x][1] = re.sub('(?<!=)("[\|\.\*A-Z]+")', "[tag=\g<0>]", dt[x][1]) 
+    # limit to within sentence
+    dt[x][1] = dt[x][1] + ' within <s/>'
 
-    # do requests
-    for x in dt: # or "for x in [INDEX]:" for a single query
+# make requests
+for x in dt: # or "for x in [INDEX]:" for a single query
     base_url = "https://api.sketchengine.eu/bonito/run.cgi/"
     query_type = "freqs?"
     cql_query = dt[x][1]
@@ -41,14 +51,11 @@ for x in dt:
         "username": LOGIN["username"],
         "api_key": LOGIN["api_key"],
         "async": "0",
-        "format": "json",
-    }
-
+        "format": "json"}
+    print("... making request " + str(x))
     d = requests.get(base_url + query_type, params=data).json()
-
     # save
     np.save("freqs/freqs" + str(x) + ".npy", d)
-
     # sleep
     time.sleep(4)
 
