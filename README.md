@@ -10,9 +10,9 @@ The SGE is meant to help evaluate and improve the EcoLexicon Semantic Sketch Gra
 
 # Purpose
 
-What is a semantic sketch grammar? It's a knowledge extraction tool meant to automate the process of finding useful information in digital texts. 
+What is a semantic sketch grammar? It's a knowledge extraction tool meant to automate the process of finding useful information in digital texts.
 
-This kind of grammar looks for pairs of terms that have specific semantic relations (*type of*, *part of*, *result of*) for the purpose of mapping how terms relate to each other within a discipline. Semantic sketch grammars are particularly useful for terminologists and translators who specialize in domain-specific content. The end goal of such tools is to develop a conceptual system of a subject area. The example below, from [EcoLexicon](http://ecolexicon.ugr.es/), shows an conceptual map of the term "fire."
+This kind of grammar looks for pairs of terms that have specific semantic relations (*type of*, *part of*, *result of*, etc.) for the purpose of mapping how terms relate to each other within a discipline. Semantic sketch grammars may be particularly useful for terminologists and translators who specialize in domain-specific content. The end goal of such tools is to develop a conceptual system of a subject area. The example below, from [EcoLexicon](http://ecolexicon.ugr.es/), shows a conceptual map of the term "fire."
 
 ![](images/fire.png)
 
@@ -25,7 +25,7 @@ The SGE isn't for mining data itself, but is rather part of a corpus linguistics
 SGE graphs contain the following elements:
 
 * Two frequency types: frequency per million (fpm) and relative frequency (rel)
-* Text type categories (User) and entries (Expert, Semi-expert)
+* Text type categories (e.g., User) and their entries (Expert, Semi-expert)
 * Relational categories (is the generic of / is a type of) and a list of conceptual relations (shown in the legend) that use different key phrases, like *type of* or *such as*
 
 ![](images/sge_example.png)
@@ -55,7 +55,7 @@ SGE graphs contain the following elements:
     * Quotes are usually optional
   * Text
     * atmospheric sciences
-    * Quotes usually optional
+    * Quotes are usually optional
 
 ![](images/table_ui.gif)
 
@@ -63,6 +63,6 @@ SGE graphs contain the following elements:
 
 * A deployed version is on [Heroku](https://sketch-grammar-explorer.herokuapp.com/)
 * Other usage requires Sketch Engine credentials
-* See [Sketch Engine](https://www.sketchengine.eu/documentation/api-documentation/) API documentation 
+* See [Sketch Engine](https://www.sketchengine.eu/documentation/api-documentation/) API documentation
 * See [Dash](https://dash.plotly.com/) documentation for app development
 * Python scripts must be modified for use with other corpora
