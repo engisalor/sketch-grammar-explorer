@@ -4,8 +4,8 @@ import time
 import re
 
 ### 
-# this script saves api calls for each expression in a sketch grammar 
-# expressions are identified by line number (starting at 0)
+# this script saves api calls for each rule in a sketch grammar 
+# rules are identified by line number (starting at 0)
 # grammar.txt is based on Sketch Engine's sketch grammar file
 # modifications may be needed to run a new file for first time 
 ###
@@ -22,7 +22,7 @@ with open("grammar.txt") as f:
     lines = [line.rstrip() for line in f]
 lines = lines[lines.index("### Pilar's relations start here") :]
 
-# get indexes of CQL expressions
+# get indexes of CQL rules
 cqllines = [i for i, x in enumerate(lines) if "[" in x]
 
 # make dict of relations & CQL expressions
@@ -32,7 +32,7 @@ for i in range(0, len(cqllines)):
     relation = next((x for x in rslice if "#" in x), ["NA"])
     dt[cqllines[i]] = [relation, lines[cqllines[i]]]
 
-# modify CQL expressions
+# modify CQL rules
 for x in dt:
     # change default attribute syntax ("N.*" to [tag="N.*"])
     dt[x][1] = re.sub('(?<!=)("[\|\.\*A-Z]+")', "[tag=\g<0>]", dt[x][1]) 
@@ -40,7 +40,7 @@ for x in dt:
     dt[x][1] = dt[x][1] + ' within <s/>'
 
 # make requests
-for x in dt: # or "for x in [INDEX]:" for a single query
+for x in dt[7]: # or "for x in dt[INDEX]:" for a single query
     base_url = "https://api.sketchengine.eu/bonito/run.cgi/"
     query_type = "freqs?"
     cql_query = dt[x][1]
@@ -55,7 +55,7 @@ for x in dt: # or "for x in [INDEX]:" for a single query
     print("... making request " + str(x))
     d = requests.get(base_url + query_type, params=data).json()
     # save
-    np.save("freqs/freqs" + str(x) + ".npy", d)
+    np.save("freqs1/freqs" + str(x) + ".npy", d)
     # sleep
     time.sleep(4)
 
