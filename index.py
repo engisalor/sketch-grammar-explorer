@@ -7,7 +7,7 @@ from app import app
 from app import server
 
 # Connect to your app pages
-from apps import app3, app2, app1
+from apps import app4, app3, app2, app1
 
 
 app.layout = html.Div(
@@ -61,11 +61,10 @@ app.layout = html.Div(
                 html.H2(children="Sketch Grammar Explorer"),
                 html.Div(
                     [
-                        dcc.Link(
-                            "Frequency Visualizations    |    ", href="/apps/app1"
-                        ),
+                        dcc.Link("Frequency Visualizations    |    ", href="/apps/app1"),
                         dcc.Link("Summary Table    |    ", href="/apps/app2"),
-                        dcc.Link("All Records", href="/apps/app3"),
+                        dcc.Link("All Records    |    ", href="/apps/app3"),
+                        dcc.Link("Text Types", href="/apps/app4"),
                     ],
                     className="row",
                 ),
@@ -78,6 +77,8 @@ app.layout = html.Div(
 
 @app.callback(Output("page-content", "children"), [Input("url", "pathname")])
 def display_page(pathname):
+    if pathname == "/apps/app4":
+        return app4.layout
     if pathname == "/apps/app3":
         return app3.layout
     if pathname == "/apps/app2":
