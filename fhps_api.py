@@ -4,7 +4,7 @@ import time
 import re
 
 ### 
-# this script saves api calls for each rule in a sketch grammar 
+# this script saves api calls (returning a list of hits/sentence) for each rule in a sketch grammar 
 # rules are identified by line number (starting at 0)
 # grammar.txt is based on Sketch Engine's sketch grammar file
 # modifications may be needed to run a new file for first time 
@@ -40,22 +40,25 @@ for x in dt:
     dt[x][1] = dt[x][1] + ' within <s/>'
 
 # make requests
-for x in dt[7]: # or "for x in [INDEX]:" for a single query
+for x in [27]: # or "for x in [INDEX]:" for a single query
     base_url = "https://api.sketchengine.eu/bonito/run.cgi/"
-    query_type = "freqs?"
+    query_type = "freqs" #freqs freqml freqtt
     cql_query = dt[x][1]
     data = {
         "q": "q" + cql_query,
-        "fcrit": [x + " 0<0" for x in corp_info["freqttattrs"]],
+        "fcrit": 's 0',
+        "freq_sort": "frq",
         "corpname": "preloaded/ecolexicon_en",
         "username": LOGIN["username"],
         "api_key": LOGIN["api_key"],
-        "async": "0",
+        "asyn": "0",
         "format": "json"}
     print("... making request " + str(x))
     d = requests.get(base_url + query_type, params=data).json()
     # save
-    np.save("data/freqs/freqs" + str(x) + ".npy", d)
+    np.save("data/fhps/fhps" + str(x) + ".npy", d)
+    # np.save("TEST" + str(x) + ".npy", d)
+
     # sleep
     time.sleep(4)
 
