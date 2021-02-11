@@ -9,9 +9,9 @@ from app import app
 
 #### GET DATA
 
-dfAPI = pd.read_csv("freqs_data.csv")
-dfSTATSrels = pd.read_csv("freqs_stats_rels.csv")
-# dfSTATSttypes = pd.read_csv("freqs_stats_ttypes.csv")
+dfAPI = pd.read_csv("data/freqs_data.csv")
+dfSTATSrels = pd.read_csv("data/freqs_stats_rels.csv")
+# dfSTATSttypes = pd.read_csv("data/freqs_stats_ttypes.csv")
 # make dict for graph hover values (quicker than w/ dataframes)
 dtGRAM = dfSTATSrels[["ref#", "relation", "cql"]].set_index("ref#").T.to_dict("list")
 # get text types

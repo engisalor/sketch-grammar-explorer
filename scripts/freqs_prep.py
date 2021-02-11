@@ -136,6 +136,6 @@ for y in ["freq", "fpm", "rel"]:
     ]
 
 #### SAVE FILES
-dfAPI.to_csv("freqs_data.csv", index=False)
-dfSTATSrels.to_csv("freqs_stats_rels.csv", index=False)
-dfSTATSttypes.to_csv("freqs_stats_ttypes.csv", index=False)
+dfAPI.to_csv("data/freqs_data.csv", index=False)
+dfSTATSrels.to_csv("data/freqs_stats_rels.csv", index=False)
+dfSTATSttypes.to_csv("data/freqs_stats_ttypes.csv", index=False)

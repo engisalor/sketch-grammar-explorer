@@ -22,7 +22,7 @@ data = {
 d = requests.get(base_url + query_type, params=data).json()
 
 # save
-np.save("corp_info.npy", d)
+np.save("data/corp_info.npy", d)
 
 # to load file
 # corp_info = np.load('corp_info.npy',allow_pickle='TRUE').item()

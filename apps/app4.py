@@ -9,7 +9,7 @@ from app import app
 #### GET DATA
 
 # load
-temp = pd.read_csv('data/PR/ttypes.csv')
+temp = pd.read_csv('data/ttypes.csv')
 
 #### LAYOUT
 

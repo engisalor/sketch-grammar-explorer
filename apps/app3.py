@@ -6,7 +6,7 @@ from app import app
 
 #### GET DATA
 
-dfAPI = pd.read_csv("freqs_data.csv")
+dfAPI = pd.read_csv("data/freqs_data.csv")
 
 #### LAYOUT
 

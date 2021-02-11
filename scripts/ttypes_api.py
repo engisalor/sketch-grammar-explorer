@@ -60,4 +60,4 @@ temp["all"] = range(0, len(temp))
 # get relevant columns to graph
 temp = temp.filter(["all", "index", "ttype", "item", "frq", "norm", "rel", "fpm"], axis=1)
 
-temp.to_csv("data/ttypes/ttypes.csv",index=False)
+temp.to_csv("data/ttypes.csv",index=False)

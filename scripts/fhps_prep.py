@@ -36,4 +36,4 @@ for file in filesAPI:
 dfAPI = dfAPI.sort_values(by=["ref#"])
 
 #### SAVE FILES
-dfAPI.to_csv("fhps_data.csv", index=False)
+dfAPI.to_csv("data/fhps/fhps_data.csv", index=False)

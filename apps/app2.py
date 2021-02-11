@@ -7,8 +7,8 @@ from app import app
 
 #### GET DATA
 
-dfSTATSrels = pd.read_csv("freqs_stats_rels.csv")
-dfSTATSttypes = pd.read_csv("freqs_stats_ttypes.csv")
+dfSTATSrels = pd.read_csv("data/freqs_stats_rels.csv")
+dfSTATSttypes = pd.read_csv("data/freqs_stats_ttypes.csv")
 
 #### LAYOUT
 
