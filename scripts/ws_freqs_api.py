@@ -10,6 +10,8 @@ import re
 # * using a list of corpus text types (Editor, Domain, etc.)
 # * and all of their entries (Academic, Government, etc.)
 # it's not designed for text types with thousands of entries (author, key words, etc.) 
+#
+# note: the Domain ttype must be made plural for the API request to work
 ####
 
 # TODO test fmaxitems
@@ -20,7 +22,9 @@ with open("auth_api.txt") as f:
     LOGIN = dict(x.rstrip().split(":") for x in f)
 
 # get corpus text types
-df = pd.read_csv('data/PR/ttypes.csv')
+df = pd.read_csv('data/ttypes.csv')
+# change text types to plural
+df.loc[(df["ttype"] == "Domain"), "ttype"] = "Domains"
 # corp_info = np.load("corp_info.npy", allow_pickle="TRUE").item() # secondary method
 
 # get grammar
@@ -40,6 +44,7 @@ wslist = ['"' + re.sub('.*" ', ".*", w) + '"' for w in wslist]
 
 # make requests
 for x,y in df.filter(["ttype", "item"], axis=1).to_numpy(): # for all ttypes
+# for x,y in np.array([['Domains', 'Biology']]): # for a single pair
     # define query
     wstype = wslist[1] # pick one wstype here
     ttypestr = 'within <doc (' + x.lower() + '="' + y + '") />'
