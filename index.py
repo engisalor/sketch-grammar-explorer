@@ -7,9 +7,7 @@ from app import app
 from app import server
 
 # Connect to your app pages
-from apps import app4, app3, app2, app1
-
-print("change")
+from apps import app5, app4, app3, app2, app1
 
 app.layout = html.Div(
     [
@@ -65,7 +63,8 @@ app.layout = html.Div(
                         dcc.Link("Frequency Visualizations    |    ", href="/apps/app1"),
                         dcc.Link("Summary Table    |    ", href="/apps/app2"),
                         dcc.Link("All Records    |    ", href="/apps/app3"),
-                        dcc.Link("Text Types", href="/apps/app4"),
+                        dcc.Link("WS freqs    |    ", href="/apps/app4"),
+                        dcc.Link("Precision Analysis", href="/apps/app5"),
                     ],
                     className="row",
                 ),
@@ -78,6 +77,8 @@ app.layout = html.Div(
 
 @app.callback(Output("page-content", "children"), [Input("url", "pathname")])
 def display_page(pathname):
+    if pathname == "/apps/app5":
+        return app5.layout
     if pathname == "/apps/app4":
         return app4.layout
     if pathname == "/apps/app3":
