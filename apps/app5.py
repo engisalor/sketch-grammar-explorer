@@ -127,8 +127,9 @@ def parse_contents(contents, filename):
     Input('upload', 'contents')],
     [State('upload', 'filename'),
     State("sample", "value"),
-    State("switch","on")])
-def input_triggers_spinner(clicks,contents,filename,sample,switch):
+    State("switch","on"),
+    State("textarea","value")])
+def input_triggers_spinner(clicks,contents,filename,sample,switch,textarea):
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     # upload file
     if changed_id == "upload.contents":
@@ -144,13 +145,13 @@ def input_triggers_spinner(clicks,contents,filename,sample,switch):
         # make url
         base_url = "https://api.sketchengine.eu/bonito/run.cgi/"
         query_type = "view?"
-        cql_query = "q" + '1:[lemma="climate"] []{1,10} 2:[lemma="change"]'
+        cql_query = "q" + textarea # e.g. '1:[lemma="climate"] []{1,10} 2:[lemma="change"]'
         # random sample
         if switch == True:
             rand = "r" + str(sample)
         else:
             rand = ""
-        print(switch)
+
         data = {
             "q": [cql_query, rand], 
             # TODO try list of queries w/ ‘q=item1;q=item2…’
@@ -169,37 +170,51 @@ def input_triggers_spinner(clicks,contents,filename,sample,switch):
 
         d = requests.get(base_url + query_type, params=data).json()
 
+        # error handling  
+        if "error" in d:
+            print(d["error"])
+
         #### PREP DATA
 
         # create df
         temp = pd.DataFrame()
         for x in d["Lines"]:
             temp = temp.append(pd.DataFrame.from_dict(x, orient="index").T)
+
+        # create concordance w bold kwic elements 
+        for x in range(0, len(d["Lines"])):
+            ls = []
+            for y in range(0,len(d["Lines"][x]["Kwic"])):
+                # add ** around labelled kwic items
+                if d["Lines"][x]["Kwic"][y]["class"] == 'col0 coll coll':
+                    d["Lines"][x]["Kwic"][y]["str"] = "**" + d["Lines"][x]["Kwic"][y]["str"] + "**"
+                # combine kwic elements
+                ls.append(d["Lines"][x]["Kwic"][y]["str"])
+            d["Lines"][x]["fullkwic"] = "".join(ls)
+            #combine full conc
+            left = "".join([d["Lines"][x]["Left"][y]["str"] for y in range(0,len(d["Lines"][x]["Left"]))])
+            right = "".join([d["Lines"][x]["Right"][y]["str"] for y in range(0,len(d["Lines"][x]["Right"]))])
+            d["Lines"][x]["conc"] = left + d["Lines"][x]["fullkwic"] + right
+
         # create columns
         temp["doc"] = [int(re.sub("\D", "",temp.iloc[x]["Refs"][0])) for x in range(0, len(temp["Refs"]))]
         temp["s"] = [int(re.sub("\D", "",temp.iloc[x]["Refs"][1])) for x in range(0, len(temp["Refs"]))]
-        temp["left"] = [temp.iloc[x]["Left"][0]["str"] for x in range(0, len(temp))]
-        temp["q1"] = [temp.iloc[x]["Kwic"][0]["str"] for x in range(0, len(temp))]
-        temp["mid"] = [temp.iloc[x]["Kwic"][1]["str"] for x in range(0, len(temp))]
-        temp["q2"] = [temp.iloc[x]["Kwic"][2]["str"] for x in range(0, len(temp))]
-        temp["right"] = [temp.iloc[x]["Right"][0]["str"] for x in range(0, len(temp))]
+        temp["conc"] = [d["Lines"][x]["conc"] for x in range(0, len(d["Lines"]))]
         temp["concsize"] = d["concsize"]
         temp["relsize"] = d["relsize"]
+        temp["#"] = range(0, len(temp))
+        temp["precise"] = ""
 
-        # combine columns with markdown fonts
-        temp["q1"] = "**" + temp["q1"]  + "**"
-        temp["mid"] = temp["mid"]
-        temp["q2"] = "**" + temp["q2"]  + "**"
-        temp["kwic"] = temp["left"] + temp["q1"] + temp["mid"] + temp["q2"] + temp["right"]
         # TODO use md links to go to sketch engine [title](https://www.example.com)
 
         # filter columns
-        df = temp.filter(["doc", "s", "kwic"], axis=1).sort_values(by="s", ascending=True)
+        df = temp.filter(["#", "precise", "doc", "s", "conc","concsize","relsize"], axis=1).sort_values(by="s", ascending=True)
 
         # add markdown coding in table
         columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in df.columns]
 
-        return rand, df.round(2).to_dict("records"), columns
+        return '', df.round(2).to_dict("records"), columns
+
     else:
         raise PreventUpdate
 
