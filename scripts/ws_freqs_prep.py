@@ -8,7 +8,7 @@ import re
 ####
 
 #### test a single file
-freqs = np.load('data/ws/ws_freqs_isatypeof_Domain_Biology.npy', allow_pickle="TRUE").item()
+freqs = np.load('data/ws/ws_freqs_isatypeof_Domains_Biology.npy', allow_pickle="TRUE").item()
 freqs1 = [freqs["Blocks"][x]["Items"] for x in range(0, len(freqs["Blocks"]))]
 temp = pd.DataFrame()
 for x in range(0, len(freqs1)):
