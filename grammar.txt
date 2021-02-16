@@ -1,0 +1,254 @@
+### Pilar's relations start here
+
+*DUAL
+="%w" is the generic of.../"%w" is a type of...
+
+#1 HYPO is a type of HYPER
+
+2:"N.*" [tag!="V.*"]{0,7} [lemma="be|,|:|belong|\("] [tag!="V.*"]{0,7} [lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"] [word="of"] [tag!="V.*"]{0,7} 1:"N.*"
+
+#2 type of HYPER includes/is HYPO
+
+("DT"|"CD"|[word="some|several|any|various|distinct|different"]) "RB.*"* "JJ.*"* [lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"] [word="of"] [tag!="V.*|IN"]{0,5} 1:"N.*" []{0,3} [lemma="include|be"] [tag!="V.*|IN.*"]{0,7} 2:"N.*"
+
+#3 type of HYPER ranges from HYPO to HYPO
+
+("DT"|"CD"|[word="some|several|any|various|distinct|different"]) "RB.*"* "JJ.*"* [lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"] [word="of"] [tag!="V.*|IN"]{0,5} 1:"N.*" []{0,3} [lemma="range"] [word="from"] [(tag!="V.*|IN.*|CD")|word="to"]{0,7} 2:"N.*"
+
+#4 HYPER types?, ranging from HYPO to HYPO
+
+1:"N.*" [lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"]? ",|\("? [word="ranging"] [word="from"] [(tag!="V.*|IN.*|CD")|word="to"]{0,7} 2:[tag="N.*"]
+
+#5 HYPER types include HYPO
+
+1:"N.*" [lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"] ",|\("? [word="which"]? "MD"* [lemma="include"] [tag!="V.*|CD"]* 2:"N.*"
+
+#6 HYPER such as HYPO
+
+1:"N.*" [tag!="V.*"]* [word="such"] [word="as"] [tag!="V.*"]* 2:"N.*"
+
+#7 HYPER including HYPO
+
+1:"N.*" [tag!="V.*"]{0,5} [word="including"] [tag!="V.*"]* 2:"N.*"
+
+#8 HYPER, especially HYPO
+
+1:"N.*" [word=",|\("] [word="especially|primarily|namely|usually|typically|characteristically|generally|mainly"] [tag!="V.*|IN"]* 2:"N.*"
+
+#9 HYPO and other HYPER
+
+2:"N.*" [tag!="V.*"]{0,7} [word="and|or"] [word="other"] "RB.*"* "JJ.*"* ([lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"] [word="of"])? [tag!="V.*"]{0,5} 1:[tag="N.*"]
+
+#10 HYPO is defined/classified as HYPER
+
+2:"N.*" [tag!="V.*"]{0,5} "MD"? [lemma="be|,|\("] [word!="not"]? [word="defined|classified|categori.ed|regarded"] [word="as"] "DT.*|RB.*|JJ.*"*  ([lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"] [word="of"])? [tag!="V.*"]{0,2} 1:[tag="N.*" & lemma!="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"]
+
+#11 x classify/regard/categorize HYPO as HYPER
+
+[lemma="classify|regard|categori.e"] [tag!="IN"](("DT"|[word="some|several|any|various|distinct|different"]) [tag!="V.*"]* [lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"] [word="of"])? [tag!="V.*"]* 2:"N.*" [word="as"] [tag!="V.*|IN"]* 1:"N.*"
+
+#12 HYPER classified in (x types of) HYPO
+
+1:"N.*" ",|\("? [tag="IN/that|WDT"]? "MD"* [lemma="be|,|\("] "RB.*"* [word="classified|categori.ed"] ([word="by"] [tag!="V.*"]*)? [word="in|into"] [tag!="V.*"]* [lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"]? [tag!="V.*"]* 2:[tag="N.*" & lemma!="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"]
+
+#13 HYPER divided into (x) categories (:|of) HYPO
+
+1:"N.*" ",|\("? [tag="IN/that|WDT"]? [lemma="be|,|\("] [word="divided"] [tag!="V.*"]* [word="in|into"] [tag!="V.*"]* [lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"] [tag!="V.*"]* 2:[tag="N.*" & lemma!="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"]
+
+#14 type of HYPER is|,|( known/referred/termed/called (to) (as) HYPO
+
+[lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"] [word="of"] 1:"N.*" ",|\("? [tag="IN/that|WDT"]? [lemma="be|,|\("]? "RB.*"* [word="known|referred|termed|named|called"] [word="to"]? [word="as"]? [tag!="V.*"]* 2:"N.*"
+
+#15 HYPO is a HYPER that
+
+2:"N.*" [tag!="V.*"]{0,4} [lemma="be"] "DT.*" "RB.*"* "JJ.*"* 1:"N.*" [tag="IN/that|WDT"]
+
+#16 define HYPO as a HYPER
+
+[lemma="define"] "DT.*"? [word="and"]? [tag!="V.*|IN"]{0,3} 2:"N.*" [word="as"] "DT.*"? [lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"]? [word="of"]? [tag!="V.*"]{0,2} 1:[tag="N.*" & lemma!="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"]
+
+#17 HYPO refers to HYPER
+
+2:"N.*" [tag!="V.*"]{0,4} [lemma="refer"] [word="to"] "DT.*"? [lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"]? [word="of"]? [tag!="V.*"]{0,3} 1:[tag="N.*" & lemma!="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"]
+
+#18 X type of HYPER: HYPO
+("DT"|"CD"|[word="some|several|any|various|distinct|different"]) []{0,2} [lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"] [word="of"] 1:"N.*" [word=":"] [tag!="V.*"]* 2:"N.*"
+
+
+*DUAL
+="%w" has part.../"%w" is part of...
+
+#1 WHOLE composed of PART
+
+1:"N.*" [tag!="V.*"]{0,7} ([tag="IN/that|WDT"] [tag="V.*"])? [tag!="V.*"]{0,7} [lemma="be"]? "RB.*"* [word="comprised|composed|constituted"] "RB.*"* ([word="in"] [tag="JJ.*"]? [lemma="part"])? [word="of|by"] [tag!="V.*"]{0,7} 2:"N.*"
+
+#2 WHOLE comprises PART
+
+1:"N.*" [lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"]? ",|\("? [tag="IN/that|WDT"]? [word=",|\("]? "RB.*"* [lemma="comprise" & tag!="VVN"] [tag!="V.*"]* 2:[tag="N.*" & lemma!="part|component|element|fraction|constituent|piece|portion|percent|percentage|region|area|zone|section|segment|fragment|content|concentration|volume|load|amount|mixture|composition|level"]
+
+#3 PART composes WHOLE
+
+2:"N.*" [tag!="V.*"]{0,7} ([tag="IN/that|WDT"] [tag="V.*"])? [tag!="V.*"]{0,10} [lemma="compose" & tag!="VVN"] [tag!="V.*"]{0,7} 1:[tag="N.*" & lemma!="part|component|element|fraction|constituent|piece|portion|percent|percentage|region|area|zone|section|segment|fragment|content|concentration|volume|load|amount|mixture|composition|level|threat"]
+
+#4 PART is/constitutes part/element of WHOLE
+
+2:"N.*" [tag!="V.*"]{0,5} ([tag="IN/that|WDT"] [tag="V.*"])? [tag!="V.*"]{0,5}[lemma="be|constitute"] [tag="DT|JJ.*|RB.*|IN|," & word!="in|on|at|though|but|over|with"]*  [lemma="part|component|element|fraction|constituent|piece|portion|percent|percentage|section|segment|fragment|content|volume|load|mixture|composition|level|proportion|threat"] [word="of"] [tag!="V.*"]{0,7}  1:"N.*"
+
+#5 WHOLE has/includes x part :/such as/namely PART
+
+1:"N.*" [tag!="V.*"]{0,5} ([tag="IN/that|WDT"] [tag="V.*"])? [tag!="V.*"]{0,5} [lemma="have|include|possess"] [tag!="V.*"]{0,5} [lemma="element|part|component|constituent|piece|portion|section"] ",|\("? ([tag=":"] | [word="such"] [word="as"] | [word="especially|primarily|namely|usually|typically|characteristically|generally|mainly"])  [tag!="V.*"]{0,7} 2:"N.*"
+
+#6 WHOLE has/includes a x fraction of PART
+
+1:"N.*" [tag!="V.*"]{0,5} ([tag="IN/that|WDT"] [tag="V.*"])? [tag!="V.*"]{0,5} [lemma="have|include|possess"] [tag!="V.*"]{0,5} [lemma="fraction|percentage|percent|portion|amount|fragment|content|concentration|volume|load|mixture|composition|proportion"] [word="of"] [tag!="V.*"]{0,5} 2:[tag="N.*" & lemma!="fraction|percentage|percent|portion|amount|fragment|content|concentration|volume|load|mixture|composition|proportion"]
+
+#7 WHOLE part such as PART
+
+1:"N.*" [lemma="element|part|component|constituent|piece|portion|section|fragment|content"] ",|\("? [word="such"] [word="as"] [tag!="V.*"]{0,7} 2:"N.*"
+
+#8 part of the WHOLE :/such as/namely PART
+
+[lemma="element|part|component|constituent|piece|portion|section|fragment|content"] [word="of"] [tag!="V.*"]{0,5} 1:"N.*" [tag!="V.*"]{0,5} ",|\("? ([tag=":"] | [word="such"] [word="as"] | [word="especially|primarily|namely|usually|typically|characteristically|generally|mainly"]) [tag!="V.*"]{0,7} 2:"N.*"
+
+#9 a part of the WHOLE is PART
+
+("DT"|"CD"|[word="some|several|any|various|distinct|different"]) "RB.*"* "JJ.*"* [lemma="element|part|component|constituent|piece|portion|section|fragment"][word="of"] [tag!="V.*"]{0,5} 1:"N.*" [tag!="V.*"]{0,5} [lemma="be"] [tag!="V.*"]{0,7} 2:"N.*"
+
+#10 (that) part of the WHOLE is called PART
+
+("DT"|"CD"|[word="some|several|any|various|distinct|different"]) "RB.*"* "JJ.*"* [lemma="element|part|component|constituent|piece|portion|section|fragment|segment"][word="of"] [tag!="V.*"]{0,5} 1:"N.*" [tag!="V.*"]* [lemma="be"] "RB.*"* [word="called|termed|known|named|referred"] [word="to"]? [word="as"]? ([tag="DT|RB.*|JJ.*|N.*"]|[word="or|,|\(|\)"])*  2:"N.*"
+
+#11 PART, (a) component of WHOLE
+
+2:"N.*" ",|\(" "DT"? "RB.*"* "JJ.*"* [lemma="element|part|component|constituent|piece|portion|section|fragment|content|segment"] [word="of"] ([tag="DT|RB.*|JJ.*|N.*"]|[word=",|and|or"])* 1:"N.*"
+
+#12 WHOLE (which) is divided into x parts: PART
+
+1:"N.*" [tag!="V.*"]{0,5} ([tag="IN/that|WDT"] [tag="V.*"])? [tag!="V.*"]{0,5} [lemma="be"] "RB.*"* [word="divided"] [word="into|in"] "CD|DT"? "RB.*"* "JJ.*"* [lemma="element|part|component|constituent|piece|portion|section|fragment|content|segment"] ",|\("?  ([tag=":"] | [word="such"] [word="as"] | [word="especially|primarily|namely|usually|typically|characteristically|generally|mainly"]) [tag!="V.*"]* 2:"N.*"
+
+#13 WHOLE is divided into x PART
+
+1:[tag="N.*" & lemma!="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"] ",|\("? [tag="IN/that|WDT"]? [lemma="be|,|\("] "RB.*" [word="divided"] [word="in|into"] [tag!="V.*|IN" & lemma!="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"]* 2:[tag="N.*" & lemma!="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"]
+
+
+#MATERIAL
+
+#14 WHOLE made/formed/built of MATERIAL
+
+1:"N.*" ",|\("? [tag="IN/that|WDT"]? [lemma="be|,|\("]? "RB.*"* [word="made|built|constructed|formed"] [word="up"]? [word="of|from|with"] [tag!="V.*"]*  2:[tag="N.*"]
+
+#15 WHOLE contains MATERIAL
+
+1:"N.*" [tag!="V.*"]{0,5} ([tag="IN/that|WDT"] [tag="V.*"])? [tag!="V.*"]{0,5} [lemma="contain" & tag!="VVN"] [tag!="V.*"]{0,7} 2:[tag="N.*" & lemma!="part|component|element|fraction|constituent|piece|portion|percent|percentage|region|area|zone|section|segment|fragment|content|concentration|volume|load|amount|mixture|composition|level"]
+
+#16 MATERIAL contained in WHOLE
+
+2:"N.*" [tag!="V.*"]{0,5} ([tag="IN/that|WDT"] [tag="V.*"])? [tag!="V.*"]{0,5} [lemma="be"]? [word="contained"] "RB.*" [word="in"] [tag!="V.*"]* 1:"N.*"
+
+#17 WHOLE consists of MATERIAL
+
+1:"N.*" [tag!="V.*"]{0,5} ([tag="IN/that|WDT"] [tag="V.*"])? [tag!="V.*"]{0,5} [lemma="consist"] "RB.*"* [word="of"] [tag!="V.*"]* 2:"N.*"
+
+#18 WHOLE has a x fraction/percent of MATERIAL
+
+1:"N.*" ",|\("? ([tag="IN/that|WDT"] [tag="V.*"])? [tag!="V.*"]{0,5} [lemma="have|include|possess|contain"] "DT" [tag!="V.*"]{0,5} [lemma="fraction|percent|piece|portion|mixture|concentration|composition|content"] [word="of"] [tag!="V.*"]{0,7} 2:"N.*"
+
+
+*DUAL
+="%w" is located at.../"%w" is the location of...
+
+#1 ENTITY connected to PLACE
+
+1:"N.*" [tag!="V.*"]{0,5} ([tag="IN/that|WDT"] [tag="V.*"])? [tag!="V.*"]{0,5} [lemma="be"]? "RB.*"* ([word="connected"] [word="to"] | [word="delimited"] [word="by"]) [tag!="V.*"]* 2:"N.*"
+
+#2 ENTITY found in PLACE
+
+1:"N.*" [tag!="V.*"]{0,5} ([tag="IN/that|WDT"] [tag="V.*"])? [tag!="V.*"]{0,5} [lemma="be"]? "RB.*"* [word="found|built|placed|piled|stacked|mounted|located"] [word="near|in|along|on|by|next|over|at|into|onto|under"] [word="to"]? [tag!="V.*"]* 2:"N.*"
+
+#3 ENTITY is formed/forms in LOCATION
+1:"N.*" ",|\("? [tag="IN/that|WDT"]? [lemma="be|,|\("]? "RB.*" [lemma="form"] [word="over|on|in|off|near|along|next|under|onto|into|at"] [word="to"]? [tag!="V.*"]*  2:[tag="N.*"]
+
+#4 ENTITY extends out into PLACE
+
+1:"N.*" [tag!="V.*"]{0,5} ([tag="IN/that|WDT"] [tag="V.*"])? [tag!="V.*"]{0,5} [lemma="be"]? "RB.*"* [lemma="extend"][word="out"]? [word="into|parallel|perpendicular"] [word="of|to"]? [tag!="V.*"]* 2:"N.*"
+
+
+*DUAL
+="%w" is the cause of.../"%w" is caused by...
+
+#1 CAUSE responsible for EFFECT
+
+1:"N.*" [tag!="V.*"]{0,7}[lemma="be|,|\("]? [tag="RB.*" & word!="rarely|never|hardly"]* [word="responsible"] [word="for"] [tag!="V.*"]{0,5} 2:"N.*|V.*"
+
+#2 CAUSE causes EFFECT
+
+1:"N.*" [tag!="V.*"]{0,7} [lemma="cause|produce|generate|provoke|induce|trigger|originate" & tag!="VVN"] [tag!="V.*|IN"]{0,7} 2:"N.*" [word!="to"]
+
+#3 CAUSE leads to EFFECT
+
+1:"N.*" [tag!="V.*"]{0,7} ([lemma="lead|contribute"] | [lemma="give"] [lemma="rise"]) [word="to"] [tag!="V.*|IN"]{0,7} 2:"N.*|V.*"
+
+#4 CAUSE-driven EFFECT
+
+1:[tag="N.*" & word=".*driven|.*induced|.*caused"] 2:"N.*"
+
+#5 EFFECT caused by CAUSE
+
+2:"N.*" [tag!="V.*"]{0,7} [lemma="be|,|\("]? "RB.*"* [word="caused|produced|generated|provoked|induced|triggered|originated"] "RB.*"* ([word="by"]|[word="because"][word="of"] | [word="due"] [word="to"]) [tag!="V.*"]{0,7} 1:"N.*"
+
+#6 EFFECT results from CAUSE
+2:"N.*"[]{0,5} [tag!="V.*"]{0,7} [lemma="derive|result"] [word="from"] [tag!="V.*"]{0,7} 1:"N.*"
+
+#7 the cause of EFFECT is CAUSE
+
+[lemma="cause" & tag="N.*"] [word="of"] 2:"N.*" [tag!="V.*"]{0,3} [lemma="be"] [tag!="V.*"]{0,7} 1:"N.*"
+
+#8 CAUSE is the (main) cause of EFFECT
+
+1:"N.*" [tag!="V.*"]{0,7} [lemma="be"] [tag!="V.*"]{0,7} [lemma="cause" & tag="N.*"] [word="of"] 2:"N.*"
+
+#9 CAUSE, the (main) cause of EFFECT
+
+1:"N.*" ",|\(" [tag!="V.*"]{0,7} [lemma="cause" & tag="N.*"] [word="of"] 2:"N.*"
+
+#10 EFFECT is formed/forms by/from CAUSE
+2:"N.*" ",|\("? [tag="IN/that|WDT"]? [lemma="be|,|\("] "RB.*" [lemma="form"] [word="by|from"] [tag!="V.*"]*  1:[tag="N.*"]
+
+
+*DUAL
+="%w" has function.../"%w" is the function of...
+
+#1 INSTRUMENT has/provide/play/assume the function/role/purpose of FUNCTION
+
+1:"N.*" [tag!="V.*"]{0,7} "MD.*"? [tag="RB.*" & word!="not"]? [lemma="have|provide|play|assume|fulfill|serve|take|perform"] "DT.*|JJ.*|RB.*"* [lemma="function|role|purpose"] [word="of"] "DT.*|JJ.*|RB.*"* [tag!="W.*"]{0,7} 2:"N.*|V.*"
+
+#2 INSTRUMENT is built/designed for FUNCTION
+
+1:"N.*" [tag!="V.*"]{0,7} ",|\("? [tag="IN/that|WDT"]? "MD.*"? [tag="RB.*" & word!="not"]? [lemma="be|,|\("] [tag="RB.*" & word!="not"]* [word="built|designed|needed|required|selected|employed|devised|developed|known|well-known|adequate|necessary"] [word="for|to"] [tag!="W.*"]{0,7} "DT.*|JJ.*|RB.*"* 2:"N.*|V.*"
+
+#3 INSTRUMENT is essential/useful/appropiate/critical/effective for FUNCTION
+
+1:"N.*" [tag!="V.*"]{0,7} ",|\("? [tag="IN/that|WDT"]? "MD.*"? [tag="RB.*" & word!="not"]? [lemma="be|,|\("]? [tag="RB.*" & word!="not"]* [word="essential|useful|appropiate|critical|effective"] [word="for|to"] "DT.*|JJ.*|RB.*"* [tag!="W.*"]{0,7} 2:"N.*|V.*"
+
+#4 INSTRUMENT is a X (that is) designed for/to FUNCTION
+
+1:"N.*" [tag!="V.*"]{0,7} [lemma="be"] [tag="RB.*" & word!="not"]? "DT.*"? "N.*" [word="that"]? "MD.*"? [tag="RB.*" & word!="not"]? [lemma="be"]? [tag="RB.*" & word!="not"]* [word="built|designed|needed|required|selected|devised|developed|necessary"] [word="for|to"] "DT.*|JJ.*|RB.*"* [tag!="W.*"]{0,7} 2:"N.*|V.*"
+
+#5 INSTRUMENT is a X (that is) used for FUNCTION(verb/noun)
+
+1:"N.*" [tag!="V.*"]{0,7} [lemma="be"] "DT.*"? [tag="N.*" & lemma!="name|term|word"] [word="that"]? "MD.*"? [tag="RB.*" & word!="not"]? [lemma="be"]? [tag="RB.*" & word!="not"]* [word="used|reused|employed"] [word="for|as"] [tag!="W.*"]{0,7} 2:"N.*|V.*"
+
+#6 INSTRUMENT is used for FUNCTION
+
+1:"N.*" [tag!="V.*"]{0,7} ",|\("? [tag="IN/that|WDT"]? "MD.*"? [tag="RB.*" & word!="not"]? [lemma="be|,|\("] [tag="RB.*" & word!="not"]* [word="reused|used|employed"] [word="for|as"] "DT.*|JJ.*|RB.*"* [tag!="W.*"]{0,7} 2:[tag="N.*|V.*" & lemma!="purpose"]
+
+#7 Use #INSTRUMENT for/to FUNCTION
+
+[lemma="use|reuse|build|design|need|require|select|devise|develop|employ" & tag="V.*"] "DT.*|JJ.*|RB.*"* 1:"N.*" [tag!="V.*"]{0,7} [word="for|to|as"] "DT.*|JJ.*|RB.*"* [tag!="W.*"]{0,7} 2:"N.*|V.*"
+
+#8 The function/role/purpose of INSTRUMENT is FUNCTION
+
+[lemma="function|role|purpose"] [word="of"] "DT.*|JJ.*|RB.*"* 1:"N.*" [tag!="V.*"]{0,7} "MD.*"? [tag="RB.*" & word!="not"]? [lemma="be"] "DT.*|JJ.*|RB.*"* [tag!="V.*"]{0,7} 2:"N.*"
+
+[lemma="function|role|purpose"] [word="of"] "DT.*"* 1:"N.*" [tag!="V.*"]{0,7} "MD.*"? [tag="RB.*" & word!="not"]? [lemma="be"] "RB.*"* [word="to"] [tag="RB.*" & word!="not"]* [tag!="W.*"]{0,7} 2:"V.*"
+
