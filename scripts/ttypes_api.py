@@ -5,7 +5,7 @@ import time
 import re
 
 # get login credentials
-with open("auth_api.txt") as f:
+with open(".auth_api.txt") as f:
     LOGIN = dict(x.rstrip().split(":") for x in f)
 
 # get corpus text types

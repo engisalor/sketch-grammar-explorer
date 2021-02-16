@@ -2,7 +2,7 @@ import requests
 import numpy as np
 
 # get authentication pairs
-with open("auth_api.txt") as f:
+with open(".auth_api.txt") as f:
     LOGIN = dict(x.rstrip().split(":") for x in f)
 
 # set up request

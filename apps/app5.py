@@ -135,7 +135,7 @@ def input_triggers_spinner(clicks,contents,filename,sample,switch):
     # submit api call
     if changed_id == "submit.n_clicks":
         # get login credentials
-        with open("auth_api.txt") as f:
+        with open(".auth_api.txt") as f:
             LOGIN = dict(x.rstrip().split(":") for x in f)
 
         # make url

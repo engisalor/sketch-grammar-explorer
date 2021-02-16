@@ -6,7 +6,7 @@ import dash
 #### APP
 
 # get authentication pairs
-# with open("auth_app.txt") as f:
+# with open(".auth_app.txt") as f:
 # VALID_USERNAME_PASSWORD_PAIRS = dict(x.rstrip().split(":") for x in f)
 app = dash.Dash(
     __name__,
