@@ -14,6 +14,10 @@ import requests
 import time
 from app import app
 
+# TODO #6 run same searches in browser to check data integrity
+# TODO #8 add a box for setting other API parameters (corpus info, doc:entry combos)
+# TODO #9 add conc links to sketch engine using md in datatable [title](https://www.example.com)
+
 #### GET DATA
 # d = np.load('data/view/TEST.npy',allow_pickle='TRUE').item()
 
@@ -204,8 +208,6 @@ def input_triggers_spinner(clicks,contents,filename,sample,switch,textarea):
         temp["relsize"] = d["relsize"]
         temp["#"] = range(0, len(temp))
         temp["precise"] = ""
-
-        # TODO use md links to go to sketch engine [title](https://www.example.com)
 
         # filter columns
         df = temp.filter(["#", "precise", "doc", "s", "conc","concsize","relsize"], axis=1).sort_values(by="s", ascending=True)
