@@ -69,7 +69,7 @@ app.layout = html.Div(
                     ],
                     style={"display": "flex", "justify-content": "space-between"},
                 ),
-                html.H2(children="Sketch Grammar Explorer"),
+                html.H2(children="Sketch Grammar Explorer"),                
                 html.Div(
                     [
                         dcc.Link("Frequency Visualizations    |    ", href="/apps/app1"),
