@@ -17,6 +17,7 @@ from app import app
 # TODO #6 run same searches in browser to check data integrity
 # TODO #8 add a box for setting other API parameters (corpus info, doc:entry combos)
 # TODO #9 add conc links to sketch engine using md in datatable [title](https://www.example.com)
+# TODO #13 add metadata cols, make hidden
 
 #### GET DATA
 # d = np.load('data/view/TEST.npy',allow_pickle='TRUE').item()
@@ -132,8 +133,9 @@ def parse_contents(contents, filename):
     [State('upload', 'filename'),
     State("sample", "value"),
     State("switch","on"),
-    State("textarea","value")])
-def input_triggers_spinner(clicks,contents,filename,sample,switch,textarea):
+    State("textarea","value"),
+    State("version","title")])
+def input_triggers_spinner(clicks,contents,filename,sample,switch,textarea,version):
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     # upload file
     if changed_id == "upload.contents":
@@ -180,7 +182,7 @@ def input_triggers_spinner(clicks,contents,filename,sample,switch,textarea):
 
         #### PREP DATA
 
-        # create df
+        # create temp
         temp = pd.DataFrame()
         for x in d["Lines"]:
             temp = temp.append(pd.DataFrame.from_dict(x, orient="index").T)
@@ -200,17 +202,16 @@ def input_triggers_spinner(clicks,contents,filename,sample,switch,textarea):
             right = "".join([d["Lines"][x]["Right"][y]["str"] for y in range(0,len(d["Lines"][x]["Right"]))])
             d["Lines"][x]["conc"] = left + d["Lines"][x]["fullkwic"] + right
 
-        # create columns
-        temp["doc"] = [int(re.sub("\D", "",temp.iloc[x]["Refs"][0])) for x in range(0, len(temp["Refs"]))]
-        temp["s"] = [int(re.sub("\D", "",temp.iloc[x]["Refs"][1])) for x in range(0, len(temp["Refs"]))]
-        temp["conc"] = [d["Lines"][x]["conc"] for x in range(0, len(d["Lines"]))]
-        temp["concsize"] = d["concsize"]
-        temp["relsize"] = d["relsize"]
-        temp["#"] = range(0, len(temp))
-        temp["precise"] = ""
-
-        # filter columns
-        df = temp.filter(["#", "precise", "doc", "s", "conc","concsize","relsize"], axis=1).sort_values(by="s", ascending=True)
+        # create df
+        df = pd.DataFrame()
+        df["#"] = range(0, len(temp))
+        df["precise"] = ""
+        df["doc"] = [int(re.sub("\D", "",temp.iloc[x]["Refs"][0])) for x in range(0, len(temp["Refs"]))]
+        df["s"] = [int(re.sub("\D", "",temp.iloc[x]["Refs"][1])) for x in range(0, len(temp["Refs"]))]
+        df["conc"] = [d["Lines"][x]["conc"] for x in range(0, len(d["Lines"]))]
+        df["concsize"] = d["concsize"]
+        df["relsize"] = d["relsize"]
+        df["version"] = version
 
         # add markdown coding in table
         columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in df.columns]
