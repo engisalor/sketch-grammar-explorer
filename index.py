@@ -1,6 +1,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
+import subprocess
 
 # Connect to main app.py file
 from app import app
@@ -8,6 +9,16 @@ from app import server
 
 # Connect to your app pages
 from apps import app5, app4, app3, app2, app1
+
+# get current git version/hash
+try:
+    version = subprocess.check_output(["git", "describe",  "--always"]).decode("utf-8").strip()
+    versiondate = subprocess.check_output(["git", "show", "-s", "--format=%cd", "--date=short"]).decode("utf-8").strip()
+    versionall = "{} {}".format(versiondate, version)
+except:
+    versionall= "unknown"
+
+#### LAYOUT
 
 app.layout = html.Div(
     [
@@ -46,6 +57,7 @@ app.layout = html.Div(
                                         target="blank",
                                     )
                                 ),
+                                html.P(id="version",children="Version info", style={'color': '#1EAEDB'}, title=versionall),
                             ]
                         ),
                         html.Img(
