@@ -7,20 +7,18 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 import base64
 import io
-import numpy as np
 import pandas as pd
-import re
-import requests
 import time
 from app import app
+from scripts.view_api import view_api
+from scripts.view_prep import view_prep
+
+#### VIEW API APP
 
 # TODO #6 run same searches in browser to check data integrity
 # TODO #8 add a box for setting other API parameters (corpus info, doc:entry combos)
 # TODO #9 add conc links to sketch engine using md in datatable [title](https://www.example.com)
 # TODO #13 add metadata cols, make hidden
-
-#### GET DATA
-# d = np.load('data/view/TEST.npy',allow_pickle='TRUE').item()
 
 #### LAYOUT
 
@@ -85,7 +83,6 @@ layout = html.Div(
                 dash_table.DataTable(
                     id="table",
                     data=pd.DataFrame().to_dict("records"),
-                    # data=df.round(2).to_dict("records"),
                     columns=[],
                     export_format='csv',
                     export_headers='names',
@@ -135,8 +132,10 @@ def parse_contents(contents, filename):
     State("switch","on"),
     State("textarea","value"),
     State("version","title")])
-def input_triggers_spinner(clicks,contents,filename,sample,switch,textarea,version):
+def updatetable(clicks,contents,filename,sample,switch,textarea,version):
+    # get last triggered callback
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+
     # upload file
     if changed_id == "upload.contents":
         df = parse_contents(contents, filename)
@@ -144,80 +143,15 @@ def input_triggers_spinner(clicks,contents,filename,sample,switch,textarea,versi
 
     # submit api call
     if changed_id == "submit.n_clicks":
-        # get login credentials
-        with open(".auth_api.txt") as f:
-            LOGIN = dict(x.rstrip().split(":") for x in f)
-
-        # make url
-        base_url = "https://api.sketchengine.eu/bonito/run.cgi/"
-        query_type = "view?"
-        cql_query = "q" + textarea # e.g. '1:[lemma="climate"] []{1,10} 2:[lemma="change"]'
-        # random sample
-        if switch == True:
-            rand = "r" + str(sample)
-        else:
-            rand = ""
-
-        data = {
-            "q": [cql_query, rand], 
-            # TODO try list of queries w/ ‘q=item1;q=item2…’
-            "corpname": "preloaded/ecolexicon_en",
-            "username": LOGIN["username"],
-            "api_key": LOGIN["api_key"],
-            "viewmode": "sen", # sen or kwic
-            "asyn": "0",
-            "pagesize": sample,
-            # "attrs": "",
-            # "structs": "",
-            "refs": "doc,s",
-            "format": "json",
-        }
-        print("... making request ")
-
-        d = requests.get(base_url + query_type, params=data).json()
-
-        # error handling  
-        if "error" in d:
-            print(d["error"])
-
-        #### PREP DATA
-
-        # create temp
-        temp = pd.DataFrame()
-        for x in d["Lines"]:
-            temp = temp.append(pd.DataFrame.from_dict(x, orient="index").T)
-
-        # create concordance w bold kwic elements 
-        for x in range(0, len(d["Lines"])):
-            ls = []
-            for y in range(0,len(d["Lines"][x]["Kwic"])):
-                # add ** around labelled kwic items
-                if d["Lines"][x]["Kwic"][y]["class"] == 'col0 coll coll':
-                    d["Lines"][x]["Kwic"][y]["str"] = "**" + d["Lines"][x]["Kwic"][y]["str"] + "**"
-                # combine kwic elements
-                ls.append(d["Lines"][x]["Kwic"][y]["str"])
-            d["Lines"][x]["fullkwic"] = "".join(ls)
-            #combine full conc
-            left = "".join([d["Lines"][x]["Left"][y]["str"] for y in range(0,len(d["Lines"][x]["Left"]))])
-            right = "".join([d["Lines"][x]["Right"][y]["str"] for y in range(0,len(d["Lines"][x]["Right"]))])
-            d["Lines"][x]["conc"] = left + d["Lines"][x]["fullkwic"] + right
-
-        # create df
-        df = pd.DataFrame()
-        df["#"] = range(0, len(temp))
-        df["precise"] = ""
-        df["doc"] = [int(re.sub("\D", "",temp.iloc[x]["Refs"][0])) for x in range(0, len(temp["Refs"]))]
-        df["s"] = [int(re.sub("\D", "",temp.iloc[x]["Refs"][1])) for x in range(0, len(temp["Refs"]))]
-        df["conc"] = [d["Lines"][x]["conc"] for x in range(0, len(d["Lines"]))]
-        df["concsize"] = d["concsize"]
-        df["relsize"] = d["relsize"]
-        df["version"] = version
-
+        # do call
+        d = view_api(textarea, switch, sample)
+        # do preprocessing
+        df = view_prep(d,version)
         # add markdown coding in table
         columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in df.columns]
-
         return '', df.round(2).to_dict("records"), columns
-
+    
+    # prevent undesired updates
     else:
         raise PreventUpdate
 
