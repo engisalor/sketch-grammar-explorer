@@ -1,7 +1,7 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-import dash_daq as daq
+# import dash_daq as daq
 import dash_table
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
@@ -19,12 +19,14 @@ from scripts.view_prep import view_prep
 # TODO #8 add a box for setting other API parameters (corpus info, doc:entry combos)
 # TODO #9 add conc links to sketch engine using md in datatable [title](https://www.example.com)
 # TODO #13 add metadata cols, make hidden
+# TODO make default savesize and other saveable settings
+# TODO setup cyclical API calls if all concs are desired when all_concs >10,000 
 
 #### LAYOUT
 
 layout = html.Div(
     [
-        html.H6(children="Precision Analysis"),
+        html.H6(children="View API"),
         dcc.Textarea(
             id="textarea",
             placeholder="CQL query",
@@ -33,25 +35,45 @@ layout = html.Div(
                 "width": "50%",
                 }),
         html.P(),
-        html.Div([
-            daq.BooleanSwitch(
-            id="switch",
-            on=False,
-            label="random",
-            labelPosition="bottom"),
-            dcc.Input(
-            id="sample",
-            type="number",
-            placeholder="sample size",
-            step=100,
-            value=500),
-            html.Button('Submit', id='submit', n_clicks=0),
+        html.Button('Submit', id='submit', n_clicks=0),
+        dcc.RadioItems(
+            id='qattr',
+            options=[
+                {'label': 'lemma', 'value': 'alemma,'},
+                {'label': 'word', 'value': 'aword,'},
+                {'label': 'tag', 'value': 'atag,'},
+                {'label': 'lempos', 'value': 'alempos,'},
+                {'label': 'lempos_lc', 'value': 'alempos_lc,'},
+                {'label': 'lemma_lc', 'value': 'alemma_lc,'},
+                {'label': 'word_lc', 'value': 'aword_lc,'},
+                {'label': 'multi_q', 'value': ''} # FIXME troubleshoot how this works
             ],
-            style={
-                "display": "inline-flex",
-                "width": "25%",
-                "justify-content": "space-around",
-            },
+            value='alemma,',
+            labelStyle={'display': 'inline-block'}
+        ),
+        dcc.RadioItems(
+            id="viewmode",
+            options=[
+                {'label': 'sentence', 'value': 'sen'},
+                {'label': 'KWIC', 'value': 'kwic'}],
+            value='sen',
+            labelStyle={'display': 'inline-block'}
+        ),  
+        dcc.RadioItems(
+            id="randomize",
+            options=[
+                {'label': 'sequential', 'value': '0'},
+                {'label': 'random', 'value': '1'}],
+            value='0',
+            labelStyle={'display': 'inline-block'}
+        ),
+        dcc.Input(
+            id="pagesize",
+            type="number",
+            placeholder="lines (100<10,000)",
+            min=100,
+            max=10000,
+            step=100
         ),
         html.Div([
         dcc.Loading(
@@ -72,7 +94,7 @@ layout = html.Div(
             html.A('Select Files')
         ]),
         style={
-            'width': '25%', 'height': '30px', 'lineHeight': '30px',
+            'width': '250px', 'height': '30px', 'lineHeight': '30px',
             'borderWidth': '1px', 'borderStyle': 'dashed',
             'borderRadius': '5px', 'textAlign': 'center', 'margin': '10px'
         },
@@ -128,11 +150,13 @@ def parse_contents(contents, filename):
     [Input("submit", "n_clicks"),
     Input('upload', 'contents')],
     [State('upload', 'filename'),
-    State("sample", "value"),
-    State("switch","on"),
+    State("pagesize", "value"),
+    State("randomize","value"),
     State("textarea","value"),
-    State("version","title")])
-def updatetable(clicks,contents,filename,sample,switch,textarea,version):
+    State("version","title"),
+    State("qattr","value"),
+    State("viewmode","value")])
+def updatetable(clicks,contents,filename,pagesize,randomize,textarea,version,qattr,viewmode):
     # get last triggered callback
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
 
@@ -143,8 +167,11 @@ def updatetable(clicks,contents,filename,sample,switch,textarea,version):
 
     # submit api call
     if changed_id == "submit.n_clicks":
+        # default pagesize
+        if pagesize == "":
+            pagesize = 100
         # do call
-        d = view_api(textarea, switch, sample)
+        d = view_api(textarea, qattr = qattr, randomize = randomize, pagesize = pagesize, fromp = 1, viewmode = viewmode)
         # do preprocessing
         df = view_prep(d,version)
         # add markdown coding in table
