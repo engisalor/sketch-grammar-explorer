@@ -15,7 +15,7 @@ with open(".auth_api.txt") as f:
     LOGIN = dict(x.rstrip().split(":") for x in f)
 
 # get corpus text types
-corp_info = np.load("corp_info.npy", allow_pickle="TRUE").item()
+corpinfo = np.load("corpinfo.npy", allow_pickle="TRUE").item()
 
 # get grammar
 with open("grammar.txt") as f:
@@ -46,7 +46,7 @@ for x in dt[7]: # or "for x in [INDEX]:" for a single query
     cql_query = dt[x][1]
     data = {
         "q": "q" + cql_query,
-        "fcrit": [x + " 0<0" for x in corp_info["freqttattrs"]],
+        "fcrit": [x + " 0<0" for x in corpinfo["freqttattrs"]],
         "corpname": "preloaded/ecolexicon_en",
         "username": LOGIN["username"],
         "api_key": LOGIN["api_key"],

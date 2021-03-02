@@ -15,7 +15,7 @@ with open(".auth_api.txt") as f:
     LOGIN = dict(x.rstrip().split(":") for x in f)
 
 # get corpus text types
-corp_info = np.load("corp_info.npy", allow_pickle="TRUE").item()
+corpinfo = np.load("corpinfo.npy", allow_pickle="TRUE").item()
 
 # get grammar
 with open("grammar.txt") as f:

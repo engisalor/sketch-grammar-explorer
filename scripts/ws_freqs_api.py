@@ -25,7 +25,7 @@ with open(".auth_api.txt") as f:
 df = pd.read_csv('data/ttypes.csv')
 # change text types to plural
 df.loc[(df["ttype"] == "Domain"), "ttype"] = "Domains"
-# corp_info = np.load("corp_info.npy", allow_pickle="TRUE").item() # secondary method
+# corpinfo = np.load("corpinfo.npy", allow_pickle="TRUE").item() # secondary method
 
 # get grammar
 with open("grammar.txt") as f:
