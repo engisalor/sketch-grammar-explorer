@@ -31,20 +31,34 @@ def basiccall(
     data = {
         "username": LOGIN["username"],
         "api_key": LOGIN["api_key"],
-        "asyn": "0",
-        "format": "json",
     }
     alldata = {**data, **settings}
 
     # run request
-    print("...calling ", query_type, "\n...",settings)
-    d = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + query_type, params=alldata).json()
+    print("\n\nMAKING REQUEST")
+    print("... calling ", query_type, "\n...",settings)
+    d = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + query_type, params=alldata)
 
-    # errors
-    if "error" in d:
-        print("API error: ", d["error"])
-
-    # return
-    else:
-        print("DONE\n")
-        return d
+    # parse data
+    print("... parsing")
+    try:
+        d = d.json()
+        print("... found json format")
+        # errors
+        if "error" in d:
+            print("API error: ", d["error"])
+        else:
+            print("DONE\n")
+            return d
+    except:
+        try:
+            d = d.text
+            print("... found csv format")
+            # errors
+            if "corpus" not in d:
+                print("API error: can't parse data\n", d, "\nDONE\n")
+            else:
+                print("DONE\n")
+                return d
+        except:
+            print("API error: unknown\n", d, "\nDONE\n")
