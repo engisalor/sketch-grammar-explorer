@@ -17,7 +17,7 @@ from pathlib import Path
 # fromp = int, page number returned if multiple
 # viewmode = str, "kwic" or "sen" (full sentence, default) 
 
-def view(query, corpus = "preloaded/ecolexicon_en", qattr = 'q', randomize = False, pagesize = 20, fromp = 1, viewmode = "sen"):
+def view(query, corpus = "preloaded/ecolexicon_en", qattr = 'q', randomize = False, pagesize = 20, fromp = 1, viewmode = "sen", format = "csv"):
     query_type = "view?"
     # randomize
     if randomize == '1':
@@ -32,5 +32,7 @@ def view(query, corpus = "preloaded/ecolexicon_en", qattr = 'q', randomize = Fal
         "pagesize": pagesize,
         "fromp": fromp,
         "refs": "doc,s",
+        "format": format,
+        "asyn": "0",
     }
     return settings, query_type
