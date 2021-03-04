@@ -1,19 +1,15 @@
-from scripts.calls.corpinfo import corpinfo
-from scripts.calls.attrvals import attrvals
-from scripts.calls.wordlist import wordlist
-from scripts.calls.freqs import freqs
-from scripts.calls.view import view
-from scripts.calls.basiccall import basiccall
+import scripts.calls as calls
+from scripts.multicall import multicall
 
 ###
 # run API calls of different types and return results
 ###
 
 ### CORP INFO CALL
-settings, query_type = corpinfo()
+query_type, settings = calls.corpinfo()
 
 ### ATTR VALS CALL ***BROKEN***
-settings, query_type = attrvals(
+query_type, settings = calls.attrvals(
     avattr = "doc.domains", 
     # avpat = None, 
     # maxitems = 10,
@@ -21,7 +17,7 @@ settings, query_type = attrvals(
     )
 
 ### VIEW CALL
-settings, query_type = view(
+query_type, settings = calls.view(
     query = '[lemma="test"]', 
     corpus = "preloaded/ecolexicon_en", 
     qattr = 'q', 
@@ -32,13 +28,13 @@ settings, query_type = view(
     )
 
 ### FREQS CALL TODO build fcrit from corpinfo/wordlist call
-settings, query_type = freqs(
+query_type, settings = calls.freqs(
     query = '[lemma="test"]',
     fcrit = fcrit,
     corpus = "preloaded/ecolexicon_en")
 
 ### FREQS HITS PER DOC / SENTENCE CALL
-settings, query_type = freqs(
+query_type, settings = calls.freqs(
     query = '[lemma="test"]',
     fcrit = 'doc 0 s 0',
     corpus = "preloaded/ecolexicon_en")
@@ -77,12 +73,18 @@ for x,y in df.filter(["ttype", "item"], axis=1).to_numpy(): # for all ttypes
 
     }
 
-# WORDLIST CALL
-settings, query_type = wordlist("doc.country") # e.g., "class.REGION", "user/PilarLeon/hejuly2019_backup"
+### WORDLIST CALL
+query_type, settings = calls.wordlist("doc.country") # e.g., "class.REGION", "user/PilarLeon/hejuly2019_backup"
 
-# RUN CALL
-f = basiccall(query_type,settings)
-f
+### RUN BASICCALL
+f = calls.basiccall(query_type,settings)
+
+### RUN MULTICALL 
+queries = ("wordlist", [
+    {"attr": "doc.domains", "corpus": "preloaded/ecolexicon_en"},
+    {"attr": "class.REGION", "corpus": "user/PilarLeon/hejuly2019_backup"},
+    ])
+results = multicall(queries)
 
 # for getting text type values from wordlist: [f["Items"][x]["str"] for x in range(len(f["Items"]))]
 # for splitting csv formatted results: f.split("\n")
