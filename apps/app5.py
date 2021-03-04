@@ -10,7 +10,8 @@ import io
 import pandas as pd
 import time
 from app import app
-from scripts.view_api import view_api
+import scripts.calls as calls
+import scripts.callshelper as helper
 from scripts.view_prep import view_prep
 
 #### VIEW API APP
@@ -170,10 +171,20 @@ def updatetable(clicks,contents,filename,pagesize,randomize,textarea,version,qat
         # default pagesize
         if pagesize == "":
             pagesize = 100
+        # make query parameters
+        queries = ("view", [{
+            "query": textarea, 
+            "corpus": "preloaded/ecolexicon_en", 
+            "qattr": qattr, 
+            "randomize": randomize, 
+            "pagesize": pagesize, 
+            "fromp": 1, 
+            "viewmode": viewmode
+            }])
         # do call
-        d = view_api(textarea, qattr = qattr, randomize = randomize, pagesize = pagesize, fromp = 1, viewmode = viewmode)
+        results = helper.multicall(queries)
         # do preprocessing
-        df = view_prep(d,version)
+        df = view_prep(results,version)
         # add markdown coding in table
         columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in df.columns]
         return '', df.round(2).to_dict("records"), columns
