@@ -84,16 +84,12 @@ for x,y in df.filter(["ttype", "item"], axis=1).to_numpy(): # for all ttypes
 
     }
 
-# WORDLIST CALL ***BROKEN***
-settings, query_type = wordlist("")
-query_type
+# WORDLIST CALL
+settings, query_type = wordlist("doc.country") # e.g., "class.REGION", "user/PilarLeon/hejuly2019_backup"
 
 # RUN CALL
-f = basiccall(
-    query_type,
-    settings,
-    # corpus = "preloaded/ecolexicon_en", 
-    )
+f = basiccall(query_type,settings)
 f
 
+# for getting text type values from wordlist: [f["Items"][x]["str"] for x in range(len(f["Items"]))]
 # for splitting csv formatted results: f.split("\n")

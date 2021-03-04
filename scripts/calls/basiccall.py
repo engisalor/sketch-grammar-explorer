@@ -31,6 +31,7 @@ def basiccall(
     data = {
         "username": LOGIN["username"],
         "api_key": LOGIN["api_key"],
+        "asyn": "0",
     }
     alldata = {**data, **settings}
 
