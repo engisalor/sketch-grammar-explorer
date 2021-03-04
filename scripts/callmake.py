@@ -1,10 +1,3 @@
-import requests
-import time
-import json
-import pandas as pd
-from datetime import datetime
-import re
-from pathlib import Path
 from scripts.calls.corpinfo import corpinfo
 from scripts.calls.attrvals import attrvals
 from scripts.calls.wordlist import wordlist
@@ -38,7 +31,7 @@ settings, query_type = view(
     viewmode = "sen"
     )
 
-### FREQS CALL
+### FREQS CALL TODO build fcrit from corpinfo/wordlist call
 settings, query_type = freqs(
     query = '[lemma="test"]',
     fcrit = fcrit,
@@ -93,3 +86,8 @@ f
 
 # for getting text type values from wordlist: [f["Items"][x]["str"] for x in range(len(f["Items"]))]
 # for splitting csv formatted results: f.split("\n")
+
+# TODO add timestamp
+# from datetime import datetime
+# # get time
+# now = datetime.now().strftime("%Y-%m-%d %H.%M.%S")

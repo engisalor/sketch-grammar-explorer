@@ -1,11 +1,3 @@
-import requests
-import time
-import json
-import pandas as pd
-from datetime import datetime
-import re
-from pathlib import Path
-
 ### 
 # template for attrvals calls ***BROKEN*** gets response but "suggestions" always empty
 ###

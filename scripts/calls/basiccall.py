@@ -1,11 +1,5 @@
-import requests
-import time
-import json
-import pandas as pd
-from datetime import datetime
-import re
+from requests import get
 from pathlib import Path
-
 ###
 # basic format for API calls using templates
 ###
@@ -23,9 +17,6 @@ def basiccall(
     # get login credentials
     with open(fauth) as f:
         LOGIN = dict(x.rstrip().split(":") for x in f)
-
-    # get time
-    now = datetime.now().strftime("%Y-%m-%d %H.%M.%S")
     
     # combine parameters
     data = {
@@ -38,7 +29,7 @@ def basiccall(
     # run request
     print("\n\nMAKING REQUEST")
     print("... calling ", query_type, "\n...",settings)
-    d = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + query_type, params=alldata)
+    d = get("https://api.sketchengine.eu/bonito/run.cgi/" + query_type, params=alldata)
 
     # parse data
     print("... parsing")

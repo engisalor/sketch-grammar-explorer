@@ -1,11 +1,3 @@
-import requests
-import time
-import json
-import pandas as pd
-from datetime import datetime
-import re
-from pathlib import Path
-
 ### 
 # template for wordlist calls (total frqs for a text type) 
 ###
