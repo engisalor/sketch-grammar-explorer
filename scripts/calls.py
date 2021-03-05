@@ -24,22 +24,26 @@ def attrvals(
     return query_type, settings
 
 ###
-# basiccall for any API call
+# BasicCall for any API call
 ###
 
-def basiccall(
+# all SkE API call types are fed through this function
+# requires a text file w/ API credentials
+# parsing data from multiple formats is possible (txt instead of json) 
+# but downstream functions so far only accept json
+# querytype = name of api call function, e.g., "freqs", "corpinfo", "wordlist"
+# settings = dict of parameters required for that api call--see each function 
+
+def BasicCall(
     query_type,
     settings,
     ):
-
     # set file paths
     data_folder = Path("")
     fauth = data_folder / ".auth_api.txt"
-
     # get login credentials
     with open(fauth) as f:
         LOGIN = dict(x.rstrip().split(":") for x in f)
-    
     # combine parameters
     data = {
         "username": LOGIN["username"],
@@ -47,14 +51,12 @@ def basiccall(
         "asyn": "0",
     }
     alldata = {**data, **settings}
-
     # run request
     # print("MAKING REQUEST")
     print("... calling ", query_type) # , "...",settings
     d = get("https://api.sketchengine.eu/bonito/run.cgi/" + query_type, params=alldata)
-
     # parse data
-    print("... parsing")
+    # print("... parsing")
     try:
         d = d.json()
         # print("... found json format")
@@ -65,22 +67,10 @@ def basiccall(
             # print("DONE")
             return d
     except:
-        try:
-            d = d.text
-            # print("... found csv format")
-            # errors
-            if "corpus" not in d:
-                print("API error: can't parse data", d, "\nDONE")
-            else:
-                # print("DONE")
-                return d
-        except:
-            print("API error: unknown", d, "\nDONE")
-
-
+        print("API error: unknown", d)
 
 ###
-# corpinfo call (prerequisite for some other call types)
+# corpinfo call
 ###
 
 def corpinfo(corpus = "preloaded/ecolexicon_en"):
@@ -101,8 +91,6 @@ def corpinfo(corpus = "preloaded/ecolexicon_en"):
 # e.g., [x + " 0" for x in ["doc.genre","doc.author"]]
 # if fcrit = single string, does a "line details" browser search
 # e.g., ["class.DATE 0 class.ID"]
-
-# fcrit = [x + " 0" for x in ttypes]
 
 def freqs(query, fcrit, corpus = "preloaded/ecolexicon_en", format = "csv"):
     query_type = "freqs?"

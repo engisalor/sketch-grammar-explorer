@@ -1,31 +1,32 @@
 import scripts.calls as calls
-import scripts.callshelper as helper
+import scripts.callsa as callsa
+import scripts.callsb as callsb
 
 ###
-# API calls of different types and helper functions
+# API call examples and related functions
 ###
 
 # get word sketches from a grammar
-wstypes = helper.getwstypes()
+wstypes = callsa.WStypes()
 
-# GET TTYPES for a corpus
-# get corpinfo # TODO
+# get corpus info
 queries = ("corpinfo", [{
     "corpus": "preloaded/ecolexicon_en"
     }])
-info = helper.multicall(queries)
-# get structs for corpus
-# build queries
-ls = [{"attr": x} for x in ["info", "for", "structs"]] # TODO
-queries = ("wordlist", ls)
-# run api calls with structs
-results = helper.multicall(queries)
-# make df of ttypes, frqs
-dfttypes = pd.DataFrame() # TODO for this script or put elsewhere?
-dfttypes["struct"] = 0 # list of structs for each type
-dfttypes["ttype"] = [results["Items"][x]["str"] for x in range(len(results["Items"]))]
-dfttypes["frq"] = [results["Items"][x]["frq"] for x in range(len(results["Items"]))] # TODO
+info = callsa.MultiCall(queries)
 
+# get structures from corpus
+queries = ("corpinfo", [{
+    "corpus": "preloaded/ecolexicon_en"
+    }])
+info = callsa.MultiCall(queries)
+structs = callsa.Structs(info)
+
+# get ttypes from corpus
+queries = ("corpinfo", [{
+    "corpus": "preloaded/ecolexicon_en"
+    }])
+records = callsb.TTypes(queries)
 
 # WS FREQS # TODO
 # need wstypes and ttypes
@@ -45,12 +46,8 @@ for x,y in df.filter(["ttype", "item"], axis=1).to_numpy(): # for all ttypes
         "fmaxitems": "100",
     }
 
-### CORP INFO CALL
-queries = ("corpinfo", [{
-    "corpus": "preloaded/ecolexicon_en"
-    }])
 
-### ATTR VALS CALL ***BROKEN***
+# attr vals call
 queries = ("attrvals", [{    
     "avattr": "doc.domains", 
     "avpat": None, 
@@ -58,7 +55,7 @@ queries = ("attrvals", [{
     "corpus": "preloaded/ecolexicon_en"
     }])
 
-### VIEW CALL
+# view call
 queries = ("view", [{
     "query": '[lemma="test"]', 
     "corpus": "preloaded/ecolexicon_en", 
@@ -69,34 +66,33 @@ queries = ("view", [{
     "viewmode": "sen"
     }])
 
-### FREQS TTYPES CALL TODO build fcrit from corpinfo call
+# freqs by ttype call TODO build fcrit options from corpinfo call
 queries = ("freqs", [{
     "query": '[lemma="test"]',
     "fcrit": fcrit,
     "corpus": "preloaded/ecolexicon_en"
     }])
 
-### FREQS LINE DETAILS CALL
+# freqs line details
 queries = ("freqs", [{
     "query":  '[lemma="test"]',
     "fcrit":  'doc 0 s 0',
     "corpus":  "preloaded/ecolexicon_en"
     }])
 
-### WORDLIST CALL
+# wordlist call
 queries = ("wordlist", [
     {"attr": "doc.country"}
     ])
 
-### RUN MULTICALL
+# run multiple calls of the same type
 queries = ("wordlist", [
     {"attr": "doc.domains", "corpus": "preloaded/ecolexicon_en"},
     {"attr": "class.REGION", "corpus": "user/PilarLeon/hejuly2019_backup"},
     ])
 
-results = helper.multicall(queries)
+results = callsa.MultiCall(queries)
 
-# TODO # for splitting csv formatted results: f.split("\n")
 # TODO add timestamp
 # from datetime import datetime
 # # get time
