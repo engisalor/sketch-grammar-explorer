@@ -11,7 +11,7 @@ def attrvals(
     avpat = None, 
     maxitems = 10, 
     corpus = "preloaded/ecolexicon_en", 
-    format = "json"):
+    rformat = "json"):
     query_type = "attr_vals?"
     # set parameters
     settings = {
@@ -19,7 +19,7 @@ def attrvals(
         "avpat": avpat,
         "avmaxitems":maxitems,
         "corpname": corpus,
-        "format": format,
+        "format": rformat,
         }
     return query_type, settings
 
@@ -62,12 +62,12 @@ def BasicCall(
         # print("... found json format")
         # errors
         if "error" in d:
-            print("API error: ", d["error"])
+            print("API error:", d["error"])
         else:
             # print("DONE")
             return d
     except:
-        print("API error: unknown", d)
+        print("API error:", d)
 
 ###
 # corpinfo call
@@ -92,14 +92,14 @@ def corpinfo(corpus = "preloaded/ecolexicon_en"):
 # if fcrit = single string, does a "line details" browser search
 # e.g., ["class.DATE 0 class.ID"]
 
-def freqs(query, fcrit, corpus = "preloaded/ecolexicon_en", format = "csv"):
+def freqs(query, fcrit, corpus = "preloaded/ecolexicon_en", rformat = "json"):
     query_type = "freqs?"
     # set parameters
     settings = {
         "q": "q" + query,
         "fcrit": fcrit,
         "corpname": corpus,
-        "format": format,
+        "format": rformat,
         "asyn": "0",
         }
     return query_type, settings
@@ -113,9 +113,9 @@ def freqs(query, fcrit, corpus = "preloaded/ecolexicon_en", format = "csv"):
 # randomize = str, "0" (off, default) or "1" 
 # pagesize = int, 1<10000, sets the number of concordances retrieved 
 # fromp = int, page number returned if multiple
-# viewmode = str, "kwic" or "sen" (full sentence, default) 
+# viewmode = str, "kwic" or "sen" (full sentence, default)
 
-def view(query, corpus = "preloaded/ecolexicon_en", qattr = 'q', randomize = False, pagesize = 20, fromp = 1, viewmode = "sen", format = "csv"):
+def view(query, corpus = "preloaded/ecolexicon_en", qattr = 'q', randomize = '0', pagesize = 100, fromp = 1, viewmode = "sen", rformat = "json"):
     query_type = "view?"
     # randomize
     if randomize == '1':
@@ -130,7 +130,7 @@ def view(query, corpus = "preloaded/ecolexicon_en", qattr = 'q', randomize = Fal
         "pagesize": pagesize,
         "fromp": fromp,
         "refs": "doc,s",
-        "format": format,
+        "format": rformat,
         "asyn": "0",
     }
     return query_type, settings
@@ -159,7 +159,7 @@ def wait(n):
 # wordlist call (total frqs for a text type) 
 ###
 
-def wordlist(attr, corpus = "preloaded/ecolexicon_en", format = "json", maxitems = 1000):
+def wordlist(attr, corpus = "preloaded/ecolexicon_en", rformat = "json", maxitems = 1000):
     query_type = "wordlist?"
     # set parameters
     settings = {

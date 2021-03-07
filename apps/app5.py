@@ -11,8 +11,8 @@ import pandas as pd
 import time
 from app import app
 import scripts.calls as calls
-import scripts.callshelper as helper
-from scripts.view_prep import view_prep
+import scripts.callsa as callsa
+import scripts.callsprep as prep
 
 #### VIEW API APP
 
@@ -169,7 +169,7 @@ def updatetable(clicks,contents,filename,pagesize,randomize,textarea,version,qat
     # submit api call
     if changed_id == "submit.n_clicks":
         # default pagesize
-        if pagesize == "":
+        if pagesize == "" or pagesize is None:
             pagesize = 100
         # make query parameters
         queries = ("view", [{
@@ -178,23 +178,17 @@ def updatetable(clicks,contents,filename,pagesize,randomize,textarea,version,qat
             "qattr": qattr, 
             "randomize": randomize, 
             "pagesize": pagesize, 
-            "fromp": 1, 
+            "fromp": 1, # TODO add checkbox to cycle through all fromp after first result if > 10,000 results
             "viewmode": viewmode
             }])
         # do call
-        results = helper.multicall(queries)
+        results = callsa.MultiCall(queries)
         # do preprocessing
-        df = view_prep(results,version)
+        results = prep.ViewPrep(results)
         # add markdown coding in table
-        columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in df.columns]
-        return '', df.round(2).to_dict("records"), columns
+        columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in results[0].keys()]
+        return '', results, columns
     
     # prevent undesired updates
     else:
         raise PreventUpdate
-
-
-
-
-
-

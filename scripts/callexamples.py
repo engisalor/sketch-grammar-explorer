@@ -1,6 +1,7 @@
 import scripts.calls as calls
 import scripts.callsa as callsa
 import scripts.callsb as callsb
+import scripts.callsprep as prep
 
 ###
 # API call examples and related functions
@@ -57,14 +58,18 @@ queries = ("attrvals", [{
 
 # view call
 queries = ("view", [{
-    "query": '[lemma="test"]', 
+    "query": 'lemma,"water"', 
     "corpus": "preloaded/ecolexicon_en", 
-    "qattr": 'q', 
-    "randomize": False, 
+    "qattr": 'a', 
+    "randomize": '1', 
     "pagesize": 20, 
     "fromp": 1, 
     "viewmode": "sen"
     }])
+results = callsa.MultiCall(queries)
+results
+prep.ViewPrep(results)
+results
 
 # freqs by ttype call TODO build fcrit options from corpinfo call
 queries = ("freqs", [{
