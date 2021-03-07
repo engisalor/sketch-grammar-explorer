@@ -2,7 +2,7 @@ import scripts.calls as calls
 import scripts.callsa as callsa
 import scripts.callsb as callsb
 import scripts.callsprep as prep
-
+import json
 ###
 # API call examples and related functions
 ###
@@ -62,12 +62,25 @@ queries = ("view", [{
     "corpus": "preloaded/ecolexicon_en", 
     "qattr": 'a', 
     "randomize": '1', 
-    "pagesize": 100, 
+    "pagesize": 1000, 
+    "fromp": 1, 
+    "viewmode": "sen"
+    },
+    {
+    "query": 'lemma,"sand"', 
+    "corpus": "preloaded/ecolexicon_en", 
+    "qattr": 'a', 
+    "randomize": '1', 
+    "pagesize": 1000, 
     "fromp": 1, 
     "viewmode": "sen"
     }])
 results = callsa.MultiCall(queries)
-new = prep.ViewPrep(results)
+# save raw results
+with open('scripts/.callviewtest.json', 'w') as fout:
+    json.dump(results, fout)
+
+# new = prep.ViewPrep(results)
 
 # freqs by ttype call TODO build fcrit options from corpinfo call
 queries = ("freqs", [{

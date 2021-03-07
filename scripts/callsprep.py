@@ -7,17 +7,19 @@ def ViewPrep(results):
     e = 0
     # for each line in each query
     for x in range(len(results)):
+        # get query details
+        corpus = results[x]["request"]["corpname"][results[x]["request"]["corpname"].rfind("/")+1:]
+        concsize = results[x]["concsize"]
+        query = str(results[x]["q"])
+        # modify lines
         for y in range(len(results[x]["Lines"])):
             try:
-                # flatten L & R, or convert to string if empty 
-                if results[x]["Lines"][y]["Left"]:
-                    results[x]["Lines"][y]["Left"] = results[x]["Lines"][y]["Left"][0]["str"]
-                else:
-                    results[x]["Lines"][y]["Left"] = ""
-                if results[x]["Lines"][y]["Right"]:
-                    results[x]["Lines"][y]["Right"] = results[x]["Lines"][y]["Right"][0]["str"]
-                else:
-                    results[x]["Lines"][y]["Left"] = ""
+                # flatten L & R, or convert to string if empty
+                for s in ["Left", "Right"]: 
+                    if results[x]["Lines"][y][s]:
+                        results[x]["Lines"][y][s] = results[x]["Lines"][y][s][0]["str"]
+                    else:
+                        results[x]["Lines"][y][s] = ""
             except:
                 e += 1
                 print("...", x,y,"skip flatten Left, Right")
@@ -54,10 +56,10 @@ def ViewPrep(results):
                 print("...", x,y, "skip: drop items")
             try:
                 # add items
-                results[x]["Lines"][y]["corpus"] = results[x]["request"]["corpname"][results[x]["request"]["corpname"].rfind("/")+1:]
-                results[x]["Lines"][y]["concsize"] = results[x]["concsize"]
+                results[x]["Lines"][y]["corpus"] = corpus
+                results[x]["Lines"][y]["concsize"] = concsize
                 results[x]["Lines"][y]["conc#"] = y
-                results[x]["Lines"][y]["q"] = str(results[x]["q"])
+                results[x]["Lines"][y]["q"] = query
             except:
                 e += 1
                 print("...", x,y, "skip add items")
