@@ -62,14 +62,12 @@ queries = ("view", [{
     "corpus": "preloaded/ecolexicon_en", 
     "qattr": 'a', 
     "randomize": '1', 
-    "pagesize": 20, 
+    "pagesize": 100, 
     "fromp": 1, 
     "viewmode": "sen"
     }])
 results = callsa.MultiCall(queries)
-results
-prep.ViewPrep(results)
-results
+new = prep.ViewPrep(results)
 
 # freqs by ttype call TODO build fcrit options from corpinfo call
 queries = ("freqs", [{

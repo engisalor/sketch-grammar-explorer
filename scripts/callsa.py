@@ -13,7 +13,7 @@ import scripts.calls as calls
 #     ])
 
 def MultiCall(queries):
-    print("STARTING MULTICALL")
+    print("MULTICALL start")
     results = []
     # make calls and combine results, w/ API throttling
     for x in range(len(queries[1])):
@@ -22,7 +22,7 @@ def MultiCall(queries):
         temp = calls.BasicCall(query_type, settings)
         results.append(temp)
         calls.wait(len(queries[1]))
-    print("DONE")
+    print("MULTICALL done")
     return results
 
 ###
