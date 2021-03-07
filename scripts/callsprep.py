@@ -54,7 +54,7 @@ def ViewPrep(results):
                 print("...", x,y, "skip: drop items")
             try:
                 # add items
-                results[x]["Lines"][y]["corpus"] = results[x]["request"]["corpname"] # FIXME get final substring "/." 
+                results[x]["Lines"][y]["corpus"] = results[x]["request"]["corpname"][results[x]["request"]["corpname"].rfind("/")+1:]
                 results[x]["Lines"][y]["concsize"] = results[x]["concsize"]
                 results[x]["Lines"][y]["conc#"] = y
                 results[x]["Lines"][y]["q"] = str(results[x]["q"])
