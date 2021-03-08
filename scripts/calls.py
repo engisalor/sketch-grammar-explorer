@@ -114,8 +114,9 @@ def freqs(query, fcrit, corpus = "preloaded/ecolexicon_en", rformat = "json"):
 # pagesize = int, 1<10000, sets the number of concordances retrieved 
 # fromp = int, page number returned if multiple
 # viewmode = str, "kwic" or "sen" (full sentence, default)
+# refs = str, "doc,s,etc." NO spaces allowed
 
-def view(query, corpus = "preloaded/ecolexicon_en", qattr = 'q', randomize = '0', pagesize = 100, fromp = 1, viewmode = "sen", rformat = "json"):
+def view(query, corpus = "preloaded/ecolexicon_en", qattr = 'q', randomize = '0', pagesize = 100, fromp = 1, viewmode = "sen", refs = "doc,s", rformat = "json"):
     query_type = "view?"
     # randomize
     if randomize == '1':
@@ -129,7 +130,7 @@ def view(query, corpus = "preloaded/ecolexicon_en", qattr = 'q', randomize = '0'
         "viewmode": viewmode,
         "pagesize": pagesize,
         "fromp": fromp,
-        "refs": "doc,s",
+        "refs": refs,
         "format": rformat,
         "asyn": "0",
     }

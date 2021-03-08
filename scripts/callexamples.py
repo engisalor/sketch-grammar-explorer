@@ -58,29 +58,22 @@ queries = ("attrvals", [{
 
 # view call
 queries = ("view", [{
-    "query": 'lemma,"water"', 
+    "query": '[lemma="water"]', 
     "corpus": "preloaded/ecolexicon_en", 
-    "qattr": 'a', 
-    "randomize": '1', 
-    "pagesize": 1000, 
+    "qattr": 'q', 
+    "randomize": '0', 
+    "pagesize": 100, 
     "fromp": 1, 
-    "viewmode": "sen"
-    },
-    {
-    "query": 'lemma,"sand"', 
-    "corpus": "preloaded/ecolexicon_en", 
-    "qattr": 'a', 
-    "randomize": '1', 
-    "pagesize": 1000, 
-    "fromp": 1, 
-    "viewmode": "sen"
-    }])
+    "viewmode": "sen",
+    "refs": "doc,s,doc.genre,doc.editor,doc.user,doc.domains"},
+    ])
+
 results = callsa.MultiCall(queries)
 # save raw results
-with open('scripts/.callviewtest.json', 'w') as fout:
+with open('scripts/.callviewtest1.json', 'w') as fout:
     json.dump(results, fout)
-
-# new = prep.ViewPrep(results)
+# run prep function
+new = prep.ViewPrep(results)
 
 # freqs by ttype call TODO build fcrit options from corpinfo call
 queries = ("freqs", [{

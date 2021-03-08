@@ -27,18 +27,56 @@ import scripts.callsprep as prep
 
 layout = html.Div(
     [
-        html.H6(children="View API"),
+        dcc.Store(id='parameters'),
+        html.H6(children="SkE API interface"),
+        html.P("Query type"),
+        html.Div([
+        dcc.Dropdown(
+            id="querytype",
+            placeholder='query type',
+            options=[
+                {'label': 'view', 'value': 'view'},
+                ],
+            value="view",
+            clearable=False,
+            style={"width": "175px"},
+        ),
+        html.Button('Submit', id='submit', n_clicks=0,
+            style={"width": "175px"},),
+            ], style={"display": "flex", "flex-wrap": "wrap",},
+        ),
+
+        html.P("Single query"),
         dcc.Textarea(
-            id="textarea",
-            placeholder="CQL query",
+            id="query",
+            placeholder="CQL rule:\n1:[lemma=\"water\"]",
             style={
-                "display": "inline-flex",
-                "width": "50%",
+                "width": "100%",
+                "height": "50px",
                 }),
-        html.P(),
-        html.Button('Submit', id='submit', n_clicks=0),
-        dcc.RadioItems(
+        html.P("Parameters"),
+        html.Div([
+        dcc.Input(
+            id="refs",
+            debounce=True,
+            value="doc,s",
+            placeholder='refs',
+            style={"width": "50%"},
+        ),  
+        dcc.Dropdown(
+            id="corpus",
+            placeholder='corpus',
+            options=[
+                {'label': 'ecolexicon_en', 'value': 'preloaded/ecolexicon_en'},
+                ],
+            value="preloaded/ecolexicon_en",
+            style={"width": "175px"},
+        ),  
+        dcc.Dropdown(
             id='qattr',
+            clearable=False,
+            placeholder='default attribute',
+            value='alemma,',
             options=[
                 {'label': 'lemma', 'value': 'alemma,'},
                 {'label': 'word', 'value': 'aword,'},
@@ -47,35 +85,57 @@ layout = html.Div(
                 {'label': 'lempos_lc', 'value': 'alempos_lc,'},
                 {'label': 'lemma_lc', 'value': 'alemma_lc,'},
                 {'label': 'word_lc', 'value': 'aword_lc,'},
-                {'label': 'multi_q', 'value': ''} # FIXME troubleshoot how this works
             ],
-            value='alemma,',
-            labelStyle={'display': 'inline-block'}
-        ),
-        dcc.RadioItems(
+            style={"width": "175px"},
+            ),
+        dcc.Dropdown(
             id="viewmode",
+            clearable=False,
+            placeholder='view mode',
             options=[
                 {'label': 'sentence', 'value': 'sen'},
                 {'label': 'KWIC', 'value': 'kwic'}],
             value='sen',
-            labelStyle={'display': 'inline-block'}
+            style={"width": "175px"},
         ),  
-        dcc.RadioItems(
+        dcc.Dropdown(
             id="randomize",
+            clearable=False,
+            placeholder='randomize',
             options=[
                 {'label': 'sequential', 'value': '0'},
                 {'label': 'random', 'value': '1'}],
             value='0',
-            labelStyle={'display': 'inline-block'}
+            style={"width": "175px"},
         ),
         dcc.Input(
             id="pagesize",
             type="number",
-            placeholder="lines (100<10,000)",
+            placeholder="lines",
+            value=100,
             min=100,
             max=10000,
-            step=100
+            step=100,
+            style={"width": "80px"},
+        ),],
+        style={
+            "display": "flex",
+            "flex-wrap": "wrap",
+        },
         ),
+        html.P("Multiple queries"),
+        dcc.Textarea(
+            id="multiquery",
+            placeholder='''List of queries:
+{"query": '1:[lemma="water"]'},
+{"query": '1:[lemma="sand"]'}
+''',
+            style={
+                "display": "inline-flex",
+                "width": "100%",
+                "height": "150px",
+                }),
+        html.P(),
         html.Div([
         dcc.Loading(
         id="loading",
@@ -83,7 +143,7 @@ layout = html.Div(
         type="circle")],
             style={
                 "display": "inline-flex",
-                "width": "25%",
+                "width": "100%",
                 "justify-content": "space-around",
             },
 ),
@@ -144,6 +204,30 @@ def parse_contents(contents, filename):
         # Assume that the user uploaded an excel file
         return pd.read_excel(io.BytesIO(decoded))
 
+# compile api parameters
+@app.callback(Output("parameters", "data"),
+    [Input("querytype","value"),
+    Input("query","n_blur"),
+    Input("refs","value"),
+    Input("corpus","value"),
+    Input("qattr","value"),
+    Input("viewmode","value"),
+    Input("randomize","value"),
+    Input("pagesize", "value"),],
+    [State("query","value")])
+def parameters(querytype,queryblur,refs,corpus,qattr,viewmode,randomize,pagesize,query):
+    queries = (querytype, [{
+    "query": query,
+    "refs": refs,
+    "corpus": corpus, 
+    "qattr": qattr, 
+    "viewmode": viewmode,
+    "randomize": randomize, 
+    "pagesize": pagesize, 
+    "fromp": 1,
+    }])
+    return queries
+
 # submit api query
 @app.callback([Output("loading_output", "children"),
     Output("table", "data"),
@@ -151,13 +235,11 @@ def parse_contents(contents, filename):
     [Input("submit", "n_clicks"),
     Input('upload', 'contents')],
     [State('upload', 'filename'),
-    State("pagesize", "value"),
-    State("randomize","value"),
-    State("textarea","value"),
+    State("parameters","data"),
+    State("multiquery","value"),
     State("version","title"),
-    State("qattr","value"),
-    State("viewmode","value")])
-def updatetable(clicks,contents,filename,pagesize,randomize,textarea,version,qattr,viewmode):
+    ])
+def updatetable(clicks,contents,filename,parameters,multiquery,version):
     # get last triggered callback
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
 
@@ -168,19 +250,15 @@ def updatetable(clicks,contents,filename,pagesize,randomize,textarea,version,qat
 
     # submit api call
     if changed_id == "submit.n_clicks":
-        # default pagesize
-        if pagesize == "" or pagesize is None:
-            pagesize = 100
-        # make query parameters
-        queries = ("view", [{
-            "query": textarea, 
-            "corpus": "preloaded/ecolexicon_en", 
-            "qattr": qattr, 
-            "randomize": randomize, 
-            "pagesize": pagesize, 
-            "fromp": 1, # TODO add checkbox to cycle through all fromp after first result if > 10,000 results
-            "viewmode": viewmode
-            }])
+        # get query parameters
+        if multiquery:
+            multiquery = eval(multiquery)
+            # copy default query for each multiquery
+            parameters[1] = [parameters[1][0] for x in range(len(multiquery))]
+            # write each multiquery
+            for x in range(len(multiquery)):
+                parameters[1][x] = {**parameters[1][x], **multiquery[x]}
+        queries = parameters
         # do call
         results = callsa.MultiCall(queries)
         # do preprocessing
