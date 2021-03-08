@@ -126,10 +126,11 @@ layout = html.Div(
         html.P("Multiple queries"),
         dcc.Textarea(
             id="multiquery",
-            placeholder='''List of queries:
-{"query": '1:[lemma="water"]'},
-{"query": '1:[lemma="sand"]'}
-''',
+            placeholder="""# ocean query
+"query":    '''   1:[word="ocean's"]   '''
+# fish query
+'query': '''1:"fish"'''  , 'viewmode': "kwic", "corpus": "a different corpus"
+""",
             style={
                 "display": "inline-flex",
                 "width": "100%",
@@ -252,12 +253,12 @@ def updatetable(clicks,contents,filename,parameters,multiquery,version):
     if changed_id == "submit.n_clicks":
         # get query parameters
         if multiquery:
-            multiquery = eval(multiquery)
+            multiquery = prep.ReadQueries(multiquery)
             # copy default query for each multiquery
             parameters[1] = [parameters[1][0] for x in range(len(multiquery))]
             # write each multiquery
             for x in range(len(multiquery)):
-                parameters[1][x] = {**parameters[1][x], **multiquery[x]}
+                parameters[1][x] = {**parameters[1][x], **multiquery[x][1]}
         queries = parameters
         # do call
         results = callsa.MultiCall(queries)
