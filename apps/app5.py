@@ -46,9 +46,9 @@ layout = html.Div(
             ], style={"display": "flex", "flex-wrap": "wrap",},
         ),
 
-        html.P("Single query"),
+        html.P("CQL rule"),
         dcc.Textarea(
-            id="query",
+            id="qmain",
             placeholder="CQL rule:\n1:[lemma=\"water\"]",
             style={
                 "width": "100%",
@@ -123,9 +123,9 @@ layout = html.Div(
             "flex-wrap": "wrap",
         },
         ),
-        html.P("Multiple queries"),
+        html.P("Multiple calls"),
         dcc.Textarea(
-            id="multiquery",
+            id="clist",
             placeholder="""# ocean query
 "query":    '''   1:[word="ocean's"]   '''
 # fish query
@@ -208,17 +208,17 @@ def parse_contents(contents, filename):
 # compile api parameters
 @app.callback(Output("parameters", "data"),
     [Input("querytype","value"),
-    Input("query","n_blur"),
+    Input("qmain","n_blur"),
     Input("refs","value"),
     Input("corpus","value"),
     Input("qattr","value"),
     Input("viewmode","value"),
     Input("randomize","value"),
     Input("pagesize", "value"),],
-    [State("query","value")])
-def parameters(querytype,queryblur,refs,corpus,qattr,viewmode,randomize,pagesize,query):
-    queries = (querytype, [{
-    "query": query,
+    [State("qmain","value")])
+def parameters(querytype,qmainblur,refs,corpus,qattr,viewmode,randomize,pagesize,qmain):
+    parameters = (querytype, [{
+    "query": qmain,
     "refs": refs,
     "corpus": corpus, 
     "qattr": qattr, 
@@ -227,7 +227,7 @@ def parameters(querytype,queryblur,refs,corpus,qattr,viewmode,randomize,pagesize
     "pagesize": pagesize, 
     "fromp": 1,
     }])
-    return queries
+    return parameters
 
 # submit api query
 @app.callback([Output("loading_output", "children"),
@@ -237,10 +237,10 @@ def parameters(querytype,queryblur,refs,corpus,qattr,viewmode,randomize,pagesize
     Input('upload', 'contents')],
     [State('upload', 'filename'),
     State("parameters","data"),
-    State("multiquery","value"),
+    State("clist","value"),
     State("version","title"),
     ])
-def updatetable(clicks,contents,filename,parameters,multiquery,version):
+def updatetable(clicks,contents,filename,parameters,clist,version):
     # get last triggered callback
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
 
@@ -249,22 +249,22 @@ def updatetable(clicks,contents,filename,parameters,multiquery,version):
         df = parse_contents(contents, filename)
         return "", df.round(2).to_dict('records'), [{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in df.columns]
 
+    # FIXME test w/ various combos and debug (e.g., mixing qmain with clist, multiple fromp)
     # submit api call
     if changed_id == "submit.n_clicks":
-        # get query parameters
-        if multiquery:
-            multiquery = prep.ReadQueries(multiquery)
-            # copy default query for each multiquery
-            parameters[1] = [parameters[1][0] for x in range(len(multiquery))]
-            # write each multiquery
-            for x in range(len(multiquery)):
-                parameters[1][x] = {**parameters[1][x], **multiquery[x][1]}
-        queries = parameters
-        # do call
-        results = callsa.MultiCall(queries)
-        # do preprocessing
-        results = prep.ViewPrep(results)
-        # add markdown coding in table
+        # if list of calls
+        if clist:
+            # fill parameters for each item in clist
+            clist = calls.ParseCallList(clist)
+            parameters[1] = [parameters[1][0] for x in range(len(clist))]
+            # update unique parameters for each item
+            for x in range(len(clist)):
+                parameters[1][x] = {**parameters[1][x], **clist[x][1]}
+        # do call 
+        results = callsa.MultiCall(parameters)
+        # prep for datatable
+        results = prep.ViewPrep(results, clist)
+        # define columns and add markdown encoding
         columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in results[0].keys()]
         return '', results, columns
     

@@ -105,6 +105,100 @@ def freqs(query, fcrit, corpus = "preloaded/ecolexicon_en", rformat = "json"):
     return query_type, settings
 
 ###
+# ParseCallList: parse a string containing at least one call (prep)
+###
+
+# GENERAL
+# always be sure a call is valid before using the API
+# after too many failed attempts your API key can be deactivated by the SkE server
+# (usually for the rest of the day, in my experience)
+# if a key is not specified, the default value is used (as set with the interface)
+# any combination of API calls is possible, but not necessarily advisable
+# e.g., specifying different viewmodes or mixing sequential and randomized calls is bad
+# unforeseen combinations may throw errors
+
+# LABELS
+# a line starting with "#" becomes the label for the following call
+# a line starting with "###" becomes the label for every following call (until the next label)
+# queries without labels are assigned a numerical one, e.g., "q01", "q02", etc.
+
+# SYNTAX
+# each API call must be on a single line (text wrapping is okay for very long calls)
+# empty lines and extra spaces are permissible (extra spaces are encouraged for readability)
+# API calls consist of be dictionary key:value pairs: 'key1':'value1', 'key2':'value2'
+# use commas between key:value pairs
+# no initial/ending brackets are necessary
+# keys can be any valid parameters, e.g., "query", "corpus", 'refs'
+# keys and most values can be surrounded by single or double quotes
+# "query" values must be surrounded by triple quotes ''' [word="water's"]  '''
+
+# cleaning
+# extra spaces are removed from all keys and all values other than "query" values
+
+# example:
+
+"""
+"query":    '''   1:[word="ocean's"]   '''
+
+# single label
+'query': '''1:"fish"'''  , 'viewmode': "kwic", "corpus": "a different corpus"
+
+### group label
+'fromp':1
+'fromp':2
+'fromp':3
+"""
+
+def ParseCallList(clist):
+    # get lines
+    lines = clist.splitlines()
+    lines = [x.strip() for x in lines if x]
+    # separate rules from labels
+    rules = [[x, eval("{" + lines[x].strip() + "}")] for x in range(len(lines)) if lines[x][0] != "#"]
+    # clean rules
+    for x in range(len(rules)):
+        # find keys with spaces and create clean copy
+        temp = {}
+        for y in rules[x][1].keys():
+            drops = []
+            if y.count(" "):
+                drops.append(y)
+                temp[y.strip()] = rules[x][1][y]
+        rules[x][1] = {**rules[x][1], **temp}
+        # drop keys with spaces
+        for d in drops:
+            rules[x][1].pop(d)
+        # clean non-query values
+        for y in rules[x][1].keys():
+            if y != "query":
+                rules[x][1][y] = rules[x][1][y].strip()
+    # set labels
+    labels = lines[:]
+    for x in range(len(lines)):
+        # single labels
+        if lines[x].count("#") == 1:
+            labels[x+1] = lines[x]
+        # group labels
+        if labels[x].count("#") == 3:
+            stop = [labels[x+1:].index(s) for s in labels[x+1:] if "#" in s]
+            # if a label exists after
+            if len(stop) != 0:
+                for n in range(0,stop[0]+1):
+                    labels[x+n] = labels[x]
+            # if no labels after
+            if len(stop) == 0:
+                for n in range(x,len(lines)):
+                    labels[n] = labels[x]
+    # clean labels
+    for x in range(len(rules)):
+        rules[x][0] = labels[rules[x][0]]
+        # auto labels
+        if rules[x][0].count("#") == 0:
+            rules[x][0] = "q" + "{:0{y}d}".format(x, y=len(str(len(rules)))+1)
+        rules[x][0] = rules[x][0].strip("# ")
+    return rules
+
+###
 # view call
 ###
 

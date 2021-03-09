@@ -7,6 +7,15 @@ import json
 # API call examples and related functions
 ###
 
+# parse list of calls
+
+qstr = """'query':  ''' [lemma="water"] '''
+'query':  ''' [lemma="liquid"] '''
+'query':  ''' [lemma="gas"] '''
+'query':  ''' [lemma="climate"] '''
+"""
+calls.ParseCallList(clist)
+
 # get word sketches from a grammar
 wstypes = callsa.WStypes()
 
