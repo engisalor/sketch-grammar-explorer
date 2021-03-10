@@ -226,7 +226,7 @@ def wait(n):
             wait = 1
         elif 100 <= n < 900:
             wait = 4
-        elif 900 < n:
+        elif 900 <= n:
             wait = 45
         # wait
         print("... waiting ", str(wait))
