@@ -177,7 +177,7 @@ def ParseCallList(clist):
         rules[x][0] = labels[rules[x][0]]
         # add auto labels
         if rules[x][0][0] != "#":
-            rules[x][0] = "q" + "{:0{y}d}".format(x, y=len(str(len(rules))))
+            rules[x][0] = "q" + "{:0{y}d}".format(x+1, y=len(str(len(rules))))
         # clean all labels
         rules[x][0] = rules[x][0].strip("#")
     return rules

@@ -7,7 +7,7 @@ def ViewPrep(results, clist = False):
     # set error#
     e = 0
     # set conc#
-    concn = 0
+    concn = 1
     nlines = [len(results[x]["Lines"]) for x in range(len(results))]
     concndigits = str(len(str(sum(nlines))))
     # for each line in each call
