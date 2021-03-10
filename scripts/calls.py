@@ -1,6 +1,8 @@
-from requests import get
-from pathlib import Path
-from time import sleep
+import requests
+import pathlib
+import time
+import ast
+import re
 
 ###
 # attrvals call ***BROKEN*** gets response but "suggestions" always empty
@@ -39,7 +41,7 @@ def BasicCall(
     settings,
     ):
     # set file paths
-    data_folder = Path("")
+    data_folder = pathlib.Path("")
     fauth = data_folder / ".auth_api.txt"
     # get login credentials
     with open(fauth) as f:
@@ -54,7 +56,7 @@ def BasicCall(
     # run request
     # print("MAKING REQUEST")
     print("... calling ", query_type) # , "...",settings
-    d = get("https://api.sketchengine.eu/bonito/run.cgi/" + query_type, params=alldata)
+    d = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + query_type, params=alldata)
     # parse data
     # print("... parsing")
     try:
@@ -105,7 +107,7 @@ def freqs(query, fcrit, corpus = "preloaded/ecolexicon_en", rformat = "json"):
     return query_type, settings
 
 ###
-# ParseCallList: parse a string containing at least one call (prep)
+# ParseCallList: parse a string containing at least one call
 ###
 
 # GENERAL
@@ -121,6 +123,7 @@ def freqs(query, fcrit, corpus = "preloaded/ecolexicon_en", rformat = "json"):
 # a line starting with "#" becomes the label for the following call
 # a line starting with "###" becomes the label for every following call (until the next label)
 # queries without labels are assigned a numerical one, e.g., "q01", "q02", etc.
+# don't use spaces in labels, use dashes or underscores instead
 
 # SYNTAX
 # each API call must be on a single line (text wrapping is okay for very long calls)
@@ -132,55 +135,35 @@ def freqs(query, fcrit, corpus = "preloaded/ecolexicon_en", rformat = "json"):
 # keys and most values can be surrounded by single or double quotes
 # "query" values must be surrounded by triple quotes ''' [word="water's"]  '''
 
-# cleaning
-# extra spaces are removed from all keys and all values other than "query" values
+# EXAMPLE:
+clist = """
+"query":    '''   1:[  word  =  "ocean's"  ]   '''
 
-# example:
+# single-label
+'query': '''  1:"  fish  "'''  , 'viewmode': "kwic", "corpus": "a different corpus"
 
-"""
-"query":    '''   1:[word="ocean's"]   '''
-
-# single label
-'query': '''1:"fish"'''  , 'viewmode': "kwic", "corpus": "a different corpus"
-
-### group label
-'fromp':1
+### group-label
+'fromp  '  :  1
 'fromp':2
 'fromp':3
 """
 
 def ParseCallList(clist):
     # get lines
+    clist = re.sub(' +', '',clist)
     lines = clist.splitlines()
-    lines = [x.strip() for x in lines if x]
+    lines = [x for x in lines if x]
     # separate rules from labels
-    rules = [[x, eval("{" + lines[x].strip() + "}")] for x in range(len(lines)) if lines[x][0] != "#"]
-    # clean rules
-    for x in range(len(rules)):
-        # find keys with spaces and create clean copy
-        temp = {}
-        for y in rules[x][1].keys():
-            drops = []
-            if y.count(" "):
-                drops.append(y)
-                temp[y.strip()] = rules[x][1][y]
-        rules[x][1] = {**rules[x][1], **temp}
-        # drop keys with spaces
-        for d in drops:
-            rules[x][1].pop(d)
-        # clean non-query values
-        for y in rules[x][1].keys():
-            if y != "query":
-                rules[x][1][y] = rules[x][1][y].strip()
+    rules = [[x, ast.literal_eval("{" + lines[x] + "}")] for x in range(len(lines)) if lines[x][0] != "#"]
     # set labels
     labels = lines[:]
     for x in range(len(lines)):
         # single labels
-        if lines[x].count("#") == 1:
+        if lines[x][0] == "#" and lines[x][1] != "#":
             labels[x+1] = lines[x]
         # group labels
-        if labels[x].count("#") == 3:
-            stop = [labels[x+1:].index(s) for s in labels[x+1:] if "#" in s]
+        if labels[x][:3] == "###":
+            stop = [labels[x+1:].index(s) for s in labels[x+1:] if s[0] == "#"]
             # if a label exists after
             if len(stop) != 0:
                 for n in range(0,stop[0]+1):
@@ -189,13 +172,14 @@ def ParseCallList(clist):
             if len(stop) == 0:
                 for n in range(x,len(lines)):
                     labels[n] = labels[x]
-    # clean labels
+    # finish labels
     for x in range(len(rules)):
         rules[x][0] = labels[rules[x][0]]
-        # auto labels
-        if rules[x][0].count("#") == 0:
+        # add auto labels
+        if rules[x][0][0] != "#":
             rules[x][0] = "q" + "{:0{y}d}".format(x, y=len(str(len(rules)))+1)
-        rules[x][0] = rules[x][0].strip("# ")
+        # clean all labels
+        rules[x][0] = rules[x][0].strip("#")
     return rules
 
 ###
@@ -246,7 +230,7 @@ def wait(n):
             wait = 45
         # wait
         print("... waiting ", str(wait))
-        sleep(wait)
+        time.sleep(wait)
     else:
         print("WAIT error")
 

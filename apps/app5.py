@@ -49,7 +49,7 @@ layout = html.Div(
         html.P("CQL rule"),
         dcc.Textarea(
             id="qmain",
-            placeholder="CQL rule:\n1:[lemma=\"water\"]",
+            placeholder="1:[lemma=\"water\"]",
             style={
                 "width": "100%",
                 "height": "50px",
@@ -126,10 +126,10 @@ layout = html.Div(
         html.P("Multiple calls"),
         dcc.Textarea(
             id="clist",
-            placeholder="""# ocean query
-"query":    '''   1:[word="ocean's"]   '''
-# fish query
-'query': '''1:"fish"'''  , 'viewmode': "kwic", "corpus": "a different corpus"
+            placeholder="""# ocean-possessive
+"query": ''' 1:[word="ocean's"] '''
+# fish-Wikipedia
+"query": ''' 1:"fish" ''' , "corpus": "preloaded/enwiki"
 """,
             style={
                 "display": "inline-flex",
