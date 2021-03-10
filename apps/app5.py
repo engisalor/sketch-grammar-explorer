@@ -208,15 +208,14 @@ def parse_contents(contents, filename):
 # compile api parameters
 @app.callback(Output("parameters", "data"),
     [Input("querytype","value"),
-    Input("qmain","n_blur"),
+    Input("qmain","value"),
     Input("refs","value"),
     Input("corpus","value"),
     Input("qattr","value"),
     Input("viewmode","value"),
     Input("randomize","value"),
-    Input("pagesize", "value"),],
-    [State("qmain","value")])
-def parameters(querytype,qmainblur,refs,corpus,qattr,viewmode,randomize,pagesize,qmain):
+    Input("pagesize", "value")])
+def parameters(querytype,qmain,refs,corpus,qattr,viewmode,randomize,pagesize):
     parameters = (querytype, [{
     "query": qmain,
     "refs": refs,
