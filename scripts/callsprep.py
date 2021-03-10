@@ -4,7 +4,12 @@
 
 def ViewPrep(results, clist = False):
     print("PREP start")
+    # set error#
     e = 0
+    # set conc#
+    concn = 0
+    nlines = [len(results[x]["Lines"]) for x in range(len(results))]
+    concndigits = str(len(str(sum(nlines))))
     # for each line in each call
     for x in range(len(results)):
         # get call details
@@ -58,7 +63,8 @@ def ViewPrep(results, clist = False):
                 # add items
                 results[x]["Lines"][y]["corpus"] = corpus
                 results[x]["Lines"][y]["concsize"] = concsize
-                results[x]["Lines"][y]["conc#"] = y
+                results[x]["Lines"][y]["conc#"] = "{:0{z}d}".format(concn,z=concndigits)
+                concn += 1
                 results[x]["Lines"][y]["q"] = query
                 if clist:
                     results[x]["Lines"][y]["label"] = clist[x][0]
