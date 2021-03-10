@@ -177,7 +177,7 @@ def ParseCallList(clist):
         rules[x][0] = labels[rules[x][0]]
         # add auto labels
         if rules[x][0][0] != "#":
-            rules[x][0] = "q" + "{:0{y}d}".format(x, y=len(str(len(rules)))+1)
+            rules[x][0] = "q" + "{:0{y}d}".format(x, y=len(str(len(rules))))
         # clean all labels
         rules[x][0] = rules[x][0].strip("#")
     return rules
@@ -190,7 +190,7 @@ def ParseCallList(clist):
 # qattr = str, "q" or "a", a allows to set the default attr, e.g. 'alemma,1:"gas"'
 # randomize = str, "0" (off, default) or "1" 
 # pagesize = int, 1<10000, sets the number of concordances retrieved 
-# fromp = int, page number returned if multiple
+# fromp = int, page number returned if multiple (starts at 1)
 # viewmode = str, "kwic" or "sen" (full sentence, default)
 # refs = str, "doc,s,etc." NO spaces allowed
 
