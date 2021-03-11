@@ -136,32 +136,29 @@ layout = html.Div(
                 "width": "100%",
                 "height": "150px",
                 }),
-        html.P(),
-        html.Div([
-        dcc.Loading(
-        id="loading",
-        children=[html.Div([html.Div(id="loading_output")])],
-        type="circle")],
-            style={
-                "display": "inline-flex",
-                "width": "100%",
-                "justify-content": "space-around",
-            },
-),
-        html.P(),
-        dcc.Upload(
-        id='upload',
-        children=html.Div([
-            'Drag and Drop or ',
-            html.A('Select Files')
-        ]),
-        style={
-            'width': '250px', 'height': '30px', 'lineHeight': '30px',
-            'borderWidth': '1px', 'borderStyle': 'dashed',
-            'borderRadius': '5px', 'textAlign': 'center', 'margin': '10px'
-        },
-    ),
-        html.P(),
+        # html.Div([
+#         dcc.Loading(
+#         id="loading",
+#         children=[html.Div([html.Div(id="loading_output")])],
+#         type="circle")],
+#             style={
+#                 "display": "inline-flex",
+#                 "width": "100%",
+#                 "justify-content": "space-around",
+#             },
+# ),
+    #     dcc.Upload(
+    #     id='upload',
+    #     children=html.Div([
+    #         'Drag and Drop or ',
+    #         html.A('Select Files')
+    #     ]),
+    #     style={
+    #         'width': '250px', 'height': '30px', 'lineHeight': '30px',
+    #         'borderWidth': '1px', 'borderStyle': 'dashed',
+    #         'borderRadius': '5px', 'textAlign': 'center', 'margin': '10px'
+    #     },
+    # ),
         html.Div(
             [
                 dash_table.DataTable(
@@ -229,17 +226,20 @@ def parameters(querytype,qmain,refs,corpus,qattr,viewmode,randomize,pagesize):
     return parameters
 
 # submit api query
-@app.callback([Output("loading_output", "children"),
+@app.callback([
+    # Output("loading_output", "children"),
     Output("table", "data"),
     Output("table", "columns")], 
     [Input("submit", "n_clicks"),
-    Input('upload', 'contents')],
-    [State('upload', 'filename'),
+    # Input('upload', 'contents')
+    ],
+    [
+    # State('upload', 'filename'),
     State("parameters","data"),
     State("clist","value"),
     State("version","title"),
     ])
-def updatetable(clicks,contents,filename,parameters,clist,version):
+def updatetable(clicks,parameters,clist,version): # contents,filename,
     # get last triggered callback
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
 
@@ -265,7 +265,7 @@ def updatetable(clicks,contents,filename,parameters,clist,version):
         results = prep.ViewPrep(results, clist)
         # define columns and add markdown encoding
         columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in results[0].keys()]
-        return '', results, columns
+        return results, columns # '', 
     
     # prevent undesired updates
     else:
