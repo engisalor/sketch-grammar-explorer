@@ -2,13 +2,29 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 import subprocess
+import pathlib
 
-# Connect to main app.py file
+# connect to main app.py file
 from app import app
 from app import server
 
-# Connect to your app pages
+# connect app pages
 from apps import app5, app4, app3, app2, app1
+
+# set data paths
+data_folder = pathlib.Path("")
+landing = data_folder / "README.md"
+
+# get landing page
+with open(landing, "r") as f:
+    lines = [x for x in f]
+
+# remove unwanted content
+drops = ("# Sketch","!")
+for l in lines:
+    if l.startswith(drops):
+        lines.remove(l)
+lines = "".join(lines)
 
 # get current git version/hash
 try:
@@ -23,66 +39,37 @@ except:
 app.layout = html.Div(
     [
         dcc.Location(id="url", refresh=False),
-        html.Div(
-            [
-                html.Div(
-                    [
-                        html.Div(
-                            [
-                                html.Div(
-                                    dcc.Link(
-                                        "README & source code",
-                                        href="https://github.com/engisalor/sketch-grammar-explorer",
-                                        target="blank",
-                                    )
-                                ),
-                                html.Div(
-                                    dcc.Link(
-                                        "LexiCon Research Group",
-                                        href="https://ecolexicon.ugr.es/",
-                                        target="blank",
-                                    )
-                                ),
-                                html.Div(
-                                    dcc.Link(
-                                        "Sketch Engine",
-                                        href="https://www.sketchengine.eu/",
-                                        target="blank",
-                                    )
-                                ),
-                                html.Div(
-                                    dcc.Link(
-                                        "Dash",
-                                        href="https://plotly.com/dash/",
-                                        target="blank",
-                                    )
-                                ),
-                                html.P(id="version",children="Version info", style={'color': '#1EAEDB'}, title=versionall),
-                            ]
-                        ),
-                        html.Img(
-                            src=app.get_asset_url("logo_ugr.png"),
-                            # src='https://secretariageneral.ugr.es/pages/ivc/descarga/_img/horizontal/ugrmarca02color_2/!',
-                            alt="University of Granada",
-                            height=75,
-                        ),
-                    ],
-                    style={"display": "flex", "justify-content": "space-between"},
-                ),
-                html.H2(children="Sketch Grammar Explorer"),                
-                html.Div(
-                    [
-                        dcc.Link("Frequency Visualizations    |    ", href="/apps/app1"),
-                        dcc.Link("Summary Table    |    ", href="/apps/app2"),
-                        dcc.Link("All Records    |    ", href="/apps/app3"),
-                        dcc.Link("WS freqs    |    ", href="/apps/app4"),
-                        dcc.Link("Precision Analysis", href="/apps/app5"),
-                    ],
-                    className="row",
-                ),
-                html.Div(id="page-content", children=[]),
-            ]
+        html.Div([
+            html.Div([
+                html.H1("Sketch Grammar Explorer"),
+                # dcc.Link("Frequency Visualizations    |    ", href="/apps/app1"),
+                # dcc.Link("Summary Table    |    ", href="/apps/app2"),
+                # dcc.Link("All Records    |    ", href="/apps/app3"),
+                # dcc.Link("WS freqs    |    ", href="/apps/app4"),
+                # html.Div([
+                dcc.Link("Home", href="/"),
+                dcc.Link("Get data", href="/apps/app5"),
+                html.P(id="version",
+                    children="Version", 
+                    style={'color': '#1EAEDB'}, 
+                    title=versionall),
+                html.Div([
+                    html.Img(
+                        src=app.get_asset_url("logo_ugr.png"),
+                        # src='https://secretariageneral.ugr.es/pages/ivc/descarga/_img/horizontal/ugrmarca02color_2/!',
+                        alt="University of Granada",
+                        height=75)],
+                    style={},
+                )
+            ],style={
+                "display": "flex", 
+                "justify-content": "space-between",
+                "align-items":"baseline",
+                'margin': '25px',
+                }),
+        ],
         ),
+        html.Div(id="page-content", children=[]),
     ]
 )
 
@@ -100,8 +87,13 @@ def display_page(pathname):
     if pathname == "/apps/app1":
         return app1.layout
     else:
-        return "404 Page Error! Please choose a link"
-
+        return html.Div([
+            html.Div([
+                dcc.Markdown(lines)],
+                style={"width":"1000px"})],
+            style={
+                "display": "flex",
+                "justify-content": "center"})
 
 if __name__ == "__main__":
     app.run_server(debug=True)

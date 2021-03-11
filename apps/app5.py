@@ -28,25 +28,22 @@ import scripts.callsprep as prep
 layout = html.Div(
     [
         dcc.Store(id='parameters'),
-        html.H6(children="SkE API interface"),
-        html.P("Query type"),
+        html.H5("Query"),
         html.Div([
-        dcc.Dropdown(
-            id="querytype",
-            placeholder='query type',
-            options=[
-                {'label': 'view', 'value': 'view'},
-                ],
-            value="view",
-            clearable=False,
-            style={"width": "175px"},
-        ),
-        html.Button('Submit', id='submit', n_clicks=0,
-            style={"width": "175px"},),
-            ], style={"display": "flex", "flex-wrap": "wrap",},
-        ),
-
-        html.P("CQL rule"),
+            dcc.Dropdown(
+                id="querytype",
+                placeholder='query type',
+                options=[
+                    {'label': 'view', 'value': 'view'},
+                    ],
+                value="view",
+                clearable=False,
+                style={"width": "175px"},
+            ),
+            html.Button('Submit', id='submit', n_clicks=0,
+                style={"width": "175px"},),
+                ], style={"display": "flex", "flex-wrap": "wrap",},
+            ),
         dcc.Textarea(
             id="qmain",
             placeholder="1:[lemma=\"water\"]",
@@ -54,7 +51,7 @@ layout = html.Div(
                 "width": "100%",
                 "height": "50px",
                 }),
-        html.P("Parameters"),
+        html.H5("Parameters"),
         html.Div([
         dcc.Input(
             id="refs",
@@ -121,9 +118,11 @@ layout = html.Div(
         style={
             "display": "flex",
             "flex-wrap": "wrap",
-        },
+            "justify-content": "space-between",
+            "align-items":"center",
+            },
         ),
-        html.P("Multiple calls"),
+        html.H5("Multi-call"),
         dcc.Textarea(
             id="clist",
             placeholder="""# ocean-possessive
@@ -135,7 +134,7 @@ layout = html.Div(
                 "display": "inline-flex",
                 "width": "100%",
                 "height": "150px",
-                }),
+                }), 
         # html.Div([
 #         dcc.Loading(
 #         id="loading",
@@ -161,6 +160,7 @@ layout = html.Div(
     # ),
         html.Div(
             [
+                html.H5("Results"),
                 dash_table.DataTable(
                     id="table",
                     data=pd.DataFrame().to_dict("records"),
@@ -183,9 +183,9 @@ layout = html.Div(
 
                 )
             ],
-            style={"width": "100%"},
+            # style={},
         ),
-    ]
+    ], style={'margin': '25px'},
 )
 
 #### CALLBACKS

@@ -1,5 +1,5 @@
 import re
-from pathlib import Path
+import pathlib
 import scripts.calls as calls
 
 ###
@@ -61,7 +61,7 @@ def Structs(info, drops = [], maxitems = 500):
 
 def WStypes(grammar = "grammar.txt"):
     # set data paths
-    data_folder = Path("")
+    data_folder = pathlib.Path("")
     fgrammar = data_folder / "grammar.txt"
     # get grammar file
     with open(fgrammar) as f:
