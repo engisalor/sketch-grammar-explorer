@@ -2,7 +2,7 @@
 # ViewPrep: creates a list of dicts from multicall view queries
 ###
 
-def ViewPrep(results, clist = False):
+def ViewPrep(results, clist = None):
     print("PREP start")
     # set error#
     e = 0

@@ -13,6 +13,15 @@ from app import app
 import scripts.calls as calls
 import scripts.callsa as callsa
 import scripts.callsprep as prep
+from flask_caching import Cache
+import pathlib
+import json
+
+cache = Cache(app.server, config={
+    'CACHE_TYPE': 'redis',
+    'CACHE_TYPE': 'filesystem',
+    'CACHE_DIR': 'cache-directory',
+})
 
 #### VIEW API APP
 
@@ -27,11 +36,14 @@ import scripts.callsprep as prep
 
 layout = html.Div(
     [
-        dcc.Store(id='parameters'),
+        dcc.Store(id="cacheIDs", storage_type="session"),
+        dcc.Store(id='parameters', storage_type='session'),
         html.H5("Query"),
         html.Div([
             dcc.Dropdown(
                 id="querytype",
+                persistence=True,
+                persistence_type="session",
                 placeholder='query type',
                 options=[
                     {'label': 'view', 'value': 'view'},
@@ -47,6 +59,8 @@ layout = html.Div(
         dcc.Textarea(
             id="qmain",
             placeholder="1:[lemma=\"water\"]",
+            persistence=True,
+            persistence_type="session",
             style={
                 "width": "100%",
                 "height": "50px",
@@ -55,13 +69,16 @@ layout = html.Div(
         html.Div([
         dcc.Input(
             id="refs",
-            debounce=True,
+            persistence=True,
+            persistence_type="session",
             value="doc,s",
             placeholder='refs',
             style={"width": "50%"},
         ),  
         dcc.Dropdown(
             id="corpus",
+            persistence=True,
+            persistence_type="session",
             placeholder='corpus',
             options=[
                 {'label': 'ecolexicon_en', 'value': 'preloaded/ecolexicon_en'},
@@ -71,6 +88,8 @@ layout = html.Div(
         ),  
         dcc.Dropdown(
             id='qattr',
+            persistence=True,
+            persistence_type="session",
             clearable=False,
             placeholder='default attribute',
             value='alemma,',
@@ -87,6 +106,8 @@ layout = html.Div(
             ),
         dcc.Dropdown(
             id="viewmode",
+            persistence=True,
+            persistence_type="session",
             clearable=False,
             placeholder='view mode',
             options=[
@@ -97,6 +118,8 @@ layout = html.Div(
         ),  
         dcc.Dropdown(
             id="randomize",
+            persistence=True,
+            persistence_type="session",
             clearable=False,
             placeholder='randomize',
             options=[
@@ -107,6 +130,8 @@ layout = html.Div(
         ),
         dcc.Input(
             id="pagesize",
+            persistence=True,
+            persistence_type="session",
             type="number",
             placeholder="lines",
             value=100,
@@ -125,6 +150,8 @@ layout = html.Div(
         html.H5("Multi-call"),
         dcc.Textarea(
             id="clist",
+            persistence=True,
+            persistence_type="session",
             placeholder="""# ocean-possessive
 "query": ''' 1:[word="ocean's"] '''
 # fish-Wikipedia
@@ -172,7 +199,7 @@ layout = html.Div(
                     sort_mode="single",
                     filter_action="native",
                     page_action="native",
-                    page_size=100,
+                    page_size=500,
                     style_table={
                         "overflowX": "scroll",
                         "maxHeight": "800px",
@@ -213,60 +240,107 @@ def parse_contents(contents, filename):
     Input("randomize","value"),
     Input("pagesize", "value")])
 def parameters(querytype,qmain,refs,corpus,qattr,viewmode,randomize,pagesize):
-    parameters = (querytype, [{
+    parameters = {
+    "querytype": querytype,
     "query": qmain,
     "refs": refs,
-    "corpus": corpus, 
+    "corpname": corpus, 
     "qattr": qattr, 
     "viewmode": viewmode,
     "randomize": randomize, 
     "pagesize": pagesize, 
     "fromp": 1,
-    }])
+    }
     return parameters
 
-# submit api query
-@app.callback([
-    # Output("loading_output", "children"),
-    Output("table", "data"),
-    Output("table", "columns")], 
-    [Input("submit", "n_clicks"),
-    # Input('upload', 'contents')
-    ],
-    [
-    # State('upload', 'filename'),
-    State("parameters","data"),
+# submit API call
+@app.callback(Output("cacheIDs","data"),
+    [Input("submit", "n_clicks")],
+    [State("parameters","data"),
     State("clist","value"),
     State("version","title"),
-    ])
-def updatetable(clicks,parameters,clist,version): # contents,filename,
-    # get last triggered callback
-    changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    State("cacheIDs","data")],
+    prevent_initial_call=True)
+def submitcall(clicks,parameters,clist,version,cacheIDs):
+    print("Starting calls")
+    if cacheIDs is None:
+        # set cacheIDs
+        cacheIDs = []
+    if clist:
+        # parse list of calls
+        calls = calls.ParseCallList(clist, parameters)
+    else:
+        clist = None
+        calls = [parameters]
+    # validate calls
+    # skip calls with no queries
+    calls = [x for x in calls if x["query"]]
+    # skip identical calls
+    calls = list(set(calls))
 
-    # upload file
-    if changed_id == "upload.contents":
-        df = parse_contents(contents, filename)
-        return "", df.round(2).to_dict('records'), [{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in df.columns]
+    # format parameters by API reqs # this and all other calls should be in one function
+    for x in range(len(parameters)):
+        # randomize
+        if parameters[x]["randomize"] == '1':
+            rand = "r" + str(parameters[x]["pagesize"])
+        else:
+            rand = ""
+        # set parameters
+        new = {
+            "q": [parameters[x]["qattr"] + parameters[x]["query"], rand],
+        }
+        parameters[x].update(new)
+        parameters[x]["querytype"] = "view?"
+        del parameters[x]["qattr"]
+        del parameters[x]["query"]
+        del parameters[x]["randomize"]
 
-    # FIXME test w/ various combos and debug (e.g., mixing qmain with clist, multiple fromp)
-    # submit api call
-    if changed_id == "submit.n_clicks":
-        # if list of calls
-        if clist:
-            # fill parameters for each item in clist
-            clist = calls.ParseCallList(clist)
-            parameters[1] = [parameters[1][0] for x in range(len(clist))]
-            # update unique parameters for each item
-            for x in range(len(clist)):
-                parameters[1][x] = {**parameters[1][x], **clist[x][1]}
-        # do call 
-        results = callsa.MultiCall(parameters)
-        # prep for datatable
-        results = prep.ViewPrep(results, clist)
-        # define columns and add markdown encoding
+    # compare with cached
+    for x in range(len(parameters)):
+        # make callid
+        callID = json.dumps(parameters[x], sort_keys=True)
+            # skip API call if already in cache
+        if callID in cacheIDs:
+            print("... skipping call ", str(x))
+        else:
+            # make calls and cache results, w/ API throttling
+            print("... making call", str(x))
+            # do call
+            results = calls.BasicCall(parameters[x])
+            calls.wait(len(parameters))
+            # process raw data
+            results = prep.ViewPrep([results], clist)
+            # add to cache
+            cache.set(callID, results)
+            cacheIDs.append(callID)
+    return cacheIDs
+
+# TODO flask caching minimal example works
+# but basiccall, multicall, and view etc. functions need to be optimized for caching 
+# (while still allowing terminal use)
+# as the cache grows, updatetable() should be getting slices of data
+# more components need to be added to manage cache and its usage in the app
+# TODO try using subcorpora calls w/ datatable
+# TODO add load
+    # Input('upload', 'contents')
+    #[State('upload', 'filename')]
+    # contents,filename,
+    # # upload file
+    # if changed_id == "upload.contents":
+    #     df = parse_contents(contents, filename)
+    #     results = df.round(2).to_dict('records')
+
+@app.callback([
+    Output("table", "data"),
+    Output("table", "columns")], 
+    [Input("cacheIDs", "data")],
+    prevent_initial_call=True)
+def updatetable(cacheIDs):
+    results = []
+    for x in range(len(cacheIDs)):
+        results.extend(cache.get(cacheIDs[x]))
+    if results:
         columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in results[0].keys()]
-        return results, columns # '', 
-    
-    # prevent undesired updates
+        return results, columns
     else:
         raise PreventUpdate

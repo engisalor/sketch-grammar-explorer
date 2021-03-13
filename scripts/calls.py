@@ -3,6 +3,7 @@ import pathlib
 import time
 import ast
 import re
+import json
 
 ###
 # attrvals call ***BROKEN*** gets response but "suggestions" always empty
@@ -36,39 +37,36 @@ def attrvals(
 # querytype = name of api call function, e.g., "freqs", "corpinfo", "wordlist"
 # settings = dict of parameters required for that api call--see each function 
 
-def BasicCall(
-    query_type,
-    settings,
-    ):
+def BasicCall(parameters):
+    # separate querytype from parameters
+    query_type = parameters["querytype"]
+    del parameters["querytype"]
     # set file paths
     data_folder = pathlib.Path("")
     fauth = data_folder / ".auth_api.txt"
-    # get login credentials
+    # add credentials
     with open(fauth) as f:
         LOGIN = dict(x.rstrip().split(":") for x in f)
-    # combine parameters
-    data = {
+    credentials = {
         "username": LOGIN["username"],
         "api_key": LOGIN["api_key"],
         "asyn": "0",
+        "format": "json",
     }
-    alldata = {**data, **settings}
+    parameters.update(credentials)
     # run request
-    # print("MAKING REQUEST")
-    print("... calling ", query_type) # , "...",settings
-    d = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + query_type, params=alldata)
+    print("... calling ", query_type)
+    d = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + query_type, params=parameters)
     # parse data
-    # print("... parsing")
     try:
         d = d.json()
-        # print("... found json format")
-        # errors
+        # errors given in results
         if "error" in d:
             print("API error:", d["error"])
         else:
-            # print("DONE")
             return d
     except:
+        # other errors
         print("API error:", d)
 
 ###
@@ -148,7 +146,7 @@ clist = """
 'fromp':3
 """
 
-def ParseCallList(clist):
+def ParseCallList(clist,parameters):
     # get lines
     clist = re.sub(' +', '',clist)
     lines = clist.splitlines()
@@ -180,7 +178,13 @@ def ParseCallList(clist):
             rules[x][0] = "q" + "{:0{y}d}".format(x+1, y=len(str(len(rules))))
         # clean all labels
         rules[x][0] = rules[x][0].strip("#")
-    return rules
+    # copy parameters for len(clist)
+    parameters = [parameters]*len(rules)
+    # update unique parameters for each item
+    for x in range(len(rules)):
+        parameters[x] = {**parameters[x], **rules[x][1]}
+        # parameters [x]["hash"] = hash(json.dumps(parameters[x], sort_keys=True)) # can add if needed
+    return parameters
 
 ###
 # view call
