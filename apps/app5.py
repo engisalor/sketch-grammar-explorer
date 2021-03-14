@@ -16,6 +16,7 @@ import scripts.callsprep as prep
 from flask_caching import Cache
 import pathlib
 import json
+import scripts.classes as classes
 
 cache = Cache(app.server, config={
     'CACHE_TYPE': 'redis',
@@ -153,9 +154,9 @@ layout = html.Div(
             persistence=True,
             persistence_type="session",
             placeholder="""# ocean-possessive
-"query": ''' 1:[word="ocean's"] '''
+"q": ''' 1:[word="ocean's"] '''
 # fish-Wikipedia
-"query": ''' 1:"fish" ''' , "corpus": "preloaded/enwiki"
+"q": ''' 1:"fish" ''' , "corpus": "preloaded/enwiki"
 """,
             style={
                 "display": "inline-flex",
@@ -241,8 +242,8 @@ def parse_contents(contents, filename):
     Input("pagesize", "value")])
 def parameters(querytype,qmain,refs,corpus,qattr,viewmode,randomize,pagesize):
     parameters = {
-    "querytype": querytype,
-    "query": qmain,
+    "query_type": querytype,
+    "q": qmain,
     "refs": refs,
     "corpname": corpus, 
     "qattr": qattr, 
@@ -262,58 +263,35 @@ def parameters(querytype,qmain,refs,corpus,qattr,viewmode,randomize,pagesize):
     State("cacheIDs","data")],
     prevent_initial_call=True)
 def submitcall(clicks,parameters,clist,version,cacheIDs):
-    print("Starting calls")
+    # set cacheIDs
     if cacheIDs is None:
-        # set cacheIDs
         cacheIDs = []
-    if clist:
-        # parse list of calls
-        calls = calls.ParseCallList(clist, parameters)
-    else:
-        clist = None
-        calls = [parameters]
-    # validate calls
-    # skip calls with no queries
-    calls = [x for x in calls if x["query"]]
-    # skip identical calls
-    calls = list(set(calls))
-
-    # format parameters by API reqs # this and all other calls should be in one function
-    for x in range(len(parameters)):
-        # randomize
-        if parameters[x]["randomize"] == '1':
-            rand = "r" + str(parameters[x]["pagesize"])
-        else:
-            rand = ""
-        # set parameters
-        new = {
-            "q": [parameters[x]["qattr"] + parameters[x]["query"], rand],
-        }
-        parameters[x].update(new)
-        parameters[x]["querytype"] = "view?"
-        del parameters[x]["qattr"]
-        del parameters[x]["query"]
-        del parameters[x]["randomize"]
-
+    # get simplecall
+    simplecall = getattr(classes,parameters["query_type"])(**parameters)
+    # format call(s)
+    formattedcalls = simplecall.FormatCalls(clist)
+    
+    print(formattedcalls)
     # compare with cached
-    for x in range(len(parameters)):
-        # make callid
-        callID = json.dumps(parameters[x], sort_keys=True)
-            # skip API call if already in cache
-        if callID in cacheIDs:
-            print("... skipping call ", str(x))
-        else:
-            # make calls and cache results, w/ API throttling
-            print("... making call", str(x))
-            # do call
-            results = calls.BasicCall(parameters[x])
-            calls.wait(len(parameters))
-            # process raw data
-            results = prep.ViewPrep([results], clist)
-            # add to cache
-            cache.set(callID, results)
-            cacheIDs.append(callID)
-    return cacheIDs
+    # for x in range(len(formattedcalls)):
+    #     # make callid
+    #     callID = json.dumps(formattedcalls[x], sort_keys=True)
+    #     # skip API call if already in cache
+    #     if callID in cacheIDs:
+    #         print("... skipping call ", str(x))
+    #     # make calls and cache results, w/ API throttling
+    #     else:
+    #         print("... making call", str(x))
+    #         # throttle
+    #         calls.wait(len(formattedcalls))
+    #         # do call
+    #         results = calls.BasicCall(formattedcalls[x])
+    #         # process raw data
+    #         results = prep.ViewPrep([results], clist)
+    #         # add to cache
+    #         cache.set(callID, results)
+    #         cacheIDs.append(callID)
+    # return cacheIDs
 
 # TODO flask caching minimal example works
 # but basiccall, multicall, and view etc. functions need to be optimized for caching 
