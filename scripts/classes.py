@@ -5,202 +5,110 @@ import ast
 
 class Call:
     """
-    parent class for all API call types
+    parent class for all API call types, with methods needed for building and making calls
     """
-    data_folder = pathlib.Path("")
-    fauth = data_folder / ".auth_api.txt"
-    with open(fauth) as f:
-        LOGIN = dict(x.rstrip().split(":") for x in f)
-  
-    def __init__(
-        self,
-        username = LOGIN["username"],
-        api_key = LOGIN["api_key"],
-        asyn="0",
-        dformat="json"):
+ 
+    def __init__(self,gparams={"asyn":"0", "format":"json"}):
+        self.gparams = gparams
+        self.creds = self.auth()
 
-        self.username = username
-        self.api_key = api_key
-        self.asyn = asyn
-        self.format = dformat
+    def auth(self, filepath=".auth_api.txt"):
+        filepath = pathlib.Path(filepath)
+        with open(filepath) as f:
+            return dict(x.rstrip().split(":") for x in f)
 
-class Prep:
-    """
-    format group of calls supplied as a string
-    """
-
-    def formatq(self,q,randomize,pagesize,qattr):
-        q = re.sub(' +', '', q)
-        if randomize is "1":
-            r = "r" + str(pagesize)
-            q = [qattr + q, r]
-            return q
-        else:
-            q = [qattr + q]
-            return q
-    
-    def FormatCalls(self, clist=None,labels=False):
-        if clist is None:
-            return [self.__dict__]
+    def formatc(self):
+        if self.clist is None:
+            temp = self.params.copy()
+            q = re.sub(' +', '', temp["q"])
+            if self.settings["randomize"] is True:
+                r = "r" + str(temp["pagesize"])
+                q = [self.settings["qattr"] + q, r]
+            else:
+                q = [self.settings["qattr"] + q]
+            temp["q"] = q
+            return [temp]
         else:
             # get lines
-            clist = re.sub(' +', '',clist)
+            clist = re.sub(' +', '', self.clist)
             lines = [x for x in clist.splitlines() if x]
-            # convert calls in to dicts
-            for x in range(len(lines)):
-                try:
-                    lines[x] = ast.literal_eval("{" + lines[x] + "}")
-                # add labels to calls
-                except:
-                    # single labels
-                    if lines[x][0] == "#" and lines[x][1] != "#":
-                        lines[x+1] += ''',"label":"''' + lines[x].strip("# ") + '"'
-                    # group labels
-                    if lines[x][:3] == "###":
-                        stop = [lines[x+1:].index(s) for s in lines[x+1:] if s[0] == "#"]
-                        # if a label exists after
-                        if len(stop) != 0:
-                            for n in range(1,stop[0]+1):
-                                lines[x+n] += ''',"label":"''' + lines[x].strip("# ") + '"'
-                        # if no labels after
-                        if len(stop) == 0:
-                            for n in range(x+1,len(lines)):
-                                lines[n] += ''',"label":"''' + lines[x].strip("# ") + '"'
-            # make formatted clist
-            calls = [x for x in lines if type(x) is dict]
-            # make a template for each clist call
-            formattedcalls = [self.__dict__]*(len(calls)+1)
-            # set unique parameters for each extra call
-            for x in range(0, len(calls)):
+            # separate calls from labels
+            calls = [ast.literal_eval("{" + lines[x] + "}") for x in range(len(lines)) if lines[x][0] != "#"]
+            # copy params * len(clist)
+            formattedcalls = [self.params]*(len(calls)+1)
+            # set unique parameters for each c in clist
+            for x in range(len(calls)):
                 formattedcalls[x] = {**formattedcalls[x], **calls[x]}
-            # format q, add auto label if none
-            num = 0
-            for x in formattedcalls:
-                x["q"] = self.formatq(x["q"],x["randomize"],x["pagesize"],x["qattr"])
-                if "label" not in x:
-                    x["label"] = "q" + "{:0{y}d}".format(num, y=len(str(len(formattedcalls))))
-                    num += 1
-                del x["randomize"], x["pagesize"], x["qattr"]
+            # set q
+            for params in formattedcalls:
+                temp = params.copy()
+                q = re.sub(' +', '', temp["q"])
+                if self.settings["randomize"] is True:
+                    r = "r" + str(temp["pagesize"])
+                    q = [self.settings["qattr"] + q, r]
+                else:
+                    q = [self.settings["qattr"] + q]
+                params["q"] = q
+            # remove identical calls
+            return self.uniquec(formattedcalls)
 
-            # split calls and labels
-            labels = [x["label"] for x in formattedcalls]
-            dicts = [x for x in formattedcalls]
-            for x in dicts:
-                del x["label"]
-            # make calls immutable
-            uniquecalls = [json.dumps(x, sort_keys=True) for x in dicts]
-            # replace repeated calls with None
-            for y in range(len(uniquecalls)):
-                reps = []
-                if uniquecalls.count(uniquecalls[y]) > 1:
-                    uniquecalls[y] = "None"
-            # return to mutable
-            uniquecalls = [ast.literal_eval(x) for x in uniquecalls]
-            drops = []
-            # add labels
-            for x in range(len(uniquecalls)):
-                try:
-                    uniquecalls[x]["label"] = labels[x]
-                except:
-                    drops.append(x)
-            # remove None items
-            for x in drops:
-                del uniquecalls[x]
-            return uniquecalls
+    def uniquec(self,formattedcalls):
+        # make immutable
+        immutable = [json.dumps(x, sort_keys=True) for x in formattedcalls]
+        # replace repeats with None 
+        for y in range(len(immutable)):
+            reps = []
+            if immutable.count(immutable[y]) > 1:
+                immutable[y] = "None"
+        # return to dicts
+        immutable = [ast.literal_eval(x) for x in immutable]
+        return immutable
 
-
-
-
-
-
-
-    # def FormatCalls(self, clist=None):
-    #     if clist is None:
-    #         return [self.__dict__]
+    # def setq(self,params): # FIXME function breaks after second try in terminal
+    #     q = re.sub(' +', '', params["q"])
+    #     if self.settings["randomize"] is True:
+    #         r = "r" + str(params["pagesize"])
+    #         q = [self.settings["qattr"] + q, r]
+    #         return q
     #     else:
-    #         # get lines
-    #         clist = re.sub(' +', '',clist)
-    #         lines = [x for x in clist.splitlines() if x]
-    #         # separate calls from labels
-    #         calls = [ast.literal_eval("{" + lines[x] + "}") for x in range(len(lines)) if lines[x][0] != "#"]
-    #         # make list identical calls
-    #         formattedcalls = [self.__dict__]*(len(calls)+1)
-    #         # set unique parameters for each extra call
-    #         for x in range(1,len(calls)-1):
-    #             formattedcalls[x] = {**formattedcalls[x], **calls[x]}
-    #         # remove identical calls
-    #         formattedcalls = [json.dumps(x, sort_keys=True) for x in formattedcalls]
-    #         formattedcalls = list(set(formattedcalls))
-    #         formattedcalls = [ast.literal_eval(x) for x in formattedcalls]
-    #         return formattedcalls
+    #         q = [self.settings["qattr"] + q]
+    #         return q
 
-    # def MakeCalls(self, formattedcall):
-    #     # separate query_type from formattedcall
-    #     query_type = formattedcall["query_type"]
-    #     del formattedcall["query_type"]
-    #     # run request
-    #     print("... calling ", query_type, formattedcall)
-    #     d = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + query_type, params=formattedcall)
-    #     # parse data
-    #     try:
-    #         d = d.json()
-    #         # errors given in results
-    #         if "error" in d:
-    #             print("API error:", d["error"])
-    #         else:
-    #             return d
-    #     except:
-    #         # other errors
-    #         print("API error:", d)
-
-    # def anotherfunc(self, clist):
-    #     formatted calls = self.FormatCalls(clist)
-
-class View(Call,Prep):
+class view(Call):
     """
-    set parameters for a View simplecall
+    subclass for view API usage
     """
 
     def __init__(
         self,
-        q,
-        query_type="view?",
-        qattr="alemma,",        
-        corpname="preloaded/ecolexicon_en",
-        randomize=False,
-        pagesize=100,
-        fromp="1",
-        refs="doc,s",
-        viewmode="sen",
-        ):
+        params = {
+            "query_type": "view?",
+            "q": None,
+            "corpname": "preloaded/ecolexicon_en",
+            "pagesize": 100,
+            "fromp": "1",
+            "refs": "doc,s",
+            "viewmode": "sen"},
+        settings = {
+            "qattr": "alemma,",        
+            "randomize": False},
+        clist = None):
         super().__init__()
-        self.q = q
-        self.query_type = "view?"
-        self.qattr = qattr
-        self.corpname = corpname
-        self.randomize = randomize
-        self.pagesize = pagesize
-        self.fromp = fromp
-        self.refs = refs
-        self.viewmode = viewmode
-        # del self.qattr, self.randomize
-
+        self.params = params
+        self.clist = clist
+        self.settings = settings
+        self.formatted = self.formatc()
 
 clist = """
 "q": ''' "car" '''
 ### GROUP
 "q": ''' "water" '''
-"q": ''' "ice" '''
-
 # SINGLE
 "q": ''' "pie" '''
-"q": ''' "cake" '''
 
- 
-"""
-parameters = {'q': '"CHEER"','query_type': 'View', 'refs': 'doc,s', 'corpname': 'TEST', 'qattr': 'alemma,', 'viewmode': 'sen', 'randomize': '0', 'pagesize': 100, 'fromp': 1}
+# """
+params = {'q': '"water"','refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
+settings = {"qattr": "alemma,", "randomize": True}
 
-# View(**parameters)
-
-formattedcalls = View(**parameters).FormatCalls(clist)
-formattedcalls
+c = view(params,settings,clist)
+c.formatted
