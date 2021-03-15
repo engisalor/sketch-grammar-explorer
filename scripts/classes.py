@@ -19,15 +19,7 @@ class Call:
 
     def formatc(self):
         if self.clist is None:
-            temp = self.params.copy()
-            q = re.sub(' +', '', temp["q"])
-            if self.settings["randomize"] is True:
-                r = "r" + str(temp["pagesize"])
-                q = [self.settings["qattr"] + q, r]
-            else:
-                q = [self.settings["qattr"] + q]
-            temp["q"] = q
-            return [temp]
+            return [self.setq(self.params)]
         else:
             # get lines
             clist = re.sub(' +', '', self.clist)
@@ -35,26 +27,18 @@ class Call:
             # separate calls from labels
             calls = [ast.literal_eval("{" + lines[x] + "}") for x in range(len(lines)) if lines[x][0] != "#"]
             # copy params * len(clist)
-            formattedcalls = [self.params]*(len(calls)+1)
-            # set unique parameters for each c in clist
+            formatted = [self.params]*(len(calls)+1)
+            # set unique parameters for c in clist
             for x in range(len(calls)):
-                formattedcalls[x] = {**formattedcalls[x], **calls[x]}
+                formatted[x] = {**formatted[x], **calls[x]}
             # set q
-            for params in formattedcalls:
-                temp = params.copy()
-                q = re.sub(' +', '', temp["q"])
-                if self.settings["randomize"] is True:
-                    r = "r" + str(temp["pagesize"])
-                    q = [self.settings["qattr"] + q, r]
-                else:
-                    q = [self.settings["qattr"] + q]
-                params["q"] = q
+            formatted = [self.setq(params) for params in formatted]
             # remove identical calls
-            return self.uniquec(formattedcalls)
+            return self.uniquec(formatted)
 
-    def uniquec(self,formattedcalls):
+    def uniquec(self,formatted):
         # make immutable
-        immutable = [json.dumps(x, sort_keys=True) for x in formattedcalls]
+        immutable = [json.dumps(x, sort_keys=True) for x in formatted]
         # replace repeats with None 
         for y in range(len(immutable)):
             reps = []
@@ -64,15 +48,18 @@ class Call:
         immutable = [ast.literal_eval(x) for x in immutable]
         return immutable
 
-    # def setq(self,params): # FIXME function breaks after second try in terminal
-    #     q = re.sub(' +', '', params["q"])
-    #     if self.settings["randomize"] is True:
-    #         r = "r" + str(params["pagesize"])
-    #         q = [self.settings["qattr"] + q, r]
-    #         return q
-    #     else:
-    #         q = [self.settings["qattr"] + q]
-    #         return q
+    def setq(self,params):
+        temp = params.copy()
+        q = re.sub(' +', '', params["q"])
+        if self.settings["randomize"] is True:
+            r = "r" + str(params["pagesize"])
+            q = [self.settings["qattr"] + q, r]
+            temp["q"] = q
+            return temp
+        else:
+            temp["q"] = q
+            q = [self.settings["qattr"] + q]
+            return temp
 
 class view(Call):
     """
@@ -105,10 +92,10 @@ clist = """
 "q": ''' "water" '''
 # SINGLE
 "q": ''' "pie" '''
-
+"q": ''' "water" '''
 # """
-params = {'q': '"water"','refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
-settings = {"qattr": "alemma,", "randomize": True}
+p = {'q': '"water"','refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
+s = {"qattr": "alemma,", "randomize": True}
 
-c = view(params,settings,clist)
+c = view(p,s,clist)
 c.formatted
