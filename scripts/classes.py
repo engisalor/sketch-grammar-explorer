@@ -7,6 +7,8 @@ import time
 from datetime import datetime
 import subprocess
 
+import scripts.callsprep as prep
+
 class Call:
     """
     parent class for all API call types, with methods needed for building and making calls
@@ -128,41 +130,62 @@ class Call:
         print("... calls:", len(self.formatted))
         print("... wait:", self.wait)
         print("... creds:",self.creds["username"],"/", self.creds["api_key"][0:5] + "...")
-        if cache:
-            print("... cache: True")
-        else:
-            print("... cache: False")
+        print("... cache:", cache)
         print("... global parameters:", self.gparams)
         for x in range(len(self.formatted)):
             print("... call{}:".format(str(x)), self.formatted[x])
 
-    def makecalls(self,cache=None,dryrun=False):
+    def makecalls(self,cache=None,cacheIDs=None,dryrun=False):
         # show dry run details
         if dryrun is True:
             self.dryrun(cache)
         # run each call
         else:
-            print("START making calls")
-            for x in range(len(self.formatted)):
-                print("... calling ", self.calltype, self.formatted[x]["q"])
-                d = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + self.calltype, params={**c.formatted[x],**c.creds,**c.gparams})
-                # verify results
-                try:
-                    d = d.json()
-                    if cache is None:
-                        self.results.append(d)
+            print("CALL start")
+            # no cache
+            if cache is None:
+                for x in range(len(self.formatted)):
+                    d = self.trycall(x)
+                    self.results.append(d)
+            # use cache
+            else:
+                # make cacheIDs if empty
+                if cacheIDs is None:
+                    cacheIDs = []
+                for x in range(len(self.formatted)):
+                    # make callid
+                    callID = json.dumps(self.formatted[x], sort_keys=True)
+                    # skip call if in cache
+                    if callID in cacheIDs:
+                        print("... skipping", callID)
+                    # do call
                     else:
-                        print("... caching results") # TODO
-                # errors
-                except:
-                    if "error" in d:
-                        print("API error:", d["error"])
-                    else:
-                        print("Other error:", d)
-                # wait
-                print("... waiting ", str(wait))
-                time.sleep(wait)
-            print("DONE making calls")
+                        d = self.trycall(x)
+                        # process raw data
+                        d = prep.ViewPrep([d])
+                        # add to cache
+                        print("... caching",callID)
+                        cache.set(callID, d)
+                        cacheIDs.append(callID)
+                print("CALL done")
+                return cacheIDs
+
+    def trycall(self,x):
+        print("... calling ", self.formatted[x])
+        d = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + self.calltype, params={**self.formatted[x],**self.creds,**self.gparams})
+        # check validity
+        try:
+            d = d.json()
+            if "error" in d:
+                print("ERROR-API:", d["error"])
+            else:
+                return d
+        # show errors
+        except:
+            print("ERROR-other:", d)
+        # wait
+        print("... waiting", self.wait)
+        time.sleep(self.wait)
 
 class view(Call):
     """
@@ -193,16 +216,16 @@ class view(Call):
         self.results = []
         self.timestamp = datetime.now().isoformat()
 
-clist = """
-"q": ''' "car" '''
-"q": ''' "water" '''
-# SINGLE
-"q": ''' "pie" '''
-"q": ''' "water" '''
-"""
+# clist = """
+# "q": ''' "car" '''
+# "q": ''' "water" '''
+# # SINGLE
+# "q": ''' "pie" '''
+# "q": ''' "water" '''
+# """
 
-p = {'q': '"global"','refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
-s = {"qattr": "alemma,", "randomize": False}
+# p = {'q': '"global"','refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
+# s = {"qattr": "alemma,", "randomize": False}
 
-c = view(p,s)
-c.makecalls(dryrun=True)
+# c = view(p,s)
+# c.makecalls(dryrun=True)

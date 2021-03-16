@@ -2,7 +2,7 @@
 # ViewPrep: creates a list of dicts from multicall view queries
 ###
 
-def ViewPrep(results, clist = None):
+def ViewPrep(results): # FIXME not working with classes
     print("PREP start")
     # set error#
     e = 0
@@ -66,8 +66,8 @@ def ViewPrep(results, clist = None):
                 results[x]["Lines"][y]["conc#"] = "{:0{z}d}".format(concn,z=concndigits)
                 concn += 1
                 results[x]["Lines"][y]["q"] = query
-                if clist:
-                    results[x]["Lines"][y]["label"] = clist[x][0]
+                # if clist:
+                #     results[x]["Lines"][y]["label"] = clist[x][0]
             except:
                 e += 1
                 print("...", x,y, "skip add items")

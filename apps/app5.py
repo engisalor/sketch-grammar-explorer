@@ -10,8 +10,6 @@ import io
 import pandas as pd
 import time
 from app import app
-import scripts.calls as calls
-import scripts.callsa as callsa
 import scripts.callsprep as prep
 from flask_caching import Cache
 import pathlib
@@ -27,7 +25,7 @@ cache = Cache(app.server, config={
 #### VIEW API APP
 
 # TODO #6 run same searches in browser to check data integrity
-# TODO #8 add a box for setting other API parameters (corpus info, doc:entry combos)
+# TODO #8 add a box for setting other API params (corpus info, doc:entry combos)
 # TODO #9 add conc links to sketch engine using md in datatable [title](https://www.example.com)
 # TODO #13 add metadata cols, make hidden
 # TODO make default savesize and other saveable settings
@@ -38,11 +36,12 @@ cache = Cache(app.server, config={
 layout = html.Div(
     [
         dcc.Store(id="cacheIDs", storage_type="session"),
-        dcc.Store(id='parameters', storage_type='session'),
+        dcc.Store(id='params', storage_type='session'),
+        dcc.Store(id='settings', storage_type='session'),
         html.H5("Query"),
         html.Div([
             dcc.Dropdown(
-                id="querytype",
+                id="calltype",
                 persistence=True,
                 persistence_type="session",
                 placeholder='query type',
@@ -66,7 +65,7 @@ layout = html.Div(
                 "width": "100%",
                 "height": "50px",
                 }),
-        html.H5("Parameters"),
+        html.H5("params"),
         html.Div([
         dcc.Input(
             id="refs",
@@ -230,74 +229,56 @@ def parse_contents(contents, filename):
         # Assume that the user uploaded an excel file
         return pd.read_excel(io.BytesIO(decoded))
 
-# compile api parameters
-@app.callback(Output("parameters", "data"),
-    [Input("querytype","value"),
-    Input("qmain","value"),
+# get params
+@app.callback(Output("params", "data"),
+    [Input("qmain","value"),
     Input("refs","value"),
     Input("corpus","value"),
-    Input("qattr","value"),
     Input("viewmode","value"),
-    Input("randomize","value"),
     Input("pagesize", "value")])
-def parameters(querytype,qmain,refs,corpus,qattr,viewmode,randomize,pagesize):
-    parameters = {
-    "query_type": querytype,
-    "q": qmain,
-    "refs": refs,
-    "corpname": corpus, 
-    "qattr": qattr, 
-    "viewmode": viewmode,
-    "randomize": randomize, 
-    "pagesize": pagesize, 
-    "fromp": 1,
-    }
-    return parameters
+def params(qmain,refs,corpus,viewmode,pagesize):
+    params = {
+        "q": qmain,
+        "refs": refs,
+        "corpname": corpus, 
+        "viewmode": viewmode,
+        "pagesize": pagesize, 
+        "fromp": 1}
+    return params
+
+# get settings
+@app.callback(Output("settings", "data"),
+    [Input("calltype","value"),
+    Input("qattr","value"),
+    Input("randomize","value")])
+def settings(calltype,qattr,randomize):
+    settings = {
+        "calltype": calltype,
+        "qattr": qattr, 
+        "randomize": randomize}
+    return settings
 
 # submit API call
 @app.callback(Output("cacheIDs","data"),
     [Input("submit", "n_clicks")],
-    [State("parameters","data"),
+    [State("params","data"),
+    State("settings","data"),
     State("clist","value"),
-    State("version","title"),
     State("cacheIDs","data")],
     prevent_initial_call=True)
-def submitcall(clicks,parameters,clist,version,cacheIDs):
-    # set cacheIDs
-    if cacheIDs is None:
-        cacheIDs = []
-    # get simplecall
-    simplecall = getattr(classes,parameters["query_type"])(**parameters)
-    # format call(s)
-    formattedcalls = simplecall.FormatCalls(clist)
-    
-    print(formattedcalls)
-    # compare with cached
-    # for x in range(len(formattedcalls)):
-    #     # make callid
-    #     callID = json.dumps(formattedcalls[x], sort_keys=True)
-    #     # skip API call if already in cache
-    #     if callID in cacheIDs:
-    #         print("... skipping call ", str(x))
-    #     # make calls and cache results, w/ API throttling
-    #     else:
-    #         print("... making call", str(x))
-    #         # throttle
-    #         calls.wait(len(formattedcalls))
-    #         # do call
-    #         results = calls.BasicCall(formattedcalls[x])
-    #         # process raw data
-    #         results = prep.ViewPrep([results], clist)
-    #         # add to cache
-    #         cache.set(callID, results)
-    #         cacheIDs.append(callID)
-    # return cacheIDs
+def submitcall(clicks,params,settings,clist,cacheIDs):
+    # make instance
+    c = getattr(classes,settings["calltype"])(params,settings,clist)
+    # do calls
+    cacheIDs = c.makecalls(cache=cache,cacheIDs=cacheIDs)
+    return cacheIDs
 
+# FIXME get existing cacheIDs directly from cache, not dcc.store  
+# TODO incorporate class methods into app
+# TODO enable changing call types, w/ hiding/generating components
+# TODO add dryrun w/ log in app
 # TODO flask caching minimal example works
-# but basiccall, multicall, and view etc. functions need to be optimized for caching 
-# (while still allowing terminal use)
-# as the cache grows, updatetable() should be getting slices of data
-# more components need to be added to manage cache and its usage in the app
+# TODO as the cache grows, updatetable() should be getting slices of data
 # TODO try using subcorpora calls w/ datatable
 # TODO add load
     # Input('upload', 'contents')
