@@ -2,6 +2,8 @@ import pathlib
 import re
 import json
 import ast
+import requests
+import time
 
 class Call:
     """
@@ -62,36 +64,84 @@ class Call:
         if self.clist is None:
             return None
         else:
-        # get lines
-        clist = re.sub(' +', '', self.clist)
-        lines = [x for x in clist.splitlines() if x]
-        # make calls comparable strings
-        for x in range(len(lines)):
-            if lines[x][0] != "#":
-                lines[x] = ast.literal_eval("{" + lines[x] + "}")
-                lines[x] = json.dumps(lines[x], sort_keys=True)
-        lines = [x for x in Call.uniquec(None,lines) if x]
-        # add labels
-        for x in range(len(lines)):
-            # single labels
-            if lines[x][0] == "#" and lines[x][1] != "#":
-                lines[x+1] = lines[x].strip("# ")
-            # group labels
-            if lines[x][:3] == "###":
-                stop = [lines[x+1:].index(s) for s in lines[x+1:] if s[0] == "#"]
-                # if a label exists after
-                if len(stop) != 0:
-                    for n in range(1,stop[0]+1):
-                        lines[x+n] = lines[x].strip("# ")
-                # if no labels after
-                if len(stop) == 0:
-                    for n in range(x+1,len(lines)):
-                        lines[n] = lines[x].strip("# ")
-            # if no label
-            if lines[x][0] == "{":
-                lines[x] = None
-        # drop old
-        return [x for x in lines if x is None or x[0] != "#"]
+            # get lines
+            clist = re.sub(' +', '', self.clist)
+            lines = [x for x in clist.splitlines() if x]
+            # make calls comparable strings
+            for x in range(len(lines)):
+                if lines[x][0] != "#":
+                    lines[x] = ast.literal_eval("{" + lines[x] + "}")
+                    lines[x] = json.dumps(lines[x], sort_keys=True)
+            lines = [x for x in Call.uniquec(None,lines) if x]
+            # add labels
+            for x in range(len(lines)):
+                # single labels
+                if lines[x][0] == "#" and lines[x][1] != "#":
+                    lines[x+1] = lines[x].strip("# ")
+                # group labels
+                if lines[x][:3] == "###":
+                    stop = [lines[x+1:].index(s) for s in lines[x+1:] if s[0] == "#"]
+                    # if a label exists after
+                    if len(stop) != 0:
+                        for n in range(1,stop[0]+1):
+                            lines[x+n] = lines[x].strip("# ")
+                    # if no labels after
+                    if len(stop) == 0:
+                        for n in range(x+1,len(lines)):
+                            lines[n] = lines[x].strip("# ")
+                # if no label
+                if lines[x][0] == "{":
+                    lines[x] = None
+            # drop old
+            return [x for x in lines if x is None or x[0] != "#"]
+
+    def makecalls(self,cache=None,dryrun=False):
+        # set wait time
+        n = len(self.formatted)
+        if n == 1:
+            wait = 0
+        elif 2 <= n < 100:
+            wait = 1
+        elif 100 <= n < 900:
+            wait = 4
+        elif 900 <= n:
+            wait = 45
+        # show dry run details
+        if dryrun is True:
+            print("DRYRUN", "\n... call type:", self.calltype)
+            print("... calls:", str(n)," wait:", str(wait))
+            print("... creds:",self.creds["username"], self.creds["api_key"][0:5] + "...")
+            if cache:
+                print("... cache: True")
+            else:
+                print("... cache: False")
+            print("... global parameters:", self.gparams)
+            for x in range(len(self.formatted)):
+                print("... call{}:\n".format(str(x)), self.formatted[x])
+        # run each call
+        else:
+            self.results = []
+            print("START making calls")
+            for x in range(len(self.formatted)):
+                print("... calling ", self.calltype, self.formatted[x]["q"])
+                d = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + self.calltype, params={**c.formatted[x],**c.creds,**c.gparams})
+                # verify results
+                try:
+                    d = d.json()
+                    if cache is None:
+                        self.results.append(d)
+                    else:
+                        print("... caching results")
+                # errors
+                except:
+                    if "error" in d:
+                        print("API error:", d["error"])
+                    else:
+                        print("Other error:", d)
+                # wait
+                print("... waiting ", str(wait))
+                time.sleep(wait)
+            print("DONE making calls")
 
 class view(Call):
     """
@@ -101,7 +151,6 @@ class view(Call):
     def __init__(
         self,
         params = {
-            "query_type": "view?",
             "q": None,
             "corpname": "preloaded/ecolexicon_en",
             "pagesize": 100,
@@ -113,6 +162,7 @@ class view(Call):
             "randomize": False},
         clist = None):
         super().__init__()
+        self.calltype = "view?"
         self.params = params
         self.clist = clist
         self.settings = settings
@@ -127,7 +177,9 @@ clist = """
 "q": ''' "water" '''
 """
 
-p = {'q': '"water"','refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
-s = {"qattr": "alemma,", "randomize": True}
+p = {'q': '"planet"','refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
+s = {"qattr": "alemma,", "randomize": False}
 
-c = view(p,s,clist)
+c = view(p,s)
+c.makecalls()
+c.results
