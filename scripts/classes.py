@@ -59,6 +59,9 @@ class Call:
         return temp
 
     def label(self):
+        if self.clist is None:
+            return None
+        else:
         # get lines
         clist = re.sub(' +', '', self.clist)
         lines = [x for x in clist.splitlines() if x]
