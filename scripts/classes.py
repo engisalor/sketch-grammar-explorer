@@ -6,6 +6,7 @@ import requests
 import time
 from datetime import datetime
 import subprocess
+import hashlib
 
 import scripts.callsprep as prep
 
@@ -41,6 +42,7 @@ class Call:
             clist = re.sub(' +', '', self.clist)
             lines = [x for x in clist.splitlines() if x]
             # separate calls from labels
+            # TODO interpret brackets if already exist
             calls = [ast.literal_eval("{" + lines[x] + "}") for x in range(len(lines)) if lines[x][0] != "#"]
             # copy params by clist len
             formatted = [self.params]*(len(calls))
@@ -154,10 +156,11 @@ class Call:
                     cacheIDs = []
                 for x in range(len(self.formatted)):
                     # make callid
-                    callID = json.dumps(self.formatted[x], sort_keys=True)
+                    temp = json.dumps(self.formatted[x], sort_keys=True)
+                    callID = {"hash": str(hashlib.blake2s(temp.encode()).hexdigest()), "call": temp}
                     # skip call if in cache
-                    if callID in cacheIDs:
-                        print("... skipping", callID)
+                    if callID["hash"] in [x["hash"] for x in cacheIDs]:
+                        print("... skipping", callID["call"])
                     # do call
                     else:
                         d = self.trycall(x)
@@ -165,7 +168,7 @@ class Call:
                         d = prep.ViewPrep([d])
                         # add to cache
                         print("... caching",callID)
-                        cache.set(callID, d)
+                        cache.set(callID["hash"], d)
                         cacheIDs.append(callID)
                 print("CALL done")
                 return cacheIDs

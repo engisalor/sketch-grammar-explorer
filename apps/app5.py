@@ -8,19 +8,31 @@ from dash.exceptions import PreventUpdate
 import base64
 import io
 import pandas as pd
-import time
+# import time
 from app import app
 import scripts.callsprep as prep
 from flask_caching import Cache
 import pathlib
 import json
 import scripts.classes as classes
+import ast
 
 cache = Cache(app.server, config={
     'CACHE_TYPE': 'redis',
     'CACHE_TYPE': 'filesystem',
     'CACHE_DIR': 'cache-directory',
 })
+
+def getcacheIDs(filepath=".cacheIDs.txt"):
+    filepath = pathlib.Path(filepath)
+    with open(filepath) as f:
+        return [ast.literal_eval(x) for x in f if x]
+
+def setcacheIDs(cachIDs, filepath=".cacheIDs.txt"):
+    filepath = pathlib.Path(filepath)
+    with open(filepath, 'w') as f:
+        for item in cachIDs:
+            f.writelines(str(item)+"\n")
 
 #### VIEW API APP
 
@@ -35,7 +47,7 @@ cache = Cache(app.server, config={
 
 layout = html.Div(
     [
-        dcc.Store(id="cacheIDs", storage_type="session"),
+        dcc.Store(id="cacheIDs", storage_type="session", data=getcacheIDs()),
         dcc.Store(id='params', storage_type='session'),
         dcc.Store(id='settings', storage_type='session'),
         html.H5("Query"),
@@ -187,6 +199,17 @@ layout = html.Div(
     # ),
         html.Div(
             [
+                html.H5("Cached"),
+                dcc.Textarea(
+                    id="cached",
+                    placeholder="cached queries",
+                    persistence=True,
+                    persistence_type="session",
+                    readOnly=True,
+                    style={
+                        "width": "100%",
+                        "height": "50px",
+                        }),
                 html.H5("Results"),
                 dash_table.DataTable(
                     id="table",
@@ -265,19 +288,28 @@ def settings(calltype,qattr,randomize):
     State("settings","data"),
     State("clist","value"),
     State("cacheIDs","data")],
-    prevent_initial_call=True)
+    prevent_initial_call=False)
 def submitcall(clicks,params,settings,clist,cacheIDs):
-    # make instance
-    c = getattr(classes,settings["calltype"])(params,settings,clist)
-    # do calls
-    cacheIDs = c.makecalls(cache=cache,cacheIDs=cacheIDs)
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        button_id = None
+    else:
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    if button_id == "submit":
+        # make instance
+        c = getattr(classes,settings["calltype"])(params,settings,clist)
+        # do calls
+        cacheIDs = c.makecalls(cache=cache,cacheIDs=cacheIDs) # TODO add labels, etc., to cacheIDs
+        setcacheIDs(cacheIDs)
     return cacheIDs
 
-# FIXME get existing cacheIDs directly from cache, not dcc.store  
-# TODO incorporate class methods into app
+# TODO allow copy/paste from cache textarea to multi-call textarea
+# this requires improving handling of quotes and escaping ', "", '''
+# TODO compare how big the cache is when raw json data vs after Prep script
+# TODO incorporate class methods into app (IN PROGRESS)
 # TODO enable changing call types, w/ hiding/generating components
 # TODO add dryrun w/ log in app
-# TODO flask caching minimal example works
+# TODO flask caching minimal example works (IN PROGRESS)
 # TODO as the cache grows, updatetable() should be getting slices of data
 # TODO try using subcorpora calls w/ datatable
 # TODO add load
@@ -292,14 +324,26 @@ def submitcall(clicks,params,settings,clist,cacheIDs):
 @app.callback([
     Output("table", "data"),
     Output("table", "columns")], 
-    [Input("cacheIDs", "data")],
-    prevent_initial_call=True)
+    [Input("cacheIDs", "data")])
 def updatetable(cacheIDs):
-    results = []
-    for x in range(len(cacheIDs)):
-        results.extend(cache.get(cacheIDs[x]))
-    if results:
-        columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in results[0].keys()]
-        return results, columns
+    # TODO all this needs work (get slices instead of whole dataset)
+    if cacheIDs is None:
+        cacheIDs = getcacheIDs()
+    try:
+        for x in range(len(cacheIDs)):
+            results = cache.get(cacheIDs[x]["hash"])
+        if results:
+            columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in results[0].keys()]
+            return results, columns
+    except:
+        raise PreventUpdate
+
+# show cachedIDs in textarea
+@app.callback(
+    Output("cached", "value"),
+    Input("cacheIDs", "data"))
+def updatetable(cacheIDs):
+    if cacheIDs:
+        return "\n".join([str(x["call"]) for x in cacheIDs])
     else:
         raise PreventUpdate
