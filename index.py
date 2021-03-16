@@ -1,7 +1,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
-import subprocess
+import scripts.classes as classes
 import pathlib
 
 # connect to main app.py file
@@ -26,13 +26,8 @@ for l in lines:
         lines.remove(l)
 lines = "".join(lines)
 
-# get current git version/hash
-try:
-    version = subprocess.check_output(["git", "describe",  "--always"]).decode("utf-8").strip()
-    versiondate = subprocess.check_output(["git", "show", "-s", "--format=%cd", "--date=short"]).decode("utf-8").strip()
-    versionall = "{} {}".format(versiondate, version)
-except:
-    versionall= "unknown"
+# get current version
+versionall = classes.Call().version
 
 #### LAYOUT
 
