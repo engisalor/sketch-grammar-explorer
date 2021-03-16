@@ -4,6 +4,7 @@ import json
 import ast
 import requests
 import time
+from datetime import datetime
 
 class Call:
     """
@@ -96,6 +97,8 @@ class Call:
             return [x for x in lines if x is None or x[0] != "#"]
 
     def makecalls(self,cache=None,dryrun=False):
+        self.results = []
+        self.timestamp = datetime.now().isoformat()
         # set wait time
         n = len(self.formatted)
         if n == 1:
@@ -109,18 +112,19 @@ class Call:
         # show dry run details
         if dryrun is True:
             print("DRYRUN", "\n... call type:", self.calltype)
-            print("... calls:", str(n)," wait:", str(wait))
-            print("... creds:",self.creds["username"], self.creds["api_key"][0:5] + "...")
+            print("... timestamp:",self.timestamp)
+            print("... calls:", str(n))
+            print("... wait:", str(wait))
+            print("... creds:",self.creds["username"],"/", self.creds["api_key"][0:5] + "...")
             if cache:
                 print("... cache: True")
             else:
                 print("... cache: False")
             print("... global parameters:", self.gparams)
             for x in range(len(self.formatted)):
-                print("... call{}:\n".format(str(x)), self.formatted[x])
+                print("... call{}:".format(str(x)), self.formatted[x])
         # run each call
         else:
-            self.results = []
             print("START making calls")
             for x in range(len(self.formatted)):
                 print("... calling ", self.calltype, self.formatted[x]["q"])
@@ -177,9 +181,8 @@ clist = """
 "q": ''' "water" '''
 """
 
-p = {'q': '"planet"','refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
+p = {'q': '"global"','refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
 s = {"qattr": "alemma,", "randomize": False}
 
 c = view(p,s)
-c.makecalls()
-c.results
+c.makecalls(dryrun=True)
