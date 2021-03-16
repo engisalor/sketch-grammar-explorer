@@ -15,13 +15,23 @@ class Call:
     def __init__(self,gparams={"asyn":"0", "format":"json"}):
         self.gparams = gparams
         self.creds = self.auth()
+        self.version = self.version()
 
     def auth(self, filepath=".auth_api.txt"):
         filepath = pathlib.Path(filepath)
         with open(filepath) as f:
             return dict(x.rstrip().split(":") for x in f)
 
-    def formatc(self):
+    def version(self):                # get version
+        try:
+            v = subprocess.check_output(["git", "describe",  "--always"]).decode("utf-8").strip()
+            vdate = subprocess.check_output(["git", "show", "-s", "--format=%cd", "--date=short"]).decode("utf-8").strip()
+            version = "{} / {}".format(vdate, v)
+        except:
+            version= "unknown"
+        return version
+
+    def format(self):
         if self.clist is None:
             return [self.setq(self.params)]
         else:
@@ -38,9 +48,9 @@ class Call:
             # set q
             formatted = [self.setq(params) for params in formatted]
             # remove identical calls and NAs
-            return [x for x in self.uniquec(formatted) if x]
+            return [x for x in self.unique(formatted) if x]
 
-    def uniquec(self,formatted):
+    def unique(self,formatted):
         # make immutable
         immutable = [json.dumps(x, sort_keys=True) for x in formatted]
         # replace repeats with None starting from end
@@ -64,7 +74,7 @@ class Call:
 
     def label(self):
         if self.clist is None:
-            return None
+            return [None]
         else:
             # get lines
             clist = re.sub(' +', '', self.clist)
@@ -74,7 +84,7 @@ class Call:
                 if lines[x][0] != "#":
                     lines[x] = ast.literal_eval("{" + lines[x] + "}")
                     lines[x] = json.dumps(lines[x], sort_keys=True)
-            lines = [x for x in Call.uniquec(None,lines) if x]
+            lines = [x for x in self.unique(lines) if x]
             # add labels
             for x in range(len(lines)):
                 # single labels
@@ -97,17 +107,7 @@ class Call:
             # drop old
             return [x for x in lines if x is None or x[0] != "#"]
 
-    def makecalls(self,cache=None,dryrun=False):
-        self.results = []
-        self.timestamp = datetime.now().isoformat()
-        # get version
-        try:
-            v = subprocess.check_output(["git", "describe",  "--always"]).decode("utf-8").strip()
-            vdate = subprocess.check_output(["git", "show", "-s", "--format=%cd", "--date=short"]).decode("utf-8").strip()
-            version = "{} / {}".format(vdate, v)
-        except:
-            version= "unknown"
-        self.version = version
+    def setwait(self):
         # set wait time
         n = len(self.formatted)
         if n == 1:
@@ -118,22 +118,28 @@ class Call:
             wait = 4
         elif 900 <= n:
             wait = 45
+        return wait
+
+    def dryrun(self,cache=None):
+        print("DRYRUN")
+        print("... call type:", self.calltype)
+        print("... timestamp:",self.timestamp)
+        print("... version:",self.version)
+        print("... calls:", len(self.formatted))
+        print("... wait:", self.wait)
+        print("... creds:",self.creds["username"],"/", self.creds["api_key"][0:5] + "...")
+        if cache:
+            print("... cache: True")
+        else:
+            print("... cache: False")
+        print("... global parameters:", self.gparams)
+        for x in range(len(self.formatted)):
+            print("... call{}:".format(str(x)), self.formatted[x])
+
+    def makecalls(self,cache=None,dryrun=False):
         # show dry run details
         if dryrun is True:
-            print("DRYRUN")
-            print("... call type:", self.calltype)
-            print("... timestamp:",self.timestamp)
-            print("... version:",self.version)
-            print("... calls:", str(n))
-            print("... wait:", str(wait))
-            print("... creds:",self.creds["username"],"/", self.creds["api_key"][0:5] + "...")
-            if cache:
-                print("... cache: True")
-            else:
-                print("... cache: False")
-            print("... global parameters:", self.gparams)
-            for x in range(len(self.formatted)):
-                print("... call{}:".format(str(x)), self.formatted[x])
+            self.dryrun(cache)
         # run each call
         else:
             print("START making calls")
@@ -146,7 +152,7 @@ class Call:
                     if cache is None:
                         self.results.append(d)
                     else:
-                        print("... caching results")
+                        print("... caching results") # TODO
                 # errors
                 except:
                     if "error" in d:
@@ -181,8 +187,11 @@ class view(Call):
         self.params = params
         self.clist = clist
         self.settings = settings
-        self.formatted = self.formatc()
+        self.formatted = self.format()
         self.labels = self.label()
+        self.wait = self.setwait()
+        self.results = []
+        self.timestamp = datetime.now().isoformat()
 
 clist = """
 "q": ''' "car" '''
