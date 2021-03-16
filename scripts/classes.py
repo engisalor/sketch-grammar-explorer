@@ -5,6 +5,7 @@ import ast
 import requests
 import time
 from datetime import datetime
+import subprocess
 
 class Call:
     """
@@ -99,6 +100,14 @@ class Call:
     def makecalls(self,cache=None,dryrun=False):
         self.results = []
         self.timestamp = datetime.now().isoformat()
+        # get version
+        try:
+            v = subprocess.check_output(["git", "describe",  "--always"]).decode("utf-8").strip()
+            vdate = subprocess.check_output(["git", "show", "-s", "--format=%cd", "--date=short"]).decode("utf-8").strip()
+            version = "{} / {}".format(vdate, v)
+        except:
+            version= "unknown"
+        self.version = version
         # set wait time
         n = len(self.formatted)
         if n == 1:
@@ -111,8 +120,10 @@ class Call:
             wait = 45
         # show dry run details
         if dryrun is True:
-            print("DRYRUN", "\n... call type:", self.calltype)
+            print("DRYRUN")
+            print("... call type:", self.calltype)
             print("... timestamp:",self.timestamp)
+            print("... version:",self.version)
             print("... calls:", str(n))
             print("... wait:", str(wait))
             print("... creds:",self.creds["username"],"/", self.creds["api_key"][0:5] + "...")
