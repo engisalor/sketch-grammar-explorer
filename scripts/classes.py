@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 import subprocess
 import hashlib
+import pandas as pd
 
 import scripts.callsprep as prep
 
@@ -190,6 +191,17 @@ class Call:
         print("... waiting", self.wait)
         time.sleep(self.wait)
 
+    def unnest(self, df, explode, axis):
+        """explode columns of lists
+        https://stackoverflow.com/questions/53218931/how-to-unnest-explode-a-column-in-a-pandas-dataframe?noredirect=1"""
+        if axis==1:
+            df1 = pd.concat([df[x].explode() for x in explode], axis=1)
+            return df1.join(df.drop(explode, 1), how='left')
+        else :
+            df1 = pd.concat([
+                            pd.DataFrame(df[x].tolist(), index=df.index).add_prefix(x) for x in explode], axis=1)
+            return df1.join(df.drop(explode, 1), how='left')
+
 class view(Call):
     """
     subclass for view API usage
@@ -219,6 +231,53 @@ class view(Call):
         self.results = []
         self.timestamp = datetime.now().isoformat()
 
+    def dfview(self):
+        dfs = pd.DataFrame()
+        for x in range(len(self.results)):
+            data = self.results[x]
+            # make df
+            df = pd.json_normalize(data["Lines"])
+            # get refs (explode rename cols)
+            df = self.unnest(df,["Refs"],axis=0)
+            refs = data["request"]["refs"].split(",")
+            df.rename(columns = {"Refs" + str(x): refs[x] for x in range(len(refs))}, inplace = True) 
+            # get left, right
+            df["Left"] = [x[0]["str"] if x else "" for x in df["Left"]]
+            df["Right"] = [x[0]["str"] if x else "" for x in df["Right"]]
+            # get kwic elements, md bold if labelled
+            kwic = []
+            for x in range(len(df)):
+                row = "".join(["**" + x["str"] + "**" if x["class"] == "col0 coll coll" else x["str"] for x in df.iloc[0]["Kwic"]])
+                kwic.append(row)
+            df["Kwic"] = kwic
+            # make conc
+            df["kwic"] = df["Left"] + df["Kwic"] + df["Right"]
+            # get corpname
+            corpname = data["request"]["corpname"]
+            df["corpname"] = corpname[corpname.rfind("/")+1:]
+            df["concsize"] = data["concsize"]
+            df["query"] = str(data["q"])
+            df["fromp"] = data["fromp"]
+            # TODO add label, cacheIDs, searchdate, version, other class vars
+            # drop cols
+            drops = ["toknum","hitlen","Tbl_refs","Left","Kwic","Right","Links","linegroup","linegroup_id"]
+            df.drop(drops, axis=1, inplace=True)
+            # reorder cols
+            cols = list(df.columns)
+            ordered = ["kwic","corpname","fromp","query","concsize"]
+            ordered.extend([x for x in cols if x not in ordered]) # can use sorted([])
+            df = df[ordered]
+            # set dtypes manually
+            df[["kwic"]] = df[["kwic"]].astype("string")
+            df[["corpname", "query"]] = df[["corpname", "query"]].astype("category")
+            # set dtypes automatically
+            drops = ["kwic","corpname", "fromp", "query", "concsize"]
+            categorical = [x for x in cols if x not in drops]
+            df[categorical] = df[categorical].astype("category")
+            # combine all results
+            dfs = dfs.append(df)
+        self.df = dfs
+
 # clist = """
 # "q": ''' "car" '''
 # "q": ''' "water" '''
@@ -227,8 +286,13 @@ class view(Call):
 # "q": ''' "water" '''
 # """
 
-# p = {'q': '"global"','refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
-# s = {"qattr": "alemma,", "randomize": False}
+p = {'q': '"climate"','refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
+s = {"qattr": "alemma,", "randomize": False}
 
-# c = view(p,s)
-# c.makecalls(dryrun=True)
+# TODO dfview() add label, cacheIDs, searchdate, version, other class vars
+# make workable with or without cache
+
+c = view(p,s)
+c.makecalls()
+c.dfview()
+c.df
