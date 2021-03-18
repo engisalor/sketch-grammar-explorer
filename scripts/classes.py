@@ -1,7 +1,6 @@
 import pathlib
 import re
 import json
-import ast
 import requests
 import time
 import subprocess
@@ -23,7 +22,7 @@ class Call:
         with open(filepath) as f:
             return dict(x.rstrip().split(":") for x in f)
 
-    def version(self):                # get version
+    def version(self):
         try:
             v = subprocess.check_output(["git", "describe",  "--always"]).decode("utf-8").strip()
             vdate = subprocess.check_output(["git", "show", "-s", "--format=%cd", "--date=short"]).decode("utf-8").strip()
@@ -33,81 +32,74 @@ class Call:
         return version
 
     def format(self):
-        if self.clist is None:
-            return [self.setq(self.params)]
-        else:
-            # get lines
-            clist = re.sub(' +', '', self.clist)
-            lines = [x for x in clist.splitlines() if x]
-            # separate calls from labels
-            # TODO interpret brackets if already exist
-            calls = [ast.literal_eval("{" + lines[x] + "}") for x in range(len(lines)) if lines[x][0] != "#"]
-            # copy params by clist len
-            formatted = [self.params]*(len(calls))
-            # set unique parameters for c in clist
-            for x in range(len(calls)):
-                formatted[x] = {**formatted[x], **calls[x]}
-            # set q
-            formatted = [self.setq(params) for params in formatted]
-            # remove identical calls and NAs
-            return [x for x in self.unique(formatted) if x]
+        # clean text
+        ls = [x for x in self.clines.splitlines() if x]
+        ls = [re.sub(' +', '',x) for x in ls]
+        ls = ["".join(["{",x,"}"]) if not x.startswith("{") else x for x in ls]
+        # set up each call
+        dicts = [json.loads(x) for x in ls]
+        dicts = [{**self.params, **dicts[x]} for x in range(len(dicts))]
+       # repeat first q if call has none
+        for x in range(len(dicts)):
+            if "q" not in dicts[x]:
+                dicts[x]["q"] = dicts[0]["q"]
+        # get valid unique calls
+        dicts = [x for x in self.unique(dicts) if x]
+        # return with set q
+        return [self.setq(x) for x in dicts]
 
-    def unique(self,formatted):
+    def unique(self,dicts):
         # make immutable
-        immutable = [json.dumps(x, sort_keys=True) for x in formatted]
+        strjson = [json.dumps(x, sort_keys=True) for x in dicts]
         # replace repeats with None starting from end
-        for y in reversed(range(len(immutable))):
-            if immutable.count(immutable[y]) > 1:
-                immutable[y] = "None"
+        for y in reversed(range(len(strjson))):
+            if strjson.count(strjson[y]) > 1:
+                strjson[y] = "None"
         # return to dicts
-        return [ast.literal_eval(x) for x in immutable]
+        return [json.loads(x) for x in strjson]
 
-    def setq(self,params):
-        temp = params.copy()
-        q = re.sub(' +', '', params["q"])
-        if self.settings["randomize"] is True:
-            r = "r" + str(params["pagesize"])
-            q = [self.settings["qattr"] + q, r]
-            temp["q"] = q
-        else:
-            q = [self.settings["qattr"] + q]
-            temp["q"] = q
-        return temp
+    def setq(self,call):
+        if type(call["q"]) is str:
+            r = ""
+            if self.settings["randomize"] is True:
+                r = "".join(["r", str(self.settings["pagesize"])])
+                q = [self.settings["qattr"] + call["q"], r]
+            else:
+                q = [self.settings["qattr"] + call["q"]]
+            call["q"] = q
+        return call
 
-    def label(self):
-        if self.clist is None:
-            return [None]
-        else:
-            # get lines
-            clist = re.sub(' +', '', self.clist)
-            lines = [x for x in clist.splitlines() if x]
-            # make calls comparable strings
-            for x in range(len(lines)):
-                if lines[x][0] != "#":
-                    lines[x] = ast.literal_eval("{" + lines[x] + "}")
-                    lines[x] = json.dumps(lines[x], sort_keys=True)
-            lines = [x for x in self.unique(lines) if x]
-            # add labels
-            for x in range(len(lines)):
-                # single labels
-                if lines[x][0] == "#" and lines[x][1] != "#":
-                    lines[x+1] = lines[x].strip("# ")
-                # group labels
-                if lines[x][:3] == "###":
-                    stop = [lines[x+1:].index(s) for s in lines[x+1:] if s[0] == "#"]
-                    # if a label exists after
-                    if len(stop) != 0:
-                        for n in range(1,stop[0]+1):
-                            lines[x+n] = lines[x].strip("# ")
-                    # if no labels after
-                    if len(stop) == 0:
-                        for n in range(x+1,len(lines)):
-                            lines[n] = lines[x].strip("# ")
-                # if no label
-                if lines[x][0] == "{":
-                    lines[x] = None
-            # drop old
-            return [x for x in lines if x is None or x[0] != "#"]
+    # def label(self):
+    #     lines = self.clist.copy()
+    #     # make calls comparable strings
+    #     for x in range(len(lines)):
+    #         if not lines[x].startswith("#"):
+    #             if not lines[x].startswith("{"):
+    #                 lines[x] = "".join(["{",lines[x],"}"])
+    #             lines[x] = ast.literal_eval(lines[x])
+    #             lines[x] = json.dumps(lines[x], sort_keys=True)
+    #     lines = [x for x in self.unique(lines) if x]
+    #     # add labels
+    #     for x in range(len(lines)):
+    #         # single labels
+    #         if lines[x].startswith("#") and not lines[x].startswith("#",1):
+    #             lines[x+1] = lines[x].strip("# ")
+    #         # group labels
+    #         if lines[x].startswith("###"):
+    #             stop = [lines[x+1:].index(s) for s in lines[x+1:] if s.startswith("#")]
+    #             # if a label exists after
+    #             if len(stop) != 0:
+    #                 for n in range(1,stop[0]+1):
+    #                     lines[x+n] = lines[x].strip("# ")
+    #             # if no labels after
+    #             if len(stop) == 0:
+    #                 for n in range(x+1,len(lines)):
+    #                     lines[n] = lines[x].strip("# ")
+    #         # if no label
+    #         if lines[x].startswith("{"):
+    #             lines[x] = None
+    #     # drop old
+    #     return [x for x in lines if x is None or not x.startswith("#")]
 
     def setwait(self):
         # set wait time
@@ -215,19 +207,17 @@ class view(Call):
             "refs": "doc,s",
             "viewmode": "sen"},
         settings = {
+            "label": "",
             "qattr": "alemma,",        
             "randomize": False},
-        clist = None):
+        clines = ""):
         super().__init__()
         self.calltype = "view?"
         self.params = params
-        if type(clist) is str:
-            if clist.strip() == "":
-                clist = None
-        self.clist = clist
+        self.clines = clines
         self.settings = settings
         self.formatted = self.format()
-        self.labels = self.label()
+        # self.labels = self.label()
         self.wait = self.setwait()
         self.results = []
         self.timestamp = pd.Timestamp.now().isoformat()
@@ -279,18 +269,11 @@ class view(Call):
         # combine all results
         return df
 
-# clist = """
-# "q": ''' "car" '''
-# "q": ''' "water" '''
-# # SINGLE
-# "q": ''' "pie" '''
-# "q": ''' "water" '''
-# """
-
-p = {'q': '"climate"','refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
-s = {"qattr": "alemma,", "randomize": False}
-
-# TODO cacheids can exist within the cache,
-# c = view(p,s)
-# c.makecalls()
-# c.df["date"]
+# p = {'refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
+# s = {"qattr": "alemma,", "randomize": False}
+# clines = '''
+# {"corpname": "preloaded/ecolexicon_en", "fromp": 1, "pagesize": 100, "q": ["alemma,\\"salt\\""], "refs": "doc,s", "viewmode": "sen"}
+# '''
+# z = view(clines=clines)
+# z.makecalls()
+# z.df
