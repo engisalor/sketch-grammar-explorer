@@ -3,7 +3,6 @@ import io
 import pandas as pd
 import pathlib
 import json
-import ast
 
 import dash
 import dash_core_components as dcc
@@ -23,14 +22,7 @@ cache = Cache(app.server, config={
     'CACHE_DEFAULT_TIMEOUT': 0,
 })
 
-#### VIEW API APP
-
-# TODO #6 run same searches in browser to check data integrity
-# TODO #8 add a box for setting other API params (corpus info, doc:entry combos)
-# TODO #9 add conc links to sketch engine using md in datatable [title](https://www.example.com)
 # TODO #13 add metadata cols, make hidden
-# TODO make default savesize and other saveable settings
-# TODO setup cyclical API calls if all concs are desired when all_concs >10,000 
 
 #### LAYOUT
 
@@ -39,43 +31,20 @@ layout = html.Div(
         dcc.Store(id="cacheIDs", storage_type="session"),
         dcc.Store(id='params', storage_type='session'),
         dcc.Store(id='settings', storage_type='session'),
-        html.H5("Query"),
+        html.H5("Settings"),
         html.Div([
-            dcc.Dropdown(
-                id="calltype",
-                persistence=True,
-                persistence_type="session",
-                placeholder='query type',
-                options=[
-                    {'label': 'view', 'value': 'view'},
-                    ],
-                value="view",
-                clearable=False,
-                style={"width": "175px"},
-            ),
-            html.Button('Submit', id='submit', n_clicks=0,
-                style={"width": "175px"},),
-                ], style={"display": "flex", "flex-wrap": "wrap",},
-            ),
-        dcc.Textarea(
-            id="query",
-            placeholder="1:[lemma=\"water\"]",
+        dcc.Dropdown(
+            id="calltype",
             persistence=True,
             persistence_type="session",
-            style={
-                "width": "100%",
-                "height": "50px",
-                }),
-        html.H5("Params"),
-        html.Div([
-        dcc.Input(
-            id="refs",
-            persistence=True,
-            persistence_type="session",
-            value="doc,s",
-            placeholder='refs',
-            style={"width": "50%"},
-        ),  
+            placeholder='query type',
+            options=[
+                {'label': 'view', 'value': 'view'},
+                ],
+            value="view",
+            clearable=False,
+            style={"width": "175px"},
+            ),
         dcc.Dropdown(
             id="corpus",
             persistence=True,
@@ -140,15 +109,25 @@ layout = html.Div(
             max=10000,
             step=100,
             style={"width": "80px"},
-        ),],
+        ),
+        dcc.Input(
+            id="refs",
+            persistence=True,
+            persistence_type="session",
+            value="doc,s",
+            placeholder='refs',
+            style={"width": "50%"},
+        )],
         style={
             "display": "flex",
             "flex-wrap": "wrap",
-            "justify-content": "space-between",
+            "justify-content": "left",
             "align-items":"center",
             },
         ),
         html.H5("Multi-call"),
+        html.Button('Submit', id='submit', n_clicks=0,
+            style={"width": "175px"}),
         dcc.Textarea(
             id="clist",
             persistence=True,
@@ -244,14 +223,12 @@ def parse_contents(contents, filename):
 
 # get params
 @app.callback(Output("params", "data"),
-    [Input("query","value"),
-    Input("refs","value"),
+    [Input("refs","value"),
     Input("corpus","value"),
     Input("viewmode","value"),
     Input("pagesize", "value")])
-def params(query,refs,corpus,viewmode,pagesize):
+def params(refs,corpus,viewmode,pagesize):
     params = {
-        "q": query,
         "refs": refs,
         "corpname": corpus, 
         "viewmode": viewmode,
@@ -302,9 +279,6 @@ def submitcall(submitclicks,clearclicks,params,settings,clist):
     cache.set("ledger", cacheIDs)
     return cacheIDs
 
-# TODO allow copy/paste from cache textarea to multi-call textarea
-# this requires improving handling of quotes and escaping ', "", '''
-# TODO compare how big the cache is when raw json data vs after Prep script
 # TODO incorporate class methods into app (IN PROGRESS)
 # TODO enable changing call types, w/ hiding/generating components
 # TODO add dryrun w/ log in app
