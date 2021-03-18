@@ -1,38 +1,27 @@
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-# import dash_daq as daq
-import dash_table
-from dash.dependencies import Input, Output, State
-from dash.exceptions import PreventUpdate
 import base64
 import io
 import pandas as pd
-# import time
-from app import app
-import scripts.callsprep as prep
-from flask_caching import Cache
 import pathlib
 import json
-import scripts.classes as classes
 import ast
+
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import dash_table
+from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
+from flask_caching import Cache
+
+from app import app
+import scripts.classes as classes
 
 cache = Cache(app.server, config={
     'CACHE_TYPE': 'redis',
     'CACHE_TYPE': 'filesystem',
-    'CACHE_DIR': 'cache-directory',
+    'CACHE_DIR': '.cache',
+    'CACHE_DEFAULT_TIMEOUT': 0,
 })
-
-def getcacheIDs(filepath=".cacheIDs.txt"):
-    filepath = pathlib.Path(filepath)
-    with open(filepath) as f:
-        return [ast.literal_eval(x) for x in f if x]
-
-def setcacheIDs(cachIDs, filepath=".cacheIDs.txt"):
-    filepath = pathlib.Path(filepath)
-    with open(filepath, 'w') as f:
-        for item in cachIDs:
-            f.writelines(str(item)+"\n")
 
 #### VIEW API APP
 
@@ -47,7 +36,7 @@ def setcacheIDs(cachIDs, filepath=".cacheIDs.txt"):
 
 layout = html.Div(
     [
-        dcc.Store(id="cacheIDs", storage_type="session", data=getcacheIDs()),
+        dcc.Store(id="cacheIDs", storage_type="session"),
         dcc.Store(id='params', storage_type='session'),
         dcc.Store(id='settings', storage_type='session'),
         html.H5("Query"),
@@ -69,7 +58,7 @@ layout = html.Div(
                 ], style={"display": "flex", "flex-wrap": "wrap",},
             ),
         dcc.Textarea(
-            id="qmain",
+            id="query",
             placeholder="1:[lemma=\"water\"]",
             persistence=True,
             persistence_type="session",
@@ -77,7 +66,7 @@ layout = html.Div(
                 "width": "100%",
                 "height": "50px",
                 }),
-        html.H5("params"),
+        html.H5("Params"),
         html.Div([
         dcc.Input(
             id="refs",
@@ -200,8 +189,9 @@ layout = html.Div(
         html.Div(
             [
                 html.H5("Cached"),
+                html.Button('clear', id='clearcache', n_clicks=0),
                 dcc.Textarea(
-                    id="cached",
+                    id="cacheTA",
                     placeholder="cached queries",
                     persistence=True,
                     persistence_type="session",
@@ -254,14 +244,14 @@ def parse_contents(contents, filename):
 
 # get params
 @app.callback(Output("params", "data"),
-    [Input("qmain","value"),
+    [Input("query","value"),
     Input("refs","value"),
     Input("corpus","value"),
     Input("viewmode","value"),
     Input("pagesize", "value")])
-def params(qmain,refs,corpus,viewmode,pagesize):
+def params(query,refs,corpus,viewmode,pagesize):
     params = {
-        "q": qmain,
+        "q": query,
         "refs": refs,
         "corpname": corpus, 
         "viewmode": viewmode,
@@ -283,24 +273,33 @@ def settings(calltype,qattr,randomize):
 
 # submit API call
 @app.callback(Output("cacheIDs","data"),
-    [Input("submit", "n_clicks")],
+    [Input("submit", "n_clicks"),
+    Input("clearcache", "n_clicks")],
     [State("params","data"),
     State("settings","data"),
-    State("clist","value"),
-    State("cacheIDs","data")],
+    State("clist","value")],
     prevent_initial_call=False)
-def submitcall(clicks,params,settings,clist,cacheIDs):
+def submitcall(submitclicks,clearclicks,params,settings,clist):
+    # set button_id
     ctx = dash.callback_context
     if not ctx.triggered:
         button_id = None
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    # get cached
+    cacheIDs = cache.get("ledger")
+    # do call
     if button_id == "submit":
         # make instance
         c = getattr(classes,settings["calltype"])(params,settings,clist)
         # do calls
         cacheIDs = c.makecalls(cache=cache,cacheIDs=cacheIDs) # TODO add labels, etc., to cacheIDs
-        setcacheIDs(cacheIDs)
+    # clear cache:
+    if button_id == "clearcache":
+        if 0 < clearclicks:
+            cache.clear()
+            cacheIDs = None
+    cache.set("ledger", cacheIDs)
     return cacheIDs
 
 # TODO allow copy/paste from cache textarea to multi-call textarea
@@ -325,25 +324,24 @@ def submitcall(clicks,params,settings,clist,cacheIDs):
     Output("table", "data"),
     Output("table", "columns")], 
     [Input("cacheIDs", "data")])
-def updatetable(cacheIDs):
-    # TODO all this needs work (get slices instead of whole dataset)
-    if cacheIDs is None:
-        cacheIDs = getcacheIDs()
-    try:
-        for x in range(len(cacheIDs)):
-            results = cache.get(cacheIDs[x]["hash"])
-        if results:
-            columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in results[0].keys()]
-            return results, columns
-    except:
-        raise PreventUpdate
-
-# show cachedIDs in textarea
-@app.callback(
-    Output("cached", "value"),
-    Input("cacheIDs", "data"))
-def updatetable(cacheIDs):
+def updatetable(trigger):
+    cacheIDs = cache.get("ledger")
+    results = pd.DataFrame()
     if cacheIDs:
-        return "\n".join([str(x["call"]) for x in cacheIDs])
-    else:
-        raise PreventUpdate
+        for x in range(len(cacheIDs)):
+            hashed = cacheIDs[x]["hash"]
+            cached = cache.get(hashed)
+            results = results.append(cached)
+    columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in results.columns]
+    data = results.to_dict('records')
+    return data, columns
+
+@app.callback(
+    Output('cacheTA', 'value'),
+    [Input("cacheIDs", "data")])
+def cache_textarea(trigger):
+    cacheIDs = cache.get("ledger")
+    text = ""
+    if cacheIDs:
+        text = "\n".join([x["call"] for x in cacheIDs if cacheIDs])
+    return text
