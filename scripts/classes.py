@@ -222,7 +222,7 @@ class view(Call):
         # self.labels = self.label()
         self.wait = self.setwait()
         self.results = []
-        self.timestamp = pd.Timestamp.now().isoformat()
+        self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def getdf(self,data):
         """make a dataframe of view call results"""
@@ -249,23 +249,24 @@ class view(Call):
         df["concsize"] = data["concsize"]
         df["query"] = str(data["q"])
         df["fromp"] = data["fromp"]
-        df["calltype"] = self.calltype
-        df["version"] = self.version
-        df["date"] = pd.Timestamp.fromisoformat(self.timestamp)
-        # TODO add label, cacheIDs, version, other class vars
+        # df["calltype"] = self.calltype
+        # df["version"] = self.version
+        df["date"] = self.timestamp
+        df["label"] = label
+        df["hit"] = df.index
         # drop cols
         drops = ["toknum","hitlen","Tbl_refs","Left","Kwic","Right","Links","linegroup","linegroup_id"]
         df.drop(drops, axis=1, inplace=True)
         # reorder cols
         cols = list(df.columns)
-        ordered = ["kwic","corpname","fromp","query","concsize"]
+        ordered = ["label", "fromp", "hit", "kwic", "concsize", "query", "corpname"]
         ordered.extend([x for x in cols if x not in ordered]) # can use sorted([])
         df = df[ordered]
         # set dtypes manually
         df[["kwic"]] = df[["kwic"]].astype("string")
         df[["corpname", "query"]] = df[["corpname", "query"]].astype("category")
         # set dtypes automatically
-        drops = ["kwic","corpname", "fromp", "query", "concsize","date"]
+        drops = ["hit", "kwic","corpname", "fromp", "query", "concsize","date", "label"]
         categorical = [x for x in cols if x not in drops]
         df[categorical] = df[categorical].astype("category")
         # combine all results

@@ -304,6 +304,8 @@ def updatetable(trigger):
             hashed = cacheIDs[x]["hash"]
             cached = cache.get(hashed)
             results = results.append(cached)
+    results.reset_index(level=0, inplace=True)
+    results["index"] = range(len(results))
     columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in results.columns]
     data = results.to_dict('records')
     return data, columns
