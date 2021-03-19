@@ -41,22 +41,54 @@ class Call:
         # set up each call
         dicts = [ast.literal_eval(ls[x]) if "'''" in ls[x] else json.loads(ls[x]) for x in range(len(ls))]
         dicts = [{**self.params, **dicts[x]} for x in range(len(dicts))]
-       # repeat first q if call has none
-        for x in range(len(dicts)):
-            if "q" not in dicts[x]:
-                dicts[x]["q"] = dicts[0]["q"]
+        # propagate queries and labels
+        dicts = self.propagate(dicts)
+        # pop labels before finding unique calls   
+        labels, nldicts = self.poplabels(dicts)
         # get valid unique calls
-        dicts = [x for x in self.unique(dicts) if x]
+        udicts = [x for x in self.unique(dicts)]
+        # add labels to unique dicts
+        ldicts = self.addlabels(udicts,labels)
         # return with set q
-        return [self.setq(x) for x in dicts]
+        return [self.setq(x) for x in ldicts if type(x) is dict]
+
+    def poplabels(self, dicts):
+        temp = dicts.copy()
+        labels = [x["l"] if "l" in x.keys() else "" for x in temp]
+        for x in temp:
+            if 'l' in x:
+                del x['l']
+        return labels, temp
+
+    def addlabels(self, dicts,labels):
+        temp = dicts.copy()
+        for x in range(len(temp)):
+            if type(temp[x]) is dict:
+                temp[x]["l"] = labels[x]
+        return temp
+
+    def propagate(self,dicts,keys=["q","l"]):
+        for key in keys:
+            for x in range(len(dicts)):
+                if key in dicts[x].keys():
+                    stop = [dicts[x+1:].index(s) for s in dicts[x+1:] if key in s.keys()]
+                    # if a key exists after
+                    if len(stop) != 0:
+                        for n in range(1,stop[0]+1):
+                            dicts[x+n][key] = dicts[x][key]
+                    # if no key after
+                    if len(stop) == 0:
+                        for n in range(x+1,len(dicts)):
+                            dicts[n][key] = dicts[x][key]
+        return dicts
 
     def unique(self,dicts):
         # make immutable
         strjson = [json.dumps(x, sort_keys=True) for x in dicts]
-        # replace repeats with None starting from end
+        # clear repeats in reverse order
         for y in reversed(range(len(strjson))):
-            if strjson.count(strjson[y]) > 1:
-                strjson[y] = "None"
+            if 1 < strjson.count(strjson[y]):
+                strjson[y] = "[]"
         # return to dicts
         return [json.loads(x) for x in strjson]
 
@@ -70,38 +102,6 @@ class Call:
                 q = [self.settings["qattr"] + call["q"]]
             call["q"] = q
         return call
-
-    # def label(self):
-    #     lines = self.clist.copy()
-    #     # make calls comparable strings
-    #     for x in range(len(lines)):
-    #         if not lines[x].startswith("#"):
-    #             if not lines[x].startswith("{"):
-    #                 lines[x] = "".join(["{",lines[x],"}"])
-    #             lines[x] = ast.literal_eval(lines[x])
-    #             lines[x] = json.dumps(lines[x], sort_keys=True)
-    #     lines = [x for x in self.unique(lines) if x]
-    #     # add labels
-    #     for x in range(len(lines)):
-    #         # single labels
-    #         if lines[x].startswith("#") and not lines[x].startswith("#",1):
-    #             lines[x+1] = lines[x].strip("# ")
-    #         # group labels
-    #         if lines[x].startswith("###"):
-    #             stop = [lines[x+1:].index(s) for s in lines[x+1:] if s.startswith("#")]
-    #             # if a label exists after
-    #             if len(stop) != 0:
-    #                 for n in range(1,stop[0]+1):
-    #                     lines[x+n] = lines[x].strip("# ")
-    #             # if no labels after
-    #             if len(stop) == 0:
-    #                 for n in range(x+1,len(lines)):
-    #                     lines[n] = lines[x].strip("# ")
-    #         # if no label
-    #         if lines[x].startswith("{"):
-    #             lines[x] = None
-    #     # drop old
-    #     return [x for x in lines if x is None or not x.startswith("#")]
 
     def setwait(self):
         # set wait time
@@ -136,29 +136,30 @@ class Call:
         # run each call
         else:
             print("CALL start")
+            labels, calls = self.poplabels(self.formatted)
             # no cache
             if cache is None:
-                for x in range(len(self.formatted)):
-                    d = self.trycall(x)
+                for x in range(len(calls)):
+                    d = self.trycall(calls[x])
                     self.results.append(d)
-                    self.df = self.getdf(d)
+                    self.df = self.getdf(d,labels[x])
             # use cache
             else:
                 # make cacheIDs if empty
                 if cacheIDs is None:
                     cacheIDs = []
-                for x in range(len(self.formatted)):
+                for x in range(len(calls)):
                     # make callid
-                    temp = json.dumps(self.formatted[x], sort_keys=True)
+                    temp = json.dumps(calls[x], sort_keys=True)
                     callID = {"hash": str(hashlib.blake2s(temp.encode()).hexdigest()), "call": temp}
                     # skip call if in cache
                     if callID["hash"] in [x["hash"] for x in cacheIDs]:
                         print("... skipping", callID["call"])
                     # do call
                     else:
-                        d = self.trycall(x)
+                        d = self.trycall(calls[x])
                         # process raw data
-                        d = self.getdf(d)
+                        d = self.getdf(d,labels[x])
                         # add to cache
                         print("... caching")
                         cache.set(callID["hash"], d)
@@ -166,9 +167,9 @@ class Call:
                 print("CALL done")
                 return cacheIDs
 
-    def trycall(self,x):
-        print("... calling", self.formatted[x])
-        d = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + self.calltype, params={**self.formatted[x],**self.creds,**self.gparams})
+    def trycall(self,call):
+        print("... calling", call)
+        d = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + self.calltype, params={**call,**self.creds,**self.gparams})
         # check validity
         try:
             d = d.json()
@@ -202,7 +203,6 @@ class view(Call):
     def __init__(
         self,
         params = {
-            "q": None,
             "corpname": "preloaded/ecolexicon_en",
             "pagesize": 100,
             "fromp": "1",
@@ -224,7 +224,7 @@ class view(Call):
         self.results = []
         self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    def getdf(self,data):
+    def getdf(self,data,label):
         """make a dataframe of view call results"""
 
         df = pd.json_normalize(data["Lines"])
@@ -273,11 +273,10 @@ class view(Call):
         return df
 
 # p = {'refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
-# s = {"qattr": "alemma,", "randomize": False}
+# # s = {"qattr": "alemma,", "randomize": False}
 # clines = """
-# "q": '''2:"N.*" [tag!="V.*"]{0,7} [lemma="be|,|:|belong|\("] [tag!="V.*"]{0,7} [lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"] [word="of"] [tag!="V.*"]{0,7} 1:"N.*" '''
-# { "corpname": "preloaded/ecolexicon_en", "fromp": 1, "pagesize": 100, "q": ["alemma,\\"salt\\""], "refs": "doc,s", "viewmode": "sen"}
+# "q": "\\"climate\\""
 # """
 # z = view(clines=clines)
 # z.makecalls()
-# z.formatted
+# z.df.iloc[0]["label"]
