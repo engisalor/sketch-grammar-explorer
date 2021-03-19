@@ -6,6 +6,7 @@ import time
 import subprocess
 import hashlib
 import pandas as pd
+import ast
 
 class Call:
     """
@@ -33,11 +34,12 @@ class Call:
 
     def format(self):
         # clean text
-        ls = [x for x in self.clines.splitlines() if x]
+        clines = re.sub('"""', "'''",self.clines)
+        ls = [x for x in clines.splitlines() if x]
         ls = [re.sub(' +', '',x) for x in ls]
         ls = ["".join(["{",x,"}"]) if not x.startswith("{") else x for x in ls]
         # set up each call
-        dicts = [json.loads(x) for x in ls]
+        dicts = [ast.literal_eval(ls[x]) if "'''" in ls[x] else json.loads(ls[x]) for x in range(len(ls))]
         dicts = [{**self.params, **dicts[x]} for x in range(len(dicts))]
        # repeat first q if call has none
         for x in range(len(dicts)):
@@ -271,9 +273,10 @@ class view(Call):
 
 # p = {'refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
 # s = {"qattr": "alemma,", "randomize": False}
-# clines = '''
-# {"corpname": "preloaded/ecolexicon_en", "fromp": 1, "pagesize": 100, "q": ["alemma,\\"salt\\""], "refs": "doc,s", "viewmode": "sen"}
-# '''
+# clines = """
+# "q": '''2:"N.*" [tag!="V.*"]{0,7} [lemma="be|,|:|belong|\("] [tag!="V.*"]{0,7} [lemma="type|kind|example|group|class|sort|category|family|species|subtype|subfamily|subgroup|subclass|subcategory|subspecies"] [word="of"] [tag!="V.*"]{0,7} 1:"N.*" '''
+# { "corpname": "preloaded/ecolexicon_en", "fromp": 1, "pagesize": 100, "q": ["alemma,\\"salt\\""], "refs": "doc,s", "viewmode": "sen"}
+# """
 # z = view(clines=clines)
 # z.makecalls()
-# z.df
+# z.formatted

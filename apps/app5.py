@@ -132,10 +132,8 @@ layout = html.Div(
             id="clist",
             persistence=True,
             persistence_type="session",
-            placeholder="""# ocean-possessive
-"q": ''' 1:[word="ocean's"] '''
-# fish-Wikipedia
-"q": ''' 1:"fish" ''' , "corpus": "preloaded/enwiki"
+            placeholder=r""""q:" ''' "water" ''' 
+"fromp": 2
 """,
             style={
                 "display": "inline-flex",
