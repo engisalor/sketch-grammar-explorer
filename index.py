@@ -37,17 +37,6 @@ app.layout = html.Div(
         html.Div([
             html.Div([
                 html.H1("Sketch Grammar Explorer"),
-                # dcc.Link("Frequency Visualizations    |    ", href="/apps/app1"),
-                # dcc.Link("Summary Table    |    ", href="/apps/app2"),
-                # dcc.Link("All Records    |    ", href="/apps/app3"),
-                # dcc.Link("WS freqs    |    ", href="/apps/app4"),
-                # html.Div([
-                dcc.Link("Home", href="/"),
-                dcc.Link("Get data", href="/apps/app5"),
-                html.P(id="version",
-                    children="Version", 
-                    style={'color': '#1EAEDB'}, 
-                    title=versionall),
                 html.Div([
                     html.Img(
                         src=app.get_asset_url("logo_ugr.png"),
@@ -55,19 +44,29 @@ app.layout = html.Div(
                         alt="University of Granada",
                         height=75)],
                     style={},
-                )
+                ),
             ],style={
                 "display": "flex", 
                 "justify-content": "space-between",
                 "align-items":"baseline",
-                'margin': '25px',
+                "margin-top": "10px",
+                "margin-right": "10px",
+                "margin-left": "10px",
                 }),
-        ],
-        ),
+        ]),
+        html.Div([
+        html.Div([dcc.Link("Home", href="/")],style={'margin': '10px'}),
+        html.Div([dcc.Link("Get data", href="/apps/app5")],style={'margin': '10px'}),
+        html.P(id="version",
+            children="Version", 
+            style={'color': '#1EAEDB','margin': '10px'}, 
+            title=versionall)],
+        style={
+            "display": "flex", 
+            "justify-content": "left",
+            }),
         html.Div(id="page-content", children=[]),
-    ]
-)
-
+    ])
 
 @app.callback(Output("page-content", "children"), [Input("url", "pathname")])
 def display_page(pathname):

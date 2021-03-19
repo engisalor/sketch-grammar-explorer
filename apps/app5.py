@@ -47,6 +47,7 @@ layout = html.Div(
             ),
         dcc.Dropdown(
             id="corpus",
+            clearable=False,
             persistence=True,
             persistence_type="session",
             placeholder='corpus',
@@ -202,7 +203,7 @@ layout = html.Div(
             ],
             # style={},
         ),
-    ], style={'margin': '25px'},
+    ], style={'margin': '10px'},
 )
 
 #### CALLBACKS
