@@ -140,9 +140,12 @@ class Call:
             # no cache
             if cache is None:
                 for x in range(len(calls)):
+                    jcall = json.dumps(calls[x], sort_keys=True)
+                    hashed = hashlib.blake2s(jcall.encode()).hexdigest()
                     d = self.trycall(calls[x])
                     self.results.append(d)
-                    self.df = self.getdf(d,labels[x])
+                    self.df.append(self.getdf(d, jcall, hashed, labels[x]))
+                    self.IDs.append(self.getID(d, jcall, hashed, labels[x]))
             # use cache
             else:
                 # make cacheIDs if empty
@@ -150,19 +153,21 @@ class Call:
                     cacheIDs = []
                 for x in range(len(calls)):
                     # make callid
-                    temp = json.dumps(calls[x], sort_keys=True)
-                    callID = {"hash": str(hashlib.blake2s(temp.encode()).hexdigest()), "call": temp}
+                    jcall = json.dumps(calls[x], sort_keys=True)
+                    hashed = hashlib.blake2s(jcall.encode()).hexdigest()
                     # skip call if in cache
-                    if callID["hash"] in [x["hash"] for x in cacheIDs]:
-                        print("... skipping", callID["call"])
+                    hashes = [cacheIDs[y]["hash"][0] for y in range(len(cacheIDs))]
+                    if hashed in hashes:
+                        print("... skipping", jcall)
                     # do call
                     else:
                         d = self.trycall(calls[x])
                         # process raw data
-                        d = self.getdf(d,labels[x])
+                        callID = self.getID(d, jcall, hashed, labels[x])
+                        df = self.getdf(d, jcall, hashed, labels[x])
                         # add to cache
                         print("... caching")
-                        cache.set(callID["hash"], d)
+                        cache.set(hashed, df)
                         cacheIDs.append(callID)
                 print("CALL done")
                 return cacheIDs
@@ -219,14 +224,25 @@ class view(Call):
         self.clines = clines
         self.settings = settings
         self.formatted = self.format()
-        # self.labels = self.label()
+        self.df = pd.DataFrame()
+        self.IDs = []
         self.wait = self.setwait()
         self.results = []
         self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    def getdf(self,data,label):
-        """make a dataframe of view call results"""
+    def getID(self,data, jcall, hashed, label):
+        """make dict of view callID)"""
+        callID = {
+            "label": [label], 
+            "type": [self.calltype], 
+            "call": [jcall],
+            "date": [self.timestamp],
+            "concsize": [data["concsize"]],
+            "hash": [hashed]}
+        return callID
 
+    def getdf(self,data, jcall, hashed, label):
+        """make dataframe of view call results"""
         df = pd.json_normalize(data["Lines"])
         # get refs (explode rename cols)
         df = self.unnest(df,["Refs"],axis=0)
@@ -243,15 +259,9 @@ class view(Call):
         df["Kwic"] = kwic
         # make conc
         df["kwic"] = df["Left"] + df["Kwic"] + df["Right"]
-        # get corpname
         corpname = data["request"]["corpname"]
         df["corpname"] = corpname[corpname.rfind("/")+1:]
-        df["concsize"] = data["concsize"]
-        df["query"] = str(data["q"])
         df["fromp"] = data["fromp"]
-        # df["calltype"] = self.calltype
-        # df["version"] = self.version
-        df["date"] = self.timestamp
         df["label"] = label
         df["hit"] = df.index
         # drop cols
@@ -259,24 +269,22 @@ class view(Call):
         df.drop(drops, axis=1, inplace=True)
         # reorder cols
         cols = list(df.columns)
-        ordered = ["label", "fromp", "hit", "kwic", "concsize", "query", "corpname"]
+        ordered = ["label", "fromp", "hit", "kwic", "corpname"]
         ordered.extend([x for x in cols if x not in ordered]) # can use sorted([])
         df = df[ordered]
         # set dtypes manually
         df[["kwic"]] = df[["kwic"]].astype("string")
-        df[["corpname", "query"]] = df[["corpname", "query"]].astype("category")
         # set dtypes automatically
-        drops = ["hit", "kwic","corpname", "fromp", "query", "concsize","date", "label"]
+        drops = ["hit", "kwic", "fromp"]
         categorical = [x for x in cols if x not in drops]
         df[categorical] = df[categorical].astype("category")
-        # combine all results
         return df
 
+# s = {"qattr": "alemma,", "randomize": False}
 # p = {'refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
-# # s = {"qattr": "alemma,", "randomize": False}
 # clines = """
-# "q": "\\"climate\\""
+# "q": "\\"water\\""
 # """
 # z = view(clines=clines)
 # z.makecalls()
-# z.df.iloc[0]["label"]
+# z.IDs
