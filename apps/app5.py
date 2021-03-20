@@ -265,8 +265,6 @@ def params(refs,corpus,viewmode,pagesize):
     Input("qattr","value"),
     Input("randomize","value")])
 def settings(calltype,qattr,randomize):
-    if randomize == "":
-        randomize = None
     settings = {
         "calltype": calltype,
         "qattr": qattr, 

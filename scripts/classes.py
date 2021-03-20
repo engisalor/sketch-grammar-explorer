@@ -94,8 +94,9 @@ class Call:
 
     def setq(self,call):
         if type(call["q"]) is str:
-            if self.settings["randomize"] is not None:
-                call["pagesize"] = ""
+            if self.settings["randomize"]:
+                if "pagesize" in call:
+                    call["pagesize"] = ""
                 q = [self.settings["qattr"] + call["q"], self.settings["randomize"]]
             else:
                 q = [self.settings["qattr"] + call["q"]]
@@ -209,14 +210,14 @@ class view(Call):
         self,
         params = {
             "corpname": "preloaded/ecolexicon_en",
-            "pagesize": 100,
+            "pagesize": 20,
             "fromp": "1",
             "refs": "doc,s",
             "viewmode": "sen"},
         settings = {
             "label": "",
             "qattr": "alemma,",        
-            "randomize": None}, # None, 'rN' where N is sample size, or 'rN%' where n is a percent value
+            "randomize": ""}, # '', 'rN' where N is sample size, or 'rN%' where n is a percent value
         clines = ""):
         super().__init__()
         self.calltype = "view?"
@@ -232,12 +233,13 @@ class view(Call):
 
     def getID(self,data, jcall, hashed, label):
         """make dict of view callID)"""
+
         callID = {
             "label": [label], 
             "type": [self.calltype], 
             "call": [jcall],
             "date": [self.timestamp],
-            "hits": [data["fullsize"]],
+            "size": [data["fullsize"]],
             "hash": [hashed]}
         return callID
 
@@ -264,10 +266,9 @@ class view(Call):
         df["label"] = label
         if "fromp" in data:
             df["fromp"] = data["fromp"]
-            df["hit"] = df["fromp"].astype(str) + "." + df.index.astype(str)
         else:
-            df["fromp"] = None
-            df["hit"] = df.index
+            df["fromp"] = 1
+        df["hit"] = df["fromp"].astype(str) + "." + df.index.astype(str)
         # drop cols
         drops = ["fromp", "toknum","hitlen","Tbl_refs","Left","Kwic","Right","Links","linegroup","linegroup_id"]
         df.drop(drops, axis=1, inplace=True)
@@ -284,7 +285,10 @@ class view(Call):
         df[categorical] = df[categorical].astype("category")
         return df
 
-# s = {"qattr": "alemma,", "randomize": "r3"}
+# TODO "size" is ambiguous for id table
+# TODO what about storing raw data in cache and converting to pandas on the fly?
+
+# s = {"qattr": "alemma,", "randomize": ""}
 # p = {'refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
 # clines = """
 # "q": "\\"water\\""
