@@ -48,7 +48,6 @@ app.layout = html.Div(
             ],style={
                 "display": "flex", 
                 "justify-content": "space-between",
-                "align-items":"baseline",
                 "margin-top": "10px",
                 "margin-right": "10px",
                 "margin-left": "10px",

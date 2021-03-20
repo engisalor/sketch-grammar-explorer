@@ -31,8 +31,10 @@ layout = html.Div(
         dcc.Store(id="cacheIDs", storage_type="session"),
         dcc.Store(id='params', storage_type='session'),
         dcc.Store(id='settings', storage_type='session'),
-        html.H5("Settings"),
+        html.H5("Multi-call"),
         html.Div([
+        html.Button('Submit', id='submit', n_clicks=0,
+            style={"width": "175px"}),
         dcc.Dropdown(
             id="calltype",
             persistence=True,
@@ -126,9 +128,6 @@ layout = html.Div(
             "align-items":"center",
             },
         ),
-        html.H5("Multi-call"),
-        html.Button('Submit', id='submit', n_clicks=0,
-            style={"width": "175px"}),
         dcc.Textarea(
             id="clist",
             persistence=True,
@@ -178,6 +177,7 @@ layout = html.Div(
                     sort_action="native",
                     sort_mode="single",
                     filter_action="native",
+                    # row_deletable=True, # conflicts with filter_action
                     page_action="native",
                     page_size=100,
                     style_table={
@@ -185,12 +185,12 @@ layout = html.Div(
                     },
                     style_data={"whiteSpace": "normal", "height": "auto"},
                     style_cell={'textAlign': 'left','padding': '5px'}, 
-                    # style_cell_conditional=[
-                    #     {
-                    #         'if': {'column_id': 'concsize'},
-                    #         'textAlign': 'right'
-                    #     }
-                    # ],
+                    style_cell_conditional=[
+                        {
+                            'if': {'column_id': 'concsize'},
+                            'textAlign': 'right'
+                        }
+                    ],
                     style_as_list_view=True,
                     style_header={
                         'backgroundColor': 'white',
