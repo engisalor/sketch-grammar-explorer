@@ -33,8 +33,8 @@ layout = html.Div(
         dcc.Store(id='settings', storage_type='session'),
         html.H5("Multi-call"),
         html.Div([
-        html.Button('Submit', id='submit', n_clicks=0,
-            style={"width": "175px"}),
+        html.Button('Submit', id='submit', n_clicks=0),
+        html.Button('Clear', id='clearcache', n_clicks=0),
         dcc.Dropdown(
             id="calltype",
             persistence=True,
@@ -89,16 +89,13 @@ layout = html.Div(
             value='sen',
             style={"width": "175px"},
         ),  
-        dcc.Dropdown(
+        dcc.Input(
             id="randomize",
             persistence=True,
             persistence_type="session",
-            clearable=False,
-            placeholder='randomize',
-            options=[
-                {'label': 'sequential', 'value': '0'},
-                {'label': 'random', 'value': '1'}],
-            value='0',
+            type="text",
+            placeholder='random: r500 / r10%',
+            value='',
             style={"width": "175px"},
         ),
         dcc.Input(
@@ -106,11 +103,10 @@ layout = html.Div(
             persistence=True,
             persistence_type="session",
             type="number",
-            placeholder="lines",
-            value=100,
-            min=100,
+            placeholder="size",
+            value=20,
+            min=1,
             max=10000,
-            step=100,
             style={"width": "80px"},
         ),
         dcc.Input(
@@ -166,7 +162,6 @@ layout = html.Div(
         html.Div(
             [
                 html.H5("Cache"),
-                html.Button('clear', id='clearcache', n_clicks=0),
                 dash_table.DataTable(
                     id="cacheTable",
                     data=pd.DataFrame().to_dict("records"),
@@ -199,7 +194,7 @@ layout = html.Div(
                     ),
                 html.H5("Results"),
                 dash_table.DataTable(
-                    id="table",
+                    id="resultsTable",
                     data=pd.DataFrame().to_dict("records"),
                     columns=[],
                     export_format='csv',
@@ -217,6 +212,11 @@ layout = html.Div(
                     },
                     style_data={"whiteSpace": "normal", "height": "auto"},
                     style_cell={'textAlign': 'left','padding': '5px'}, 
+                    style_as_list_view=True,
+                    style_header={
+                        'backgroundColor': 'white',
+                        'fontWeight': 'bold'
+                    },
                     style_cell_conditional=[
                         {
                             'if': {'column_id': c},
@@ -265,6 +265,8 @@ def params(refs,corpus,viewmode,pagesize):
     Input("qattr","value"),
     Input("randomize","value")])
 def settings(calltype,qattr,randomize):
+    if randomize == "":
+        randomize = None
     settings = {
         "calltype": calltype,
         "qattr": qattr, 
@@ -318,8 +320,8 @@ def submitcall(submitclicks,clearclicks,params,settings,clist):
     #     results = df.round(2).to_dict('records')
 
 @app.callback([
-    Output("table", "data"),
-    Output("table", "columns")], 
+    Output("resultsTable", "data"),
+    Output("resultsTable", "columns")], 
     [Input("cacheIDs", "data")])
 def updatetable(trigger):
     cacheIDs = cache.get("ledger")

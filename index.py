@@ -55,7 +55,7 @@ app.layout = html.Div(
         ]),
         html.Div([
         html.Div([dcc.Link("Home", href="/")],style={'margin': '10px'}),
-        html.Div([dcc.Link("Get data", href="/apps/app5")],style={'margin': '10px'}),
+        html.Div([dcc.Link("Search", href="/apps/app5")],style={'margin': '10px'}),
         html.P(id="version",
             children="Version", 
             style={'color': '#1EAEDB','margin': '10px'}, 

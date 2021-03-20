@@ -94,10 +94,9 @@ class Call:
 
     def setq(self,call):
         if type(call["q"]) is str:
-            r = ""
-            if self.settings["randomize"] is True:
-                r = "".join(["r", str(self.settings["pagesize"])])
-                q = [self.settings["qattr"] + call["q"], r]
+            if self.settings["randomize"] is not None:
+                call["pagesize"] = ""
+                q = [self.settings["qattr"] + call["q"], self.settings["randomize"]]
             else:
                 q = [self.settings["qattr"] + call["q"]]
             call["q"] = q
@@ -144,8 +143,9 @@ class Call:
                     hashed = hashlib.blake2s(jcall.encode()).hexdigest()
                     d = self.trycall(calls[x])
                     self.results.append(d)
-                    self.df.append(self.getdf(d, jcall, hashed, labels[x]))
+                    self.df = self.df.append(self.getdf(d, jcall, hashed, labels[x]))
                     self.IDs.append(self.getID(d, jcall, hashed, labels[x]))
+                    print("CALL done")
             # use cache
             else:
                 # make cacheIDs if empty
@@ -216,7 +216,7 @@ class view(Call):
         settings = {
             "label": "",
             "qattr": "alemma,",        
-            "randomize": False},
+            "randomize": None}, # None, 'rN' where N is sample size, or 'rN%' where n is a percent value
         clines = ""):
         super().__init__()
         self.calltype = "view?"
@@ -237,7 +237,7 @@ class view(Call):
             "type": [self.calltype], 
             "call": [jcall],
             "date": [self.timestamp],
-            "concsize": [data["concsize"]],
+            "hits": [data["fullsize"]],
             "hash": [hashed]}
         return callID
 
@@ -261,30 +261,35 @@ class view(Call):
         df["kwic"] = df["Left"] + df["Kwic"] + df["Right"]
         corpname = data["request"]["corpname"]
         df["corpname"] = corpname[corpname.rfind("/")+1:]
-        df["fromp"] = data["fromp"]
         df["label"] = label
-        df["hit"] = df.index
+        if "fromp" in data:
+            df["fromp"] = data["fromp"]
+            df["hit"] = df["fromp"].astype(str) + "." + df.index.astype(str)
+        else:
+            df["fromp"] = None
+            df["hit"] = df.index
         # drop cols
-        drops = ["toknum","hitlen","Tbl_refs","Left","Kwic","Right","Links","linegroup","linegroup_id"]
+        drops = ["fromp", "toknum","hitlen","Tbl_refs","Left","Kwic","Right","Links","linegroup","linegroup_id"]
         df.drop(drops, axis=1, inplace=True)
         # reorder cols
         cols = list(df.columns)
-        ordered = ["label", "fromp", "hit", "kwic", "corpname"]
+        ordered = ["label", "hit", "kwic", "corpname"]
         ordered.extend([x for x in cols if x not in ordered]) # can use sorted([])
         df = df[ordered]
         # set dtypes manually
         df[["kwic"]] = df[["kwic"]].astype("string")
         # set dtypes automatically
-        drops = ["hit", "kwic", "fromp"]
+        drops = ["hit", "kwic"]
         categorical = [x for x in cols if x not in drops]
         df[categorical] = df[categorical].astype("category")
         return df
 
-# s = {"qattr": "alemma,", "randomize": False}
+# s = {"qattr": "alemma,", "randomize": "r3"}
 # p = {'refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
 # clines = """
 # "q": "\\"water\\""
 # """
-# z = view(clines=clines)
+# z = view(params=p ,settings=s, clines=clines)
+# z.formatted
 # z.makecalls()
-# z.IDs
+# z.results
