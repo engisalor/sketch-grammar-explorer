@@ -117,7 +117,7 @@ layout = html.Div(
             persistence_type="session",
             value="doc,s",
             placeholder='refs',
-            style={"width": "50%"},
+            style={"flex-grow": "1"},
         )],
         style={
             "display": "flex",
@@ -166,18 +166,37 @@ layout = html.Div(
     # ),
         html.Div(
             [
-                html.H5("Cached"),
+                html.H5("Cache"),
                 html.Button('clear', id='clearcache', n_clicks=0),
-                dcc.Textarea(
-                    id="cacheTA",
-                    placeholder="cached queries",
-                    persistence=True,
-                    persistence_type="session",
-                    readOnly=True,
-                    style={
-                        "width": "100%",
-                        "height": "50px",
-                        }),
+                dash_table.DataTable(
+                    id="cacheTable",
+                    data=pd.DataFrame().to_dict("records"),
+                    columns=[],
+                    export_format='csv',
+                    export_headers='names',
+                    merge_duplicate_headers=True,
+                    sort_action="native",
+                    sort_mode="single",
+                    filter_action="native",
+                    page_action="native",
+                    page_size=100,
+                    style_table={
+                        "maxHeight": "200px",
+                    },
+                    style_data={"whiteSpace": "normal", "height": "auto"},
+                    style_cell={'textAlign': 'left','padding': '5px'}, 
+                    # style_cell_conditional=[
+                    #     {
+                    #         'if': {'column_id': 'concsize'},
+                    #         'textAlign': 'right'
+                    #     }
+                    # ],
+                    style_as_list_view=True,
+                    style_header={
+                        'backgroundColor': 'white',
+                        'fontWeight': 'bold'
+                    },
+                    ),
                 html.H5("Results"),
                 dash_table.DataTable(
                     id="table",
@@ -197,8 +216,13 @@ layout = html.Div(
                         "overflowY": "scroll",
                     },
                     style_data={"whiteSpace": "normal", "height": "auto"},
-                    style_cell={'textAlign': 'left'},
-
+                    style_cell={'textAlign': 'left','padding': '5px'}, 
+                    style_cell_conditional=[
+                        {
+                            'if': {'column_id': c},
+                            'textAlign': 'right'
+                        } for c in ["#","fromp","hit"] # FIXME (maybe overridden by md formatting?)
+                    ],
                 )
             ],
             # style={},
@@ -300,23 +324,29 @@ def submitcall(submitclicks,clearclicks,params,settings,clist):
 def updatetable(trigger):
     cacheIDs = cache.get("ledger")
     results = pd.DataFrame()
-    if cacheIDs:
+    if cacheIDs is not None:
         for x in range(len(cacheIDs)):
-            hashed = cacheIDs[x]["hash"]
+            hashed = cacheIDs[x]["hash"][0]
             cached = cache.get(hashed)
             results = results.append(cached)
-    results.reset_index(level=0, inplace=True)
-    results["index"] = range(len(results))
-    columns=[{"name": i, "id": i, "type": 'text', "presentation": 'markdown'} for i in results.columns]
+    # results.reset_index(level=0, inplace=True)
+    results["#"] = range(len(results))
+    columns=[{"name": i, "id": i, "presentation": 'markdown'} for i in results.columns]
     data = results.to_dict('records')
     return data, columns
 
-@app.callback(
-    Output('cacheTA', 'value'),
+@app.callback([
+    Output("cacheTable", "data"),
+    Output("cacheTable", "columns")], 
     [Input("cacheIDs", "data")])
-def cache_textarea(trigger):
+def cacheTable(trigger):
     cacheIDs = cache.get("ledger")
-    text = ""
-    if cacheIDs:
-        text = "\n".join([x["call"] for x in cacheIDs if cacheIDs])
-    return text
+    if cacheIDs is None:
+        data = []
+        columns = []
+    else:
+        columns = [{"name": i, "id": i} for i in cacheIDs[0].keys()]
+        for x in range(len(cacheIDs)):
+            cacheIDs[x]["hash"][0] = cacheIDs[x]["hash"][0][:7]
+        data = cacheIDs
+    return data, columns
