@@ -246,10 +246,16 @@ class view(Call):
     def getdf(self,data, jcall, hashed, label):
         """make dataframe of view call results"""
         df = pd.json_normalize(data["Lines"])
-        # get refs (explode rename cols)
-        df = self.unnest(df,["Refs"],axis=0)
-        refs = data["request"]["refs"].split(",")
-        df.rename(columns = {"Refs" + str(x): refs[x] for x in range(len(refs))}, inplace = True) 
+        # get refs (explode, rename cols)
+        if "refs" in self.params:
+            if self.params["refs"]:
+                df = self.unnest(z,df,["Refs"],axis=0)        
+                refs = data["request"]["refs"].split(",")
+                df.rename(columns = {"Refs" + str(x): refs[x] for x in range(len(refs))}, inplace = True)
+            else:
+                df.drop("Refs", axis=1, inplace=True)
+        else:
+            df.drop("Refs", axis=1, inplace=True)
         # get left, right
         df["Left"] = [x[0]["str"] if x else "" for x in df["Left"]]
         df["Right"] = [x[0]["str"] if x else "" for x in df["Right"]]
@@ -296,4 +302,3 @@ class view(Call):
 # z = view(params=p ,settings=s, clines=clines)
 # z.formatted
 # z.makecalls()
-# z.results

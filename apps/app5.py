@@ -252,11 +252,12 @@ def parse_contents(contents, filename):
     Input("pagesize", "value")])
 def params(refs,corpus,viewmode,pagesize):
     params = {
-        "refs": refs,
         "corpname": corpus, 
         "viewmode": viewmode,
         "pagesize": pagesize, 
         "fromp": 1}
+    if refs:
+        params["refs"] = refs
     return params
 
 # get settings
