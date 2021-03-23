@@ -239,8 +239,10 @@ class view(Call):
             "type": [self.calltype], 
             "call": [jcall],
             "date": [self.timestamp],
-            "size": [data["fullsize"]],
-            "hash": [hashed]}
+            "fullsize": [data["fullsize"]],
+            "length": [len(data["Lines"])],
+            "hash": [hashed],
+            }
         return callID
 
     def getdf(self,data, jcall, hashed, label):
