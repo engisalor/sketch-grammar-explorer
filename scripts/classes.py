@@ -249,7 +249,7 @@ class view(Call):
         # get refs (explode, rename cols)
         if "refs" in self.params:
             if self.params["refs"]:
-                df = self.unnest(z,df,["Refs"],axis=0)        
+                df = self.unnest(df,["Refs"],axis=0)        
                 refs = data["request"]["refs"].split(",")
                 df.rename(columns = {"Refs" + str(x): refs[x] for x in range(len(refs))}, inplace = True)
             else:
