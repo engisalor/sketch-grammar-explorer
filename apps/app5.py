@@ -166,8 +166,8 @@ layout = html.Div(
                     id="cacheTable",
                     data=pd.DataFrame().to_dict("records"),
                     columns=[],
-                    export_format='csv',
-                    export_headers='names',
+                    # export_format='csv',
+                    # export_headers='names',
                     merge_duplicate_headers=True,
                     sort_action="native",
                     sort_mode="single",
@@ -198,13 +198,16 @@ layout = html.Div(
                     id="resultsTable",
                     data=pd.DataFrame().to_dict("records"),
                     columns=[],
-                    export_format='csv',
-                    export_headers='names',
+                    # export_format='csv',
+                    # export_headers='names',
                     merge_duplicate_headers=True,
-                    sort_action="native",
-                    sort_mode="single",
-                    filter_action="native",
-                    page_action="native",
+                    filter_action='custom',
+                    filter_query='',
+                    sort_action='custom',
+                    sort_mode='single', # 'multi'
+                    sort_by=[],
+                    page_action="custom",
+                    page_current=0,
                     page_size=500,
                     style_table={
                         "overflowX": "scroll",
@@ -319,23 +322,96 @@ def submitcall(submitclicks,clearclicks,params,settings,clist):
     #     df = parse_contents(contents, filename)
     #     results = df.round(2).to_dict('records')
 
+# Python-driven filtering
+operators = [['ge ', '>='],
+             ['le ', '<='],
+             ['lt ', '<'],
+             ['gt ', '>'],
+             ['ne ', '!='],
+             ['eq ', '='],
+             ['contains '],
+             ['datestartswith ']]
+
+def split_filter_part(filter_part):
+    for operator_type in operators:
+        for operator in operator_type:
+            if operator in filter_part:
+                name_part, value_part = filter_part.split(operator, 1)
+                name = name_part[name_part.find('{') + 1: name_part.rfind('}')]
+
+                value_part = value_part.strip()
+                v0 = value_part[0]
+                if (v0 == value_part[-1] and v0 in ("'", '"', '`')):
+                    value = value_part[1: -1].replace('\\' + v0, v0)
+                else:
+                    try:
+                        value = float(value_part)
+                    except ValueError:
+                        value = value_part
+
+                # word operators need spaces after them in the filter string,
+                # but we don't want these later
+                return name, operator_type[0].strip(), value
+    return [None] * 3
+
 @app.callback([
     Output("resultsTable", "data"),
-    Output("resultsTable", "columns")], 
-    [Input("cacheIDs", "data")])
-def updatetable(trigger):
+    Output("resultsTable", "columns"),
+    # Output("resultsTable", "page_count")
+    ], 
+    [Input("cacheIDs", "data"),
+    Input("resultsTable","page_size"),
+    Input("resultsTable","page_current"),
+    Input("resultsTable","sort_by"),
+    Input("resultsTable","filter_query"),
+
+    ])
+def updatetable(trigger,page_size,page_current,sort_by,filter_query):
     cacheIDs = cache.get("ledger")
-    results = pd.DataFrame()
+    dff = pd.DataFrame()
+    # npages = 0
     if cacheIDs is not None:
-        for x in range(len(cacheIDs)):
-            hashed = cacheIDs[x]["hash"][0]
-            cached = cache.get(hashed)
-            results = results.append(cached)
-    # results.reset_index(level=0, inplace=True)
-    results["#"] = range(len(results))
-    columns=[{"name": i, "id": i, "presentation": 'markdown'} for i in results.columns]
-    data = results.to_dict('records')
-    return data, columns
+        # # calculate rows and pages # FIXME see below
+        # nrows = sum([x["length"][0] for x in cacheIDs])
+        # npages = nrows // page_size + (nrows % page_size > 0)
+        # get cached data
+        hashes = [x["hash"][0] for x in cacheIDs]
+        for x in hashes:
+            temp = cache.get(x)
+            dff = dff.append(temp)
+        dff["#"] = range(len(dff))
+
+    # filtering
+    filtering_expressions = filter_query.split(' && ')
+    for filter_part in filtering_expressions:
+        col_name, operator, filter_value = split_filter_part(filter_part)
+        if operator in ('eq', 'ne', 'lt', 'le', 'gt', 'ge'):
+            # these operators match pandas series operator method names
+            dff = dff.loc[getattr(dff[col_name], operator)(filter_value)]
+        elif operator == 'contains':
+            dff = dff.loc[dff[col_name].str.contains(filter_value)]
+        elif operator == 'datestartswith':
+            # this is a simplification of the front-end filtering logic,
+            # only works with complete fields in standard format
+            dff = dff.loc[dff[col_name].str.startswith(filter_value)]
+    # sorting
+    if len(sort_by):
+        dff = dff.sort_values(
+            [col['column_id'] for col in sort_by],
+            ascending=[
+                col['direction'] == 'asc'
+                for col in sort_by
+            ],
+            inplace=False
+        )
+    # # get filtered page_count # FIXME buggy when navigating page
+    # if filter_query:
+    #     npages = len(dff) // page_size + (len(dff) % page_size > 0)
+    # set cols and convert dff
+    columns=[{"name": i, "id": i, "presentation": 'markdown'} for i in dff.columns]
+    return dff.iloc[
+        page_current*page_size: (page_current + 1)*page_size
+    ].to_dict('records'), columns #, npages
 
 @app.callback([
     Output("cacheTable", "data"),
