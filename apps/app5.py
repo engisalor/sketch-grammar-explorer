@@ -177,6 +177,7 @@ layout = html.Div(
                     page_size=100,
                     style_table={
                         "maxHeight": "200px",
+                        "overflowY": "scroll",
                     },
                     style_data={"whiteSpace": "normal", "height": "auto"},
                     style_cell={'textAlign': 'left','padding': '5px'}, 
