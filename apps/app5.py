@@ -307,12 +307,8 @@ def submitcall(submitclicks,clearclicks,params,settings,clist):
     cache.set("ledger", cacheIDs)
     return cacheIDs
 
-# TODO incorporate class methods into app (IN PROGRESS)
 # TODO enable changing call types, w/ hiding/generating components
 # TODO add dryrun w/ log in app
-# TODO flask caching minimal example works (IN PROGRESS)
-# TODO as the cache grows, updatetable() should be getting slices of data
-# TODO try using subcorpora calls w/ datatable
 # TODO add load
     # Input('upload', 'contents')
     #[State('upload', 'filename')]
@@ -357,7 +353,7 @@ def split_filter_part(filter_part):
 @app.callback([
     Output("resultsTable", "data"),
     Output("resultsTable", "columns"),
-    # Output("resultsTable", "page_count")
+    Output("resultsTable", "page_count")
     ], 
     [Input("cacheIDs", "data"),
     Input("resultsTable","page_size"),
@@ -369,11 +365,11 @@ def split_filter_part(filter_part):
 def updatetable(trigger,page_size,page_current,sort_by,filter_query):
     cacheIDs = cache.get("ledger")
     dff = pd.DataFrame()
-    # npages = 0
+    npages = 0
     if cacheIDs is not None:
-        # # calculate rows and pages # FIXME see below
-        # nrows = sum([x["length"][0] for x in cacheIDs])
-        # npages = nrows // page_size + (nrows % page_size > 0)
+        # calculate rows and pages # FIXME see below
+        nrows = sum([x["length"][0] for x in cacheIDs])
+        npages = nrows // page_size + (nrows % page_size > 0)
         # get cached data
         hashes = [x["hash"][0] for x in cacheIDs]
         for x in hashes:
@@ -404,14 +400,17 @@ def updatetable(trigger,page_size,page_current,sort_by,filter_query):
             ],
             inplace=False
         )
-    # # get filtered page_count # FIXME buggy when navigating page
-    # if filter_query:
-    #     npages = len(dff) // page_size + (len(dff) % page_size > 0)
+    # get filtered page_count 
+    # FIXME buggy when navigating pages
+        # whole filter bar disappears w/ large datasets
+        # if filter applied when page != 0 and said page disappears, can't return to first page
+    if filter_query:
+        npages = len(dff) // page_size + (len(dff) % page_size > 0)
     # set cols and convert dff
     columns=[{"name": i, "id": i, "presentation": 'markdown'} for i in dff.columns]
     return dff.iloc[
         page_current*page_size: (page_current + 1)*page_size
-    ].to_dict('records'), columns #, npages
+    ].to_dict('records'), columns, npages
 
 @app.callback([
     Output("cacheTable", "data"),
