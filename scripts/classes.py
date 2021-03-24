@@ -33,24 +33,38 @@ class Call:
         return version
 
     def format(self):
-        # clean text
+        # process text
         clines = re.sub('"""', "'''",self.clines)
         ls = [x for x in clines.splitlines() if x]
-        ls = [re.sub(' +', '',x) for x in ls]
         ls = ["".join(["{",x,"}"]) if not x.startswith("{") else x for x in ls]
         # set up each call
         dicts = [ast.literal_eval(ls[x]) if "'''" in ls[x] else json.loads(ls[x]) for x in range(len(ls))]
         dicts = [{**self.params, **dicts[x]} for x in range(len(dicts))]
         # propagate queries and labels
         dicts = self.propagate(dicts)
+        # remove extra spaces (exceptions: usesubcorp)
+        dicts_clean = [dict() for x in range(len(dicts))]
+        for x in range(len(dicts)):
+            for key, item in dicts[x].items():
+                if type(item) is str:
+                    if key != "usesubcorp":
+                        key_clean = re.sub(' +', '',key)
+                        item_clean = re.sub(' +', '',item)
+                        dicts_clean[x][key_clean] = item_clean
+                    else:
+                        dicts_clean[x][key] = item
+                elif type(item) is list:
+                    dicts_clean[x][key] = [re.sub(' +', '',x) if type(x) is str else x for x in item]
+                else:
+                    dicts_clean[x][key] = item
         # pop labels before finding unique calls   
-        labels, nldicts = self.poplabels(dicts)
+        labels, trash = self.poplabels(dicts_clean)
         # get valid unique calls
-        udicts = [x for x in self.unique(dicts)]
+        dicts_unique = [x for x in self.unique(dicts_clean)]
         # add labels to unique dicts
-        ldicts = self.addlabels(udicts,labels)
+        dicts_unique_labelled = self.addlabels(dicts_unique,labels)
         # return with set q
-        return [self.setq(x) for x in ldicts if type(x) is dict]
+        return [self.setq(x) for x in dicts_unique_labelled if type(x) is dict]
 
     def poplabels(self, dicts):
         temp = dicts.copy()
@@ -210,6 +224,7 @@ class view(Call):
         self,
         params = {
             "corpname": "preloaded/ecolexicon_en",
+            # "usesubcorp": "Language variant - American English",
             "pagesize": 20,
             "fromp": "1",
             "refs": "doc,s",
@@ -232,7 +247,7 @@ class view(Call):
         self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def getID(self,data, jcall, hashed, label):
-        """make dict of view callID)"""
+        """make dict of view callID"""
 
         callID = {
             "label": [label], 
@@ -297,10 +312,9 @@ class view(Call):
 # TODO what about storing raw data in cache and converting to pandas on the fly?
 
 # s = {"qattr": "alemma,", "randomize": ""}
-# p = {'refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
+# p = {"usesubcorp": "Language variant - American English",'refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 20, 'fromp': 1}
 # clines = """
-# "q": "\\"water\\""
+# "q": "\\"water\\"", "usesubcorp": "Language variant - American English"
 # """
-# z = view(params=p ,settings=s, clines=clines)
-# z.formatted
+# z = view(clines=clines)
 # z.makecalls()
