@@ -40,7 +40,7 @@ class Call:
         # set up each call
         dicts = [ast.literal_eval(ls[x]) if "'''" in ls[x] else json.loads(ls[x]) for x in range(len(ls))]
         dicts = [{**self.params, **dicts[x]} for x in range(len(dicts))]
-        # propagate queries and labels
+        # propagate queries, labels, subcorpus
         dicts = self.propagate(dicts)
         # remove extra spaces (exceptions: usesubcorp)
         dicts_clean = [dict() for x in range(len(dicts))]
@@ -81,7 +81,7 @@ class Call:
                 temp[x]["l"] = labels[x]
         return temp
 
-    def propagate(self,dicts,keys=["q","l"]):
+    def propagate(self,dicts,keys=["q","l","usesubcorp"]):
         for key in keys:
             for x in range(len(dicts)):
                 if key in dicts[x].keys():
@@ -286,6 +286,8 @@ class view(Call):
         df["kwic"] = df["Left"] + df["Kwic"] + df["Right"]
         corpname = data["request"]["corpname"]
         df["corpname"] = corpname[corpname.rfind("/")+1:]
+        if "usesubcorp" in data["request"]:
+            df["subcorp"] = data["request"]["usesubcorp"]
         df["label"] = label
         if "fromp" in data:
             df["fromp"] = data["fromp"]
@@ -298,6 +300,8 @@ class view(Call):
         # reorder cols
         cols = list(df.columns)
         ordered = ["label", "hit", "kwic", "corpname"]
+        if "usesubcorp" in data["request"]:
+            ordered.append("subcorp")
         ordered.extend([x for x in cols if x not in ordered]) # can use sorted([])
         df = df[ordered]
         # set dtypes manually
