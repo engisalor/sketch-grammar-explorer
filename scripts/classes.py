@@ -13,109 +13,96 @@ class Call:
     parent class for all API call types, with methods needed for building and making calls
     """
  
-    def __init__(self,gparams={"asyn":"0", "format":"json"}):
-        self.gparams = gparams
-        self.creds = self.auth()
-        self.version = self.version()
+    def __init__(self,global_parameters={"asyn":"0", "format":"json"}):
+        self.global_parameters = global_parameters
+        self.credentials = self.set_creds()
+        self.version = self.set_vers()
 
-    def auth(self, filepath=".auth_api.txt"):
-        filepath = pathlib.Path(filepath)
-        with open(filepath) as f:
-            return dict(x.rstrip().split(":") for x in f)
+    def set_creds(self, filepath=".auth_api.txt"):
+        with open(pathlib.Path(filepath)) as f:
+            return dict(line.rstrip().split(":") for line in f)
 
-    def version(self):
+    def set_vers(self):
         try:
-            v = subprocess.check_output(["git", "describe",  "--always"]).decode("utf-8").strip()
-            vdate = subprocess.check_output(["git", "show", "-s", "--format=%cd", "--date=short"]).decode("utf-8").strip()
-            version = "{} / {}".format(vdate, v)
+            commit = subprocess.check_output(["git", "describe",  "--always"]).decode("utf-8").strip()
+            date = subprocess.check_output(["git", "show", "-s", "--format=%cd", "--date=short"]).decode("utf-8").strip()
+            version = "{} / {}".format(date, commit)
         except:
             version= "unknown"
         return version
 
-    def format(self):
-        # process text
-        clines = re.sub('"""', "'''",self.clines)
-        ls = [x for x in clines.splitlines() if x]
-        ls = ["".join(["{",x,"}"]) if not x.startswith("{") else x for x in ls]
-        # set up each call
-        dicts = [ast.literal_eval(ls[x]) if "'''" in ls[x] else json.loads(ls[x]) for x in range(len(ls))]
-        dicts = [{**self.params, **dicts[x]} for x in range(len(dicts))]
-        # propagate queries, labels, subcorpus
-        dicts = self.propagate(dicts)
+    def format_text(self):
+        # preprocess text
+        calls_str = re.sub('"""', "'''",self.calls_str)
+        calls_list = [line for line in calls_str.splitlines() if line]
+        calls_list = ["".join(["{",line,"}"]) if not line.startswith("{") else line for line in calls_list]
+        # parse list items 
+        calls_dicts = [ast.literal_eval(calls_list[x]) if "'''" in calls_list[x] else json.loads(calls_list[x]) for x in range(len(calls_list))]
+        # propagate unique parameters
+        calls_draft = Call.propagate(None,calls_dicts)
         # remove extra spaces (exceptions: usesubcorp)
-        dicts_clean = [dict() for x in range(len(dicts))]
-        for x in range(len(dicts)):
-            for key, item in dicts[x].items():
+        calls_clean = [dict() for dt in range(len(calls_draft))]
+        for x in range(len(calls_draft)):
+            for key, item in calls_draft[x].items():
                 if type(item) is str:
                     if key != "usesubcorp":
                         key_clean = re.sub(' +', '',key)
                         item_clean = re.sub(' +', '',item)
-                        dicts_clean[x][key_clean] = item_clean
+                        calls_clean[x][key_clean] = item_clean
                     else:
-                        dicts_clean[x][key] = item
+                        calls_clean[x][key] = item
                 elif type(item) is list:
-                    dicts_clean[x][key] = [re.sub(' +', '',x) if type(x) is str else x for x in item]
+                    calls_clean[x][key] = [re.sub(' +', '',string) if type(string) is str else string for string in item]
                 else:
-                    dicts_clean[x][key] = item
+                    calls_clean[x][key] = item
         # pop labels before finding unique calls   
-        labels, _ = self.poplabels(dicts_clean)
+        labels, _ = self.pop_labels(calls_clean)
         # get valid unique calls
-        dicts_unique = [x for x in self.unique(dicts_clean)]
-        # add labels to unique dicts
-        dicts_unique_labelled = self.addlabels(dicts_unique,labels)
-        # return with set q
-        return [self.setq(x) for x in dicts_unique_labelled if type(x) is dict]
+        calls_unique = [x for x in self.unique(calls_clean)]
+        # add labels to unique calls
+        calls_unique_labelled = self.add_labels(calls_unique,labels)
 
-    def poplabels(self, dicts):
-        temp = dicts.copy()
-        labels = [x["l"] if "l" in x.keys() else "" for x in temp]
+        return [dt for dt in calls_unique_labelled if type(dt) is dict]
+
+    def pop_labels(self, calls):
+        temp = calls.copy()
+        labels = [call["l"] if "l" in call.keys() else "" for call in temp]
         for x in temp:
             if 'l' in x:
                 del x['l']
         return labels, temp
 
-    def addlabels(self, dicts,labels):
-        temp = dicts.copy()
+    def add_labels(self, calls,labels):
+        temp = calls.copy()
         for x in range(len(temp)):
             if type(temp[x]) is dict:
                 temp[x]["l"] = labels[x]
         return temp
 
-    def propagate(self,dicts,keys=["q","l","usesubcorp"]):
-        for key in keys:
-            for x in range(len(dicts)):
-                if key in dicts[x].keys():
-                    stop = [dicts[x+1:].index(s) for s in dicts[x+1:] if key in s.keys()]
+    def propagate(self,calls):
+        for key in calls[0].keys():
+            for x in range(len(calls)):
+                if key in calls[x].keys():
+                    stop = [calls[x+1:].index(s) for s in calls[x+1:] if key in s.keys()]
                     # if a key exists after
                     if len(stop) != 0:
                         for n in range(1,stop[0]+1):
-                            dicts[x+n][key] = dicts[x][key]
+                            calls[x+n][key] = calls[x][key]
                     # if no key after
                     if len(stop) == 0:
-                        for n in range(x+1,len(dicts)):
-                            dicts[n][key] = dicts[x][key]
-        return dicts
+                        for n in range(x+1,len(calls)):
+                            calls[n][key] = calls[x][key]
+        return calls
 
-    def unique(self,dicts):
+    def unique(self,calls):
         # make immutable
-        strjson = [json.dumps(x, sort_keys=True) for x in dicts]
+        calls_str = [json.dumps(x, sort_keys=True) for x in calls]
         # clear repeats in reverse order
-        for y in reversed(range(len(strjson))):
-            if 1 < strjson.count(strjson[y]):
-                strjson[y] = "[]"
-        # return to dicts
-        return [json.loads(x) for x in strjson]
-
-    def setq(self,call):
-        if type(call["q"]) is str:
-            if self.settings["randomize"]:
-                if "pagesize" in call:
-                    call["pagesize"] = ""
-                q = [self.settings["qattr"] + call["q"], self.settings["randomize"]]
-            else:
-                q = [self.settings["qattr"] + call["q"]]
-            call["q"] = q
-        return call
+        for y in reversed(range(len(calls_str))):
+            if 1 < calls_str.count(calls_str[y]):
+                calls_str[y] = "[]"
+        # return to calls
+        return [json.loads(call) for call in calls_str]
 
     def setwait(self):
         # set wait time
@@ -130,44 +117,44 @@ class Call:
             wait = 45
         return wait
 
-    def dryrun(self,cache=None):
-        print("DRYRUN")
-        print("... call type:", self.calltype)
+    def dry_run(self,cache=None):
+        print("dry_run")
+        print("... call type:", self.call_type)
         print("... timestamp:",self.timestamp)
         print("... version:",self.version)
         print("... calls:", len(self.formatted))
         print("... wait:", self.wait)
-        print("... creds:",self.creds["username"],"/", self.creds["api_key"][0:5] + "...")
+        print("... credentials:",self.credentials["username"],"/", self.credentials["api_key"][0:5] + "...")
         print("... cache:", cache)
-        print("... global parameters:", self.gparams)
+        print("... global parameters:", self.global_parameters)
         for x in range(len(self.formatted)):
             print("... call{}:".format(str(x)), self.formatted[x])
 
-    def makecalls(self,cache=None,cache_IDs=None,dryrun=False):
-        if dryrun is True:
-            self.dryrun(cache)
+    def make_calls(self,cache=None,cache_IDs=None,dry_run=False):
+        if dry_run is True:
+            self.dry_run(cache)
         else:
             print("CALLS start")
-            labels, calls = self.poplabels(self.formatted)
+            labels, calls = self.pop_labels(self.formatted)
 
             for x in range(len(calls)):
-                call_json = json.dumps(calls[x], sort_keys=True)
-                call_hash = hashlib.blake2s(call_json.encode()).hexdigest()
+                call_str = json.dumps(calls[x], sort_keys=True)
+                call_hash = hashlib.blake2s(call_str.encode()).hexdigest()
                 
                 # skip existing call
                 hashes = []
                 if cache_IDs is not None:
                     hashes = [cache_IDs[y]["hash"][0] for y in range(len(cache_IDs))]
                 if call_hash in hashes:
-                    print("... skipping", call_json)
+                    print("... skipping", call_str)
 
                 # make call and append results
                 else:
                     result_json = self.trycall(calls[x])
                     self.results.append(result_json)
-                    self.df = self.df.append(self.getdf(result_json, call_json, call_hash, labels[x]))
-                    self.setdtypes()
-                    self.IDs.append(self.getID(result_json, call_json, call_hash, labels[x]))
+                    self.df = self.df.append(self.getdf(result_json, call_str, call_hash, labels[x]))
+                    self.set_dtypes()
+                    self.IDs.append(self.getID(result_json, call_str, call_hash, labels[x]))
 
             # cache results for app
             if cache is not None:
@@ -179,16 +166,13 @@ class Call:
 
             print("CALLS done")
 
-    def setdtypes(self):
+    def set_dtypes(self):
         """set best datatype for each column in self.df"""
 
-        string_cols = ["kwic"]
-
+        str_cols = ["kwic"]
         for col in self.df.columns:
-            if col in string_cols:
-                self.df[col] = self.df[col].astype("string")
-            elif "float" in self.df[col].dtype.name:
-                pass
+            if col in str_cols:
+                self.df[col] = self.df[col].astype(str)
             elif len(self.df[col].unique()) / len(self.df[col]) < 0.50:
                 self.df[col] = self.df[col].astype("category")
             else:
@@ -196,7 +180,7 @@ class Call:
 
     def trycall(self,call):
         print("... calling", call)
-        result = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + self.calltype, params={**call,**self.creds,**self.gparams})
+        result = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + self.call_type, params={**call,**self.credentials,**self.global_parameters})
         # check validity
         try:
             result_json = result.json()
@@ -215,51 +199,36 @@ class Call:
         """explode columns of lists
         https://stackoverflow.com/questions/53218931/how-to-unnest-explode-a-column-in-a-pandas.df?noredirect=1"""
         if axis==1:
-            df1 = pd.concat([df[x].explode() for x in explode], axis=1)
-            return df1.join(df.drop(explode, 1), how='left')
+            temp = pd.concat([df[x].explode() for x in explode], axis=1)
+            return temp.join(df.drop(explode, 1), how='left')
         else :
-            df1 = pd.concat([
+            temp = pd.concat([
                             pd.DataFrame(df[x].tolist(), index=df.index).add_prefix(x) for x in explode], axis=1)
-            return df1.join(df.drop(explode, 1), how='left')
+            return temp.join(df.drop(explode, 1), how='left')
 
 class view(Call):
     """
     subclass for view API usage
     """
 
-    def __init__(
-        self,
-        params = {
-            "corpname": "preloaded/ecolexicon_en",
-            # "usesubcorp": "Language variant - American English",
-            "pagesize": 20,
-            "fromp": "1",
-            "refs": "doc,s",
-            "viewmode": "sen"},
-        settings = {
-            "label": "",
-            "qattr": "alemma,",        
-            "randomize": ""}, # '', 'rN' where N is sample size, or 'rN%' where n is a percent value
-        clines = ""):
+    def __init__(self, calls_str):
         super().__init__()
-        self.calltype = "view?"
-        self.params = params
-        self.clines = clines
-        self.settings = settings
-        self.formatted = self.format()
+        self.call_type = "view?"
+        self.calls_str = calls_str
+        self.formatted = self.format_text()
         self.df = pd.DataFrame()
         self.IDs = []
         self.wait = self.setwait()
         self.results = []
         self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    def getID(self,result_json, call_json, call_hash, label):
+    def getID(self,result_json, call_str, call_hash, label):
         """make dict of view callID"""
 
         callID = {
             "label": [label], 
-            "type": [self.calltype], 
-            "call": [call_json],
+            "type": [self.call_type], 
+            "call": [call_str],
             "date": [self.timestamp],
             "fullsize": [result_json["fullsize"]],
             "length": [len(result_json["Lines"])],
@@ -267,12 +236,13 @@ class view(Call):
             }
         return callID
 
-    def getdf(self,result_json, call_json, call_hash, label):
+    def getdf(self,result_json, call_str, call_hash, label):
         """make dataframe of view call results"""
         df = pd.json_normalize(result_json["Lines"])
         # get refs (explode, rename cols)
-        if "refs" in self.params:
-            if self.params["refs"]:
+        call_dt = json.loads(call_str)
+        if "refs" in call_dt:
+            if call_dt["refs"]:
                 df = self.unnest(df,["Refs"],axis=0)        
                 refs = result_json["request"]["refs"].split(",")
                 df.rename(columns = {"Refs" + str(x): refs[x] for x in range(len(refs))}, inplace = True)
@@ -300,15 +270,14 @@ class view(Call):
             df["fromp"] = result_json["fromp"]
         else:
             df["fromp"] = 1
-        df["hit"] = df["fromp"].astype(str) + "." + df.index.astype(str)
-        df["hit"] = df["hit"].astype(float)
+        df["hit"] = df.index
         df["hash"] = call_hash
         # drop cols
-        drops = ["fromp", "toknum","hitlen","Tbl_refs","Left","Kwic","Right","Links","linegroup","linegroup_id"]
+        drops = ["toknum","hitlen","Tbl_refs","Left","Kwic","Right","Links","linegroup","linegroup_id"]
         df.drop(drops, axis=1, inplace=True)
         # reorder cols
         cols = list(df.columns)
-        ordered = ["label", "hit", "kwic", "corpname"]
+        ordered = ["label", "fromp","hit", "kwic", "corpname"]
         if "usesubcorp" in result_json["request"]:
             ordered.append("subcorp")
         ordered.extend([x for x in cols if x not in ordered]) # can use sorted([])
@@ -320,19 +289,16 @@ class view(Call):
                 df[col] = [int(re.sub(r'[^\d]+','',row)) for row in df[col]]
         return df
 
+# TODO test for best setdtype memory usage
 # TODO what else should be progagated: pagesize, etc?
 # TODO "size" is ambiguous for id table
 # TODO what about storing raw data in cache and converting to pandas on the fly?
 # TODO enable changing call types, w/ hiding/generating components
-# TODO add dryrun w/ log in app
+# TODO add dry_run w/ log in app
 # TODO load data from file
 
-# s = {"qattr": "alemma,", "randomize": ""}
-# p = {'refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 1000, 'fromp': 1}
-# clines = """
-# "q": "\\"ice\\""
-# "q": "\\"water\\""
-# "q": "\\"wind\\""
+# calls_str = """
+# "q": ["alemma,\\"space\\""], "refs": "doc,s", "corpname": "preloaded/ecolexicon_en", "viewmode": "sen", "pagesize": 10, "fromp": 1
 # """
-# z = view(clines=clines,params=p)
-# z.makecalls()
+# z = view(calls_str=calls_str)
+# z.make_calls()
