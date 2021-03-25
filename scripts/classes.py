@@ -166,6 +166,7 @@ class Call:
                     result_json = self.trycall(calls[x])
                     self.results.append(result_json)
                     self.df = self.df.append(self.getdf(result_json, call_json, call_hash, labels[x]))
+                    self.setdtypes()
                     self.IDs.append(self.getID(result_json, call_json, call_hash, labels[x]))
 
             # cache results for app
@@ -175,7 +176,26 @@ class Call:
                     dfs_cached = pd.DataFrame()
                 dfs_cached = dfs_cached.append(self.df)
                 cache.set("results_df", dfs_cached)
+
             print("CALLS done")
+
+    def setdtypes(self):
+        """set best datatype for each column in self.df"""
+
+        string_cols = ["kwic"]
+        object_cols = ["hit"]
+
+        for col in self.df.columns:
+            if "int" in self.df[col].dtype.name:
+                pass
+            elif col in string_cols:
+                self.df[col] = self.df[col].astype("string")
+            elif col in object_cols:
+                self.df[col] = self.df[col].astype("object")
+            elif len(self.df[col].unique()) / len(self.df[col]) < 0.50:
+                self.df[col] = self.df[col].astype("category")
+            else:
+                self.df[col] = self.df[col].astype("object")
 
     def trycall(self,call):
         print("... calling", call)
@@ -295,25 +315,21 @@ class view(Call):
             ordered.append("subcorp")
         ordered.extend([x for x in cols if x not in ordered]) # can use sorted([])
         df = df[ordered]
-        # set dtypes manually
-        df[["kwic"]] = df[["kwic"]].astype("string")
-        # set dtypes automatically
-        drops = ["hit", "kwic"]
-        categorical = [x for x in cols if x not in drops]
-        df[categorical] = df[categorical].astype("category")
         return df
 
+# TODO what else should be progagated: pagesize, etc?
 # TODO "size" is ambiguous for id table
 # TODO what about storing raw data in cache and converting to pandas on the fly?
-# TODO update setting dtypes in classes, make doc# and s# type=int
 # TODO enable changing call types, w/ hiding/generating components
 # TODO add dryrun w/ log in app
 # TODO load data from file
 
 # s = {"qattr": "alemma,", "randomize": ""}
-# p = {"usesubcorp": "Language variant - American English",'refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 20, 'fromp': 1}
+# p = {'refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
 # clines = """
-# "q": "\\"water\\"", "usesubcorp": "Language variant - American English"
+# "q": "\\"ice\\""
+# "q": "\\"water\\""
+# "q": "\\"wind\\""
 # """
-# z = view(clines=clines)
+# z = view(clines=clines,params=p)
 # z.makecalls()
