@@ -183,19 +183,16 @@ class Call:
         """set best datatype for each column in self.df"""
 
         string_cols = ["kwic"]
-        object_cols = ["hit"]
 
         for col in self.df.columns:
-            if "int" in self.df[col].dtype.name:
-                pass
-            elif col in string_cols:
+            if col in string_cols:
                 self.df[col] = self.df[col].astype("string")
-            elif col in object_cols:
-                self.df[col] = self.df[col].astype("object")
+            elif "float" in self.df[col].dtype.name:
+                pass
             elif len(self.df[col].unique()) / len(self.df[col]) < 0.50:
                 self.df[col] = self.df[col].astype("category")
             else:
-                self.df[col] = self.df[col].astype("object")
+                pass
 
     def trycall(self,call):
         print("... calling", call)
@@ -304,6 +301,7 @@ class view(Call):
         else:
             df["fromp"] = 1
         df["hit"] = df["fromp"].astype(str) + "." + df.index.astype(str)
+        df["hit"] = df["hit"].astype(float)
         df["hash"] = call_hash
         # drop cols
         drops = ["fromp", "toknum","hitlen","Tbl_refs","Left","Kwic","Right","Links","linegroup","linegroup_id"]
@@ -315,6 +313,11 @@ class view(Call):
             ordered.append("subcorp")
         ordered.extend([x for x in cols if x not in ordered]) # can use sorted([])
         df = df[ordered]
+        # strip non digits
+        strips = ["doc", "s"]
+        for col in df.columns:
+            if col in strips:
+                df[col] = [int(re.sub(r'[^\d]+','',row)) for row in df[col]]
         return df
 
 # TODO what else should be progagated: pagesize, etc?
@@ -325,7 +328,7 @@ class view(Call):
 # TODO load data from file
 
 # s = {"qattr": "alemma,", "randomize": ""}
-# p = {'refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 100, 'fromp': 1}
+# p = {'refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 1000, 'fromp': 1}
 # clines = """
 # "q": "\\"ice\\""
 # "q": "\\"water\\""
