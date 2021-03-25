@@ -27,94 +27,11 @@ cache = Cache(app.server, config={
 layout = html.Div(
     [
         dcc.Store(id="store_IDs", storage_type="session"),
-        dcc.Store(id='store_params', storage_type='session'),
-        dcc.Store(id='store_settings', storage_type='session'),
         html.H5("Multi-call"),
         html.Div([
-        html.Button('Submit', id='submit', n_clicks=0),
-        html.Button('Clear', id='clear_cache', n_clicks=0),
-        dcc.Dropdown(
-            id="calltype",
-            persistence=True,
-            persistence_type="session",
-            placeholder='query type',
-            options=[
-                {'label': 'view', 'value': 'view'},
-                ],
-            value="view",
-            clearable=False,
-            style={"width": "175px"},
-            ),
-        dcc.Dropdown(
-            id="corpus",
-            clearable=False,
-            persistence=True,
-            persistence_type="session",
-            placeholder='corpus',
-            options=[
-                {'label': 'ecolexicon_en', 'value': 'preloaded/ecolexicon_en'},
-                ],
-            value="preloaded/ecolexicon_en",
-            style={"width": "175px"},
-        ),  
-        dcc.Dropdown(
-            id='qattr',
-            persistence=True,
-            persistence_type="session",
-            clearable=False,
-            placeholder='default attribute',
-            value='alemma,',
-            options=[
-                {'label': 'lemma', 'value': 'alemma,'},
-                {'label': 'word', 'value': 'aword,'},
-                {'label': 'tag', 'value': 'atag,'},
-                {'label': 'lempos', 'value': 'alempos,'},
-                {'label': 'lempos_lc', 'value': 'alempos_lc,'},
-                {'label': 'lemma_lc', 'value': 'alemma_lc,'},
-                {'label': 'word_lc', 'value': 'aword_lc,'},
-            ],
-            style={"width": "175px"},
-            ),
-        dcc.Dropdown(
-            id="viewmode",
-            persistence=True,
-            persistence_type="session",
-            clearable=False,
-            placeholder='view mode',
-            options=[
-                {'label': 'sentence', 'value': 'sen'},
-                {'label': 'KWIC', 'value': 'kwic'}],
-            value='sen',
-            style={"width": "175px"},
-        ),  
-        dcc.Input(
-            id="randomize",
-            persistence=True,
-            persistence_type="session",
-            type="text",
-            placeholder='random: r500 / r10%',
-            value='',
-            style={"width": "175px"},
-        ),
-        dcc.Input(
-            id="pagesize",
-            persistence=True,
-            persistence_type="session",
-            type="number",
-            placeholder="size",
-            value=20,
-            min=1,
-            max=10000,
-            style={"width": "80px"},
-        ),
-        dcc.Input(
-            id="refs",
-            persistence=True,
-            persistence_type="session",
-            value="doc,s",
-            placeholder='refs',
-            style={"flex-grow": "1"},
-        )],
+            html.Button('Submit', id='submit', n_clicks=0),
+            html.Button('Clear cache', id='clear_cache', n_clicks=0),
+        ],
         style={
             "display": "flex",
             "flex-wrap": "wrap",
@@ -123,7 +40,7 @@ layout = html.Div(
             },
         ),
         dcc.Textarea(
-            id="clist",
+            id="calls_str",
             persistence=True,
             persistence_type="session",
             placeholder=r""""q:" ''' "water" ''' 
@@ -209,45 +126,14 @@ layout = html.Div(
     ], style={'margin': '10px'},
 )
 
-#### CALLBACKS
-
-# get params
-@app.callback(Output("store_params", "data"),
-    [Input("refs","value"),
-    Input("corpus","value"),
-    Input("viewmode","value"),
-    Input("pagesize", "value")])
-def params(refs,corpus,viewmode,pagesize):
-    params = {
-        "corpname": corpus, 
-        "viewmode": viewmode,
-        "pagesize": pagesize, 
-        "fromp": 1}
-    if refs:
-        params["refs"] = refs
-    return params
-
-# get settings
-@app.callback(Output("store_settings", "data"),
-    [Input("calltype","value"),
-    Input("qattr","value"),
-    Input("randomize","value")])
-def settings(calltype,qattr,randomize):
-    settings = {
-        "calltype": calltype,
-        "qattr": qattr, 
-        "randomize": randomize}
-    return settings
 
 # submit API call
 @app.callback(Output("store_IDs","data"),
     [Input("submit", "n_clicks"),
     Input("clear_cache", "n_clicks")],
-    [State("store_params","data"),
-    State("store_settings","data"),
-    State("clist","value")],
+    [State("calls_str","value")],
     prevent_initial_call=False)
-def submitcall(submitclicks,clearclicks,params,settings,clist):
+def submitcall(submitclicks,clearclicks,calls_str):
     # get button_id
     ctx = dash.callback_context
     if not ctx.triggered:
@@ -262,8 +148,8 @@ def submitcall(submitclicks,clearclicks,params,settings,clist):
     
     # do call
     if button_id == "submit":
-        call_data = getattr(classes,settings["calltype"])(params,settings,clist)
-        call_data.makecalls(cache=cache,cache_IDs=cache_IDs)
+        call_data = getattr(classes,"view")(calls_str=calls_str)
+        call_data.make_calls(cache=cache,cache_IDs=cache_IDs)
         cache_IDs.extend(call_data.IDs)
     
     # clear cache:
