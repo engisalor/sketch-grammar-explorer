@@ -58,7 +58,7 @@ class Call:
                 else:
                     dicts_clean[x][key] = item
         # pop labels before finding unique calls   
-        labels, trash = self.poplabels(dicts_clean)
+        labels, _ = self.poplabels(dicts_clean)
         # get valid unique calls
         dicts_unique = [x for x in self.unique(dicts_clean)]
         # add labels to unique dicts
@@ -143,63 +143,53 @@ class Call:
         for x in range(len(self.formatted)):
             print("... call{}:".format(str(x)), self.formatted[x])
 
-    def makecalls(self,cache=None,cacheIDs=None,dryrun=False):
-        # show dry run details
+    def makecalls(self,cache=None,cache_IDs=None,dryrun=False):
         if dryrun is True:
             self.dryrun(cache)
-        # run each call
         else:
-            print("CALL start")
+            print("CALLS start")
             labels, calls = self.poplabels(self.formatted)
-            # no cache
-            if cache is None:
-                for x in range(len(calls)):
-                    jcall = json.dumps(calls[x], sort_keys=True)
-                    hashed = hashlib.blake2s(jcall.encode()).hexdigest()
-                    d = self.trycall(calls[x])
-                    self.results.append(d)
-                    self.df = self.df.append(self.getdf(d, jcall, hashed, labels[x]))
-                    self.IDs.append(self.getID(d, jcall, hashed, labels[x]))
-                    print("CALL done")
-            # use cache
-            else:
-                # make cacheIDs if empty
-                if cacheIDs is None:
-                    cacheIDs = []
-                for x in range(len(calls)):
-                    # make callid
-                    jcall = json.dumps(calls[x], sort_keys=True)
-                    hashed = hashlib.blake2s(jcall.encode()).hexdigest()
-                    # skip call if in cache
-                    hashes = [cacheIDs[y]["hash"][0] for y in range(len(cacheIDs))]
-                    if hashed in hashes:
-                        print("... skipping", jcall)
-                    # do call
-                    else:
-                        d = self.trycall(calls[x])
-                        # process raw data
-                        callID = self.getID(d, jcall, hashed, labels[x])
-                        df = self.getdf(d, jcall, hashed, labels[x])
-                        # add to cache
-                        print("... caching")
-                        cache.set(hashed, df)
-                        cacheIDs.append(callID)
-                print("CALL done")
-                return cacheIDs
+
+            for x in range(len(calls)):
+                call_json = json.dumps(calls[x], sort_keys=True)
+                call_hash = hashlib.blake2s(call_json.encode()).hexdigest()
+                
+                # skip existing call
+                hashes = []
+                if cache_IDs is not None:
+                    hashes = [cache_IDs[y]["hash"][0] for y in range(len(cache_IDs))]
+                if call_hash in hashes:
+                    print("... skipping", call_json)
+
+                # make call and append results
+                else:
+                    result_json = self.trycall(calls[x])
+                    self.results.append(result_json)
+                    self.df = self.df.append(self.getdf(result_json, call_json, call_hash, labels[x]))
+                    self.IDs.append(self.getID(result_json, call_json, call_hash, labels[x]))
+
+            # cache results for app
+            if cache is not None:
+                dfs_cached = cache.get("results_df")
+                if dfs_cached is None:
+                    dfs_cached = pd.DataFrame()
+                dfs_cached = dfs_cached.append(self.df)
+                cache.set("results_df", dfs_cached)
+            print("CALLS done")
 
     def trycall(self,call):
         print("... calling", call)
-        d = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + self.calltype, params={**call,**self.creds,**self.gparams})
+        result = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + self.calltype, params={**call,**self.creds,**self.gparams})
         # check validity
         try:
-            d = d.json()
-            if "error" in d:
-                print("ERROR-API:", d["error"])
+            result_json = result.json()
+            if "error" in result_json:
+                print("ERROR-API:", result_json["error"])
             else:
-                return d
+                return result_json
         # show errors
         except:
-            print("ERROR-other:", d)
+            print("ERROR-other:", result_json)
         # wait
         print("... waiting", self.wait)
         time.sleep(self.wait)
@@ -246,28 +236,28 @@ class view(Call):
         self.results = []
         self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    def getID(self,data, jcall, hashed, label):
+    def getID(self,result_json, call_json, call_hash, label):
         """make dict of view callID"""
 
         callID = {
             "label": [label], 
             "type": [self.calltype], 
-            "call": [jcall],
+            "call": [call_json],
             "date": [self.timestamp],
-            "fullsize": [data["fullsize"]],
-            "length": [len(data["Lines"])],
-            "hash": [hashed],
+            "fullsize": [result_json["fullsize"]],
+            "length": [len(result_json["Lines"])],
+            "hash": [call_hash],
             }
         return callID
 
-    def getdf(self,data, jcall, hashed, label):
+    def getdf(self,result_json, call_json, call_hash, label):
         """make dataframe of view call results"""
-        df = pd.json_normalize(data["Lines"])
+        df = pd.json_normalize(result_json["Lines"])
         # get refs (explode, rename cols)
         if "refs" in self.params:
             if self.params["refs"]:
                 df = self.unnest(df,["Refs"],axis=0)        
-                refs = data["request"]["refs"].split(",")
+                refs = result_json["request"]["refs"].split(",")
                 df.rename(columns = {"Refs" + str(x): refs[x] for x in range(len(refs))}, inplace = True)
             else:
                 df.drop("Refs", axis=1, inplace=True)
@@ -284,23 +274,24 @@ class view(Call):
         df["Kwic"] = kwic
         # make conc
         df["kwic"] = df["Left"] + df["Kwic"] + df["Right"]
-        corpname = data["request"]["corpname"]
+        corpname = result_json["request"]["corpname"]
         df["corpname"] = corpname[corpname.rfind("/")+1:]
-        if "usesubcorp" in data["request"]:
-            df["subcorp"] = data["request"]["usesubcorp"]
+        if "usesubcorp" in result_json["request"]:
+            df["subcorp"] = result_json["request"]["usesubcorp"]
         df["label"] = label
-        if "fromp" in data:
-            df["fromp"] = data["fromp"]
+        if "fromp" in result_json:
+            df["fromp"] = result_json["fromp"]
         else:
             df["fromp"] = 1
         df["hit"] = df["fromp"].astype(str) + "." + df.index.astype(str)
+        df["hash"] = call_hash
         # drop cols
         drops = ["fromp", "toknum","hitlen","Tbl_refs","Left","Kwic","Right","Links","linegroup","linegroup_id"]
         df.drop(drops, axis=1, inplace=True)
         # reorder cols
         cols = list(df.columns)
         ordered = ["label", "hit", "kwic", "corpname"]
-        if "usesubcorp" in data["request"]:
+        if "usesubcorp" in result_json["request"]:
             ordered.append("subcorp")
         ordered.extend([x for x in cols if x not in ordered]) # can use sorted([])
         df = df[ordered]
@@ -314,6 +305,10 @@ class view(Call):
 
 # TODO "size" is ambiguous for id table
 # TODO what about storing raw data in cache and converting to pandas on the fly?
+# TODO update setting dtypes in classes, make doc# and s# type=int
+# TODO enable changing call types, w/ hiding/generating components
+# TODO add dryrun w/ log in app
+# TODO load data from file
 
 # s = {"qattr": "alemma,", "randomize": ""}
 # p = {"usesubcorp": "Language variant - American English",'refs': 'doc,s', 'corpname': "preloaded/ecolexicon_en", 'viewmode': 'sen', 'pagesize': 20, 'fromp': 1}
