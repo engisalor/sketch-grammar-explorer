@@ -22,19 +22,17 @@ cache = Cache(app.server, config={
     'CACHE_DEFAULT_TIMEOUT': 0,
 })
 
-# TODO #13 add metadata cols, make hidden
-
 #### LAYOUT
 
 layout = html.Div(
     [
-        dcc.Store(id="cacheIDs", storage_type="session"),
-        dcc.Store(id='params', storage_type='session'),
-        dcc.Store(id='settings', storage_type='session'),
+        dcc.Store(id="store_IDs", storage_type="session"),
+        dcc.Store(id='store_params', storage_type='session'),
+        dcc.Store(id='store_settings', storage_type='session'),
         html.H5("Multi-call"),
         html.Div([
         html.Button('Submit', id='submit', n_clicks=0),
-        html.Button('Clear', id='clearcache', n_clicks=0),
+        html.Button('Clear', id='clear_cache', n_clicks=0),
         dcc.Dropdown(
             id="calltype",
             persistence=True,
@@ -136,29 +134,6 @@ layout = html.Div(
                 "width": "100%",
                 "height": "150px",
                 }), 
-        # html.Div([
-#         dcc.Loading(
-#         id="loading",
-#         children=[html.Div([html.Div(id="loading_output")])],
-#         type="circle")],
-#             style={
-#                 "display": "inline-flex",
-#                 "width": "100%",
-#                 "justify-content": "space-around",
-#             },
-# ),
-    #     dcc.Upload(
-    #     id='upload',
-    #     children=html.Div([
-    #         'Drag and Drop or ',
-    #         html.A('Select Files')
-    #     ]),
-    #     style={
-    #         'width': '250px', 'height': '30px', 'lineHeight': '30px',
-    #         'borderWidth': '1px', 'borderStyle': 'dashed',
-    #         'borderRadius': '5px', 'textAlign': 'center', 'margin': '10px'
-    #     },
-    # ),
         html.Div(
             [
                 html.H5("Cache"),
@@ -236,20 +211,8 @@ layout = html.Div(
 
 #### CALLBACKS
 
-# for uploading files
-def parse_contents(contents, filename):
-    content_type, content_string = contents.split(',')
-    decoded = base64.b64decode(content_string)
-    if 'csv' in filename:
-        # Assume that the user uploaded a CSV file
-        return pd.read_csv(
-            io.StringIO(decoded.decode('utf-8')))
-    elif 'xls' in filename:
-        # Assume that the user uploaded an excel file
-        return pd.read_excel(io.BytesIO(decoded))
-
 # get params
-@app.callback(Output("params", "data"),
+@app.callback(Output("store_params", "data"),
     [Input("refs","value"),
     Input("corpus","value"),
     Input("viewmode","value"),
@@ -265,7 +228,7 @@ def params(refs,corpus,viewmode,pagesize):
     return params
 
 # get settings
-@app.callback(Output("settings", "data"),
+@app.callback(Output("store_settings", "data"),
     [Input("calltype","value"),
     Input("qattr","value"),
     Input("randomize","value")])
@@ -277,46 +240,40 @@ def settings(calltype,qattr,randomize):
     return settings
 
 # submit API call
-@app.callback(Output("cacheIDs","data"),
+@app.callback(Output("store_IDs","data"),
     [Input("submit", "n_clicks"),
-    Input("clearcache", "n_clicks")],
-    [State("params","data"),
-    State("settings","data"),
+    Input("clear_cache", "n_clicks")],
+    [State("store_params","data"),
+    State("store_settings","data"),
     State("clist","value")],
     prevent_initial_call=False)
 def submitcall(submitclicks,clearclicks,params,settings,clist):
-    # set button_id
+    # get button_id
     ctx = dash.callback_context
     if not ctx.triggered:
         button_id = None
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
     # get cached
-    cacheIDs = cache.get("ledger")
+    cache_IDs = cache.get("ledger")
+    if cache_IDs is None:
+        cache_IDs = []
+    
     # do call
     if button_id == "submit":
-        # make instance
-        c = getattr(classes,settings["calltype"])(params,settings,clist)
-        # do calls
-        cacheIDs = c.makecalls(cache=cache,cacheIDs=cacheIDs) # TODO add labels, etc., to cacheIDs
+        call_data = getattr(classes,settings["calltype"])(params,settings,clist)
+        call_data.makecalls(cache=cache,cache_IDs=cache_IDs)
+        cache_IDs.extend(call_data.IDs)
+    
     # clear cache:
-    if button_id == "clearcache":
+    if button_id == "clear_cache":
         if 0 < clearclicks:
             cache.clear()
-            cacheIDs = None
-    cache.set("ledger", cacheIDs)
-    return cacheIDs
-
-# TODO enable changing call types, w/ hiding/generating components
-# TODO add dryrun w/ log in app
-# TODO add load
-    # Input('upload', 'contents')
-    #[State('upload', 'filename')]
-    # contents,filename,
-    # # upload file
-    # if changed_id == "upload.contents":
-    #     df = parse_contents(contents, filename)
-    #     results = df.round(2).to_dict('records')
+            cache_IDs = None
+    cache.set("ledger", cache_IDs)
+    
+    return cache_IDs
 
 # Python-driven filtering
 operators = [['ge ', '>='],
@@ -350,32 +307,23 @@ def split_filter_part(filter_part):
                 return name, operator_type[0].strip(), value
     return [None] * 3
 
+# make results table
 @app.callback([
     Output("resultsTable", "data"),
     Output("resultsTable", "columns"),
-    Output("resultsTable", "page_count")
-    ], 
-    [Input("cacheIDs", "data"),
+    Output("resultsTable", "page_count")], 
+    [Input("store_IDs", "data"),
     Input("resultsTable","page_size"),
     Input("resultsTable","page_current"),
     Input("resultsTable","sort_by"),
     Input("resultsTable","filter_query"),
-
     ])
 def updatetable(trigger,page_size,page_current,sort_by,filter_query):
-    cacheIDs = cache.get("ledger")
-    dff = pd.DataFrame()
-    npages = 0
-    if cacheIDs is not None:
-        # calculate rows and pages # FIXME see below
-        nrows = sum([x["length"][0] for x in cacheIDs])
-        npages = nrows // page_size + (nrows % page_size > 0)
-        # get cached data
-        hashes = [x["hash"][0] for x in cacheIDs]
-        for x in hashes:
-            temp = cache.get(x)
-            dff = dff.append(temp)
-        dff["#"] = range(len(dff))
+    # get cached data
+    dff = cache.get("results_df")
+    if dff is None:
+        dff = pd.DataFrame()
+    dff["#"] = range(len(dff))
 
     # filtering
     filtering_expressions = filter_query.split(' && ')
@@ -390,6 +338,7 @@ def updatetable(trigger,page_size,page_current,sort_by,filter_query):
             # this is a simplification of the front-end filtering logic,
             # only works with complete fields in standard format
             dff = dff.loc[dff[col_name].str.startswith(filter_value)]
+
     # sorting
     if len(sort_by):
         dff = dff.sort_values(
@@ -400,30 +349,30 @@ def updatetable(trigger,page_size,page_current,sort_by,filter_query):
             ],
             inplace=False
         )
-    # get filtered page_count 
-    # FIXME buggy when navigating pages
-        # whole filter bar disappears w/ large datasets
-        # if filter applied when page != 0 and said page disappears, can't return to first page
-    if filter_query:
-        npages = len(dff) // page_size + (len(dff) % page_size > 0)
-    # set cols and convert dff
-    columns=[{"name": i, "id": i, "presentation": 'markdown'} for i in dff.columns]
+
+    # get page_count 
+    cache_IDs = cache.get("ledger")
+    if cache_IDs is not None:
+        rows = sum([x["length"][0] for x in cache_IDs])
+        page_count = rows // page_size + (rows % page_size > 0)
+    elif filter_query:
+        page_count = len(dff) // page_size + (len(dff) % page_size > 0)
+    else:
+        page_count = 0
+
+    columns=[{"name": i, "id": i, "presentation": 'markdown'} for i in dff.columns  if i not in ["hash"]]
     return dff.iloc[
         page_current*page_size: (page_current + 1)*page_size
-    ].to_dict('records'), columns, npages
+    ].to_dict('records'), columns, page_count
 
+# make cache table
 @app.callback([
     Output("cacheTable", "data"),
     Output("cacheTable", "columns")], 
-    [Input("cacheIDs", "data")])
+    [Input("store_IDs", "data")])
 def cacheTable(trigger):
-    cacheIDs = cache.get("ledger")
-    if cacheIDs is None:
-        data = []
-        columns = []
+    cache_IDs = cache.get("ledger")
+    if cache_IDs is None:
+        return [],[]
     else:
-        columns = [{"name": i, "id": i} for i in cacheIDs[0].keys()]
-        for x in range(len(cacheIDs)):
-            cacheIDs[x]["hash"][0] = cacheIDs[x]["hash"][0][:7]
-        data = cacheIDs
-    return data, columns
+        return cache_IDs, [{"name": i, "id": i} for i in cache_IDs[0].keys() if i not in ["hash"]]
