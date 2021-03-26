@@ -32,37 +32,36 @@ class Call:
         return version
 
     def format_text(self):
-        # preprocess text
+        """Extract and format calls from text input"""
+
+        # Preprocess text
         calls_str = re.sub('"""', "'''",self.calls_str)
         calls_list = [line for line in calls_str.splitlines() if line]
-        calls_list = ["".join(["{",line,"}"]) if not line.startswith("{") else line for line in calls_list]
-        # parse list items 
-        calls_dicts = [ast.literal_eval(calls_list[x]) if "'''" in calls_list[x] else json.loads(calls_list[x]) for x in range(len(calls_list))]
-        # propagate unique parameters
-        calls_draft = Call.propagate(None,calls_dicts)
-        # remove extra spaces (exceptions: usesubcorp)
-        calls_clean = [dict() for dt in range(len(calls_draft))]
-        for x in range(len(calls_draft)):
-            for key, item in calls_draft[x].items():
-                if type(item) is str:
-                    if key != "usesubcorp":
-                        key_clean = re.sub(' +', '',key)
-                        item_clean = re.sub(' +', '',item)
-                        calls_clean[x][key_clean] = item_clean
-                    else:
-                        calls_clean[x][key] = item
-                elif type(item) is list:
-                    calls_clean[x][key] = [re.sub(' +', '',string) if type(string) is str else string for string in item]
-                else:
-                    calls_clean[x][key] = item
-        # pop labels before finding unique calls   
-        labels, _ = self.pop_labels(calls_clean)
-        # get valid unique calls
-        calls_unique = [x for x in self.unique(calls_clean)]
-        # add labels to unique calls
+        calls_list = ["".join(["{",line,"}"]) 
+            if not line.startswith("{") else line for line in calls_list]
+
+        # Parse list items 
+        calls_dicts = [ast.literal_eval(calls_list[x]) 
+            if "'''" in calls_list[x] else json.loads(calls_list[x]) 
+            for x in range(len(calls_list))]
+
+        # Remove spaces
+        needs_spaces = ["usesubcorp"]
+
+        for call in calls_dicts:
+            call = {re.sub(' +', '',k): v for k, v in call.items()}
+            call = {k: re.sub(' +', '',v) for k, v in call.items() 
+                if v not in needs_spaces and type(v) is str}
+
+        # Propagate unique parameters
+        calls_draft = self.propagate(calls_dicts)
+
+        # Manage labels, repeats
+        labels, _ = self.pop_labels(calls_draft)
+        calls_unique = [x for x in self.unique(calls_draft)]
         calls_unique_labelled = self.add_labels(calls_unique,labels)
 
-        return [dt for dt in calls_unique_labelled if type(dt) is dict]
+        return [item for item in calls_unique_labelled if type(item) is dict]
 
     def pop_labels(self, calls):
         temp = calls.copy()
