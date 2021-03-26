@@ -9,7 +9,7 @@ from app import app
 from app import server
 
 # connect app pages
-from apps import app5, app4, app3, app2, app1
+from apps import app5 #, app4, app3, app2, app1
 
 # set data paths
 data_folder = pathlib.Path("")
@@ -88,14 +88,14 @@ app.layout = html.Div(
 def display_page(pathname):
     if pathname == "/apps/app5":
         return app5.layout
-    if pathname == "/apps/app4":
-        return app4.layout
-    if pathname == "/apps/app3":
-        return app3.layout
-    if pathname == "/apps/app2":
-        return app2.layout
-    if pathname == "/apps/app1":
-        return app1.layout
+    # if pathname == "/apps/app4":
+    #     return app4.layout
+    # if pathname == "/apps/app3":
+    #     return app3.layout
+    # if pathname == "/apps/app2":
+    #     return app2.layout
+    # if pathname == "/apps/app1":
+    #     return app1.layout
     else:
         return html.Div(
             [html.Div([dcc.Markdown(lines)], style={"width": "1000px"})],
