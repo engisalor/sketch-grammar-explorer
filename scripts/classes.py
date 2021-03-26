@@ -9,8 +9,10 @@ import pandas as pd
 import ast
 
 class Call:
-    """
-    parent class for all API call types, with methods needed for building and making calls
+    """Parent class for all API call types
+    
+    Defines the basic call structure
+    Supplies the methods needed for building and making any type of call
     """
  
     def __init__(self,global_parameters={"asyn":"0", "format":"json"}):
@@ -19,16 +21,21 @@ class Call:
         self.version = self.set_vers()
 
     def set_creds(self, filepath=".auth_api.txt"):
+        """Get SkE API credentials from file"""
+        
         with open(pathlib.Path(filepath)) as f:
             return dict(line.rstrip().split(":") for line in f)
 
     def set_vers(self):
+        """Get the latest commit and modified date"""
+
         try:
             commit = subprocess.check_output(["git", "describe",  "--always"]).decode("utf-8").strip()
             date = subprocess.check_output(["git", "show", "-s", "--format=%cd", "--date=short"]).decode("utf-8").strip()
             version = "{} / {}".format(date, commit)
         except:
             version= "unknown"
+
         return version
 
     def format_text(self):
@@ -64,47 +71,63 @@ class Call:
         return [item for item in calls_unique_labelled if type(item) is dict]
 
     def pop_labels(self, calls):
+        """Extract labels from a list of calls"""
+
         temp = calls.copy()
         labels = [call["l"] if "l" in call.keys() else "" for call in temp]
+
         for x in temp:
             if 'l' in x:
                 del x['l']
+
         return labels, temp
 
     def add_labels(self, calls,labels):
+        """Reinsert labels for a list of calls"""
+
         temp = calls.copy()
+
         for x in range(len(temp)):
             if type(temp[x]) is dict:
                 temp[x]["l"] = labels[x]
+
         return temp
 
     def propagate(self,calls):
+        """Reuse API parameters unless defined explicitly"""
+
         for key in calls[0].keys():
             for x in range(len(calls)):
                 if key in calls[x].keys():
-                    stop = [calls[x+1:].index(s) for s in calls[x+1:] if key in s.keys()]
-                    # if a key exists after
+                    stop = [calls[x+1:].index(s) for s in calls[x+1:] 
+                        if key in s.keys()]
+
+                    # If a key exists after
                     if len(stop) != 0:
                         for n in range(1,stop[0]+1):
                             calls[x+n][key] = calls[x][key]
-                    # if no key after
+
+                    # If no key after
                     if len(stop) == 0:
                         for n in range(x+1,len(calls)):
                             calls[n][key] = calls[x][key]
         return calls
 
     def unique(self,calls):
-        # make immutable
+        """Replace repeated calls with an empty list"""
+
         calls_str = [json.dumps(x, sort_keys=True) for x in calls]
-        # clear repeats in reverse order
+
+        # Clear repeats in reverse order
         for y in reversed(range(len(calls_str))):
             if 1 < calls_str.count(calls_str[y]):
                 calls_str[y] = "[]"
-        # return to calls
+
         return [json.loads(call) for call in calls_str]
 
     def setwait(self):
-        # set wait time
+        """Set wait time for SkE API usage"""
+
         n = len(self.formatted)
         if n == 1:
             wait = 0
@@ -114,22 +137,32 @@ class Call:
             wait = 4
         elif 900 <= n:
             wait = 45
+
         return wait
 
     def dry_run(self,cache=None):
+        """Print call details"""
+
         print("dry_run")
         print("... call type:", self.call_type)
         print("... timestamp:",self.timestamp)
         print("... version:",self.version)
         print("... calls:", len(self.formatted))
         print("... wait:", self.wait)
-        print("... credentials:",self.credentials["username"],"/", self.credentials["api_key"][0:5] + "...")
+        print(
+            "... credentials:",
+            self.credentials["username"],
+            "/",
+            self.credentials["api_key"][0:5] + "...")
         print("... cache:", cache)
         print("... global parameters:", self.global_parameters)
+
         for x in range(len(self.formatted)):
             print("... call{}:".format(str(x)), self.formatted[x])
 
     def make_calls(self,cache=None,cache_IDs=None,dry_run=False):
+        """Make API call(s) and store results in instance or cache"""
+
         if dry_run is True:
             self.dry_run(cache)
         else:
@@ -140,22 +173,23 @@ class Call:
                 call_str = json.dumps(calls[x], sort_keys=True)
                 call_hash = hashlib.blake2s(call_str.encode()).hexdigest()
                 
-                # skip existing call
+                # Skip existing call
                 hashes = []
+
                 if cache_IDs is not None:
                     hashes = [cache_IDs[y]["hash"][0] for y in range(len(cache_IDs))]
                 if call_hash in hashes:
                     print("... skipping", call_str)
 
-                # make call and append results
+                # Make call and append results
                 else:
-                    result_json = self.trycall(calls[x])
+                    result_json = self.try_call(calls[x])
                     self.results.append(result_json)
                     self.df = self.df.append(self.getdf(result_json, call_str, call_hash, labels[x]))
                     self.set_dtypes()
-                    self.IDs.append(self.getID(result_json, call_str, call_hash, labels[x]))
+                    self.IDs.append(self.get_ID(result_json, call_str, call_hash, labels[x]))
 
-            # cache results for app
+            # Cache results
             if cache is not None:
                 dfs_cached = cache.get("results_df")
                 if dfs_cached is None:
@@ -166,9 +200,10 @@ class Call:
             print("CALLS done")
 
     def set_dtypes(self):
-        """set best datatype for each column in self.df"""
+        """Set best datatype for each column in self.df"""
 
         str_cols = ["kwic"]
+
         for col in self.df.columns:
             if col in str_cols:
                 self.df[col] = self.df[col].astype(str)
@@ -177,52 +212,59 @@ class Call:
             else:
                 pass
 
-    def trycall(self,call):
+    def try_call(self,call):
+        """Try making a single API call or show errors"""
+
         print("... calling", call)
-        result = requests.get("https://api.sketchengine.eu/bonito/run.cgi/" + self.call_type, params={**call,**self.credentials,**self.global_parameters})
-        # check validity
+        result = requests.get(
+            "https://api.sketchengine.eu/bonito/run.cgi/" + self.call_type,
+            params={**call,**self.credentials,**self.global_parameters})
+  
+        # Check validity
         try:
             result_json = result.json()
             if "error" in result_json:
                 print("ERROR-API:", result_json["error"])
             else:
                 return result_json
-        # show errors
+
+        # Show errors
         except:
             print("ERROR-other:", result_json)
-        # wait
+        
+        # Wait
         print("... waiting", self.wait)
         time.sleep(self.wait)
 
     def unnest(self, df, explode, axis):
-        """explode columns of lists
-        https://stackoverflow.com/questions/53218931/how-to-unnest-explode-a-column-in-a-pandas.df?noredirect=1"""
+        """Explode columns containing lists
+        
+        Source https://stackoverflow.com/questions/53218931/"""
+        
         if axis==1:
             temp = pd.concat([df[x].explode() for x in explode], axis=1)
             return temp.join(df.drop(explode, 1), how='left')
         else :
             temp = pd.concat([
-                            pd.DataFrame(df[x].tolist(), index=df.index).add_prefix(x) for x in explode], axis=1)
+                pd.DataFrame(df[x].tolist(), index=df.index).add_prefix(x) for x in explode], axis=1)
             return temp.join(df.drop(explode, 1), how='left')
 
 class view(Call):
-    """
-    subclass for view API usage
-    """
+    """Subclass with variables and methods for view API calls"""
 
     def __init__(self, calls_str):
         super().__init__()
         self.call_type = "view?"
         self.calls_str = calls_str
         self.formatted = self.format_text()
-        self.df = pd.DataFrame()
-        self.IDs = []
         self.wait = self.setwait()
-        self.results = []
         self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.results = []
+        self.IDs = []
+        self.df = pd.DataFrame()
 
-    def getID(self,result_json, call_str, call_hash, label):
-        """make dict of view callID"""
+    def get_ID(self,result_json, call_str, call_hash, label):
+        """Make a dict with view call details"""
 
         callID = {
             "label": [label], 
@@ -233,71 +275,92 @@ class view(Call):
             "length": [len(result_json["Lines"])],
             "hash": [call_hash],
             }
+
         return callID
 
     def getdf(self,result_json, call_str, call_hash, label):
-        """make dataframe of view call results"""
+        """Make a dataframe of view call results"""
+
         df = pd.json_normalize(result_json["Lines"])
-        # get refs (explode, rename cols)
-        call_dt = json.loads(call_str)
-        if "refs" in call_dt:
-            if call_dt["refs"]:
-                df = self.unnest(df,["Refs"],axis=0)        
-                refs = result_json["request"]["refs"].split(",")
-                df.rename(columns = {"Refs" + str(x): refs[x] for x in range(len(refs))}, inplace = True)
-            else:
-                df.drop("Refs", axis=1, inplace=True)
-        else:
-            df.drop("Refs", axis=1, inplace=True)
-        # get left, right
+
+        # Get left, right context
         df["Left"] = [x[0]["str"] if x else "" for x in df["Left"]]
         df["Right"] = [x[0]["str"] if x else "" for x in df["Right"]]
-        # get kwic elements, md bold if labelled
-        kwic = []
+
+        # Get kwic elements & add .md bold format if defined
+        kwics = []
+
         for x in range(len(df)):
-            row = "".join(["**" + x["str"] + "**" if x["class"] == "col0 coll coll" else x["str"] for x in df.iloc[0]["Kwic"]])
-            kwic.append(row)
-        df["Kwic"] = kwic
-        # make conc
+            row = "".join(["**" + x["str"] + "**" 
+                if x["class"] == "col0 coll coll" 
+                else x["str"] for x in df.iloc[0]["Kwic"]])
+            kwics.append(row)
+
+        df["Kwic"] = kwics
+
+        # Make full concordance
         df["kwic"] = df["Left"] + df["Kwic"] + df["Right"]
         corpname = result_json["request"]["corpname"]
+
+        # Make other columns
         df["corpname"] = corpname[corpname.rfind("/")+1:]
+
         if "usesubcorp" in result_json["request"]:
             df["subcorp"] = result_json["request"]["usesubcorp"]
+
         df["label"] = label
+
         if "fromp" in result_json:
             df["fromp"] = result_json["fromp"]
         else:
             df["fromp"] = 1
+
         df["hit"] = df.index
         df["hash"] = call_hash
-        # drop cols
-        drops = ["toknum","hitlen","Tbl_refs","Left","Kwic","Right","Links","linegroup","linegroup_id"]
+
+        # Drop columns
+        drops = [
+            "toknum",
+            "hitlen",
+            "Tbl_refs",
+            "Left",
+            "Kwic",
+            "Right",
+            "Links",
+            "linegroup",
+            "linegroup_id"]
         df.drop(drops, axis=1, inplace=True)
-        # reorder cols
+
+        # Un-nest columns containing lists
+        explodes = [col for col in df.columns if type(df.iloc[0][col]) is list]
+        df = self.unnest(df,explodes,axis=0)
+
+        # # Strip non-digits
+        # strips = ["doc", "s"]
+        # for col in df.columns:
+        #     if col in strips:
+        #         df[col] = [int(re.sub(r'[^\d]+','',row)) for row in df[col]]
+
+        # Reorder cols
         cols = list(df.columns)
         ordered = ["label", "fromp","hit", "kwic", "corpname"]
+
         if "usesubcorp" in result_json["request"]:
             ordered.append("subcorp")
+
         ordered.extend([x for x in cols if x not in ordered]) # can use sorted([])
         df = df[ordered]
-        # strip non digits
-        strips = ["doc", "s"]
-        for col in df.columns:
-            if col in strips:
-                df[col] = [int(re.sub(r'[^\d]+','',row)) for row in df[col]]
+
         return df
 
 # TODO test for best setdtype memory usage
-# TODO what else should be progagated: pagesize, etc?
 # TODO "size" is ambiguous for id table
-# TODO what about storing raw data in cache and converting to pandas on the fly?
 # TODO enable changing call types, w/ hiding/generating components
 # TODO add dry_run w/ log in app
 # TODO load data from file
 
 # calls_str = """
-# "q": ["alemma,\\"space\\""], "refs": "doc,s", "corpname": "preloaded/ecolexicon_en", "viewmode": "sen", "pagesize": 10, "fromp": 1
+# "q": ["alemma,\\"ice\\""], "refs": "doc,s", "corpname": "preloaded/ecolexicon_en", "viewmode": "sen", "pagesize": 10, "fromp": 1
 # """
 # z = view(calls_str=calls_str)
-# z.make_calls()
+# z.make_calls(dry_run=True)
