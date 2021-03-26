@@ -143,7 +143,7 @@ class Call:
     def dry_run(self,cache=None):
         """Print call details"""
 
-        print("dry_run")
+        print("DRY RUN")
         print("... call type:", self.call_type)
         print("... timestamp:",self.timestamp)
         print("... version:",self.version)
@@ -202,12 +202,8 @@ class Call:
     def set_dtypes(self):
         """Set best datatype for each column in self.df"""
 
-        str_cols = ["kwic"]
-
         for col in self.df.columns:
-            if col in str_cols:
-                self.df[col] = self.df[col].astype(str)
-            elif len(self.df[col].unique()) / len(self.df[col]) < 0.50:
+            if len(self.df[col].unique()) / len(self.df[col]) < 0.50:
                 self.df[col] = self.df[col].astype("category")
             else:
                 pass
