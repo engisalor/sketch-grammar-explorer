@@ -21,10 +21,14 @@ for file in filesAPI:
             temp = temp.append(pd.DataFrame.from_dict(freqs1[x]))
 
         # add ref
-        ref = int(re.findall(r"\d+", file)[0]) #FIXME use re.search for better stability
+        ref = int(
+            re.findall(r"\d+", file)[0]
+        )  # FIXME use re.search for better stability
         temp["ref#"] = ref
         # get s.ids
-        temp["s.id"] = re.findall(r"s#\d+",str(temp["Word"])) # FIXME use re.search for better stability
+        temp["s.id"] = re.findall(
+            r"s#\d+", str(temp["Word"])
+        )  # FIXME use re.search for better stability
         # get relevant columns to graph
         temp = temp.filter(["s.id", "frq", "fpm", "ref#"], axis=1)
         # append to dfAPI

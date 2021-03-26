@@ -5,36 +5,37 @@ import dash_table
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
-#import numpy as np
+
+# import numpy as np
 import re
 from app import app
 
 #### GET DATA
 
 # load
-ttypes = pd.read_csv('data/ttypes.csv')
-ws = pd.read_csv('data/ws_freqs.csv')
+ttypes = pd.read_csv("data/ttypes.csv")
+ws = pd.read_csv("data/ws_freqs.csv")
 
 DDtext_types = ["User"]
 
-wsGRAPH = ws.loc[
-        (ws["text type"].isin(DDtext_types))
-    ]#.sort_values(by="frq")
+wsGRAPH = ws.loc[(ws["text type"].isin(DDtext_types))]  # .sort_values(by="frq")
 
-fig = px.bar(wsGRAPH, 
-            x="fpm", y="word", 
-            color="value", 
-            orientation='h',
-            title='Title',
-            )
+fig = px.bar(
+    wsGRAPH,
+    x="fpm",
+    y="word",
+    color="value",
+    orientation="h",
+    title="Title",
+)
 # fig = go.Figure(go.Bar(x=wsGRAPH["frq"], y=wsGRAPH["word"],orientation="h"))
 
 fig.update_layout(
-    barmode='stack', 
-    yaxis={'categoryorder':'sum ascending'},
+    barmode="stack",
+    yaxis={"categoryorder": "sum ascending"},
     width=1500,
-    height=5000,)
-
+    height=5000,
+)
 
 
 #### LAYOUT
@@ -48,10 +49,7 @@ layout = html.Div(
                 dash_table.DataTable(
                     id="table2",
                     data=ttypes.round(2).to_dict("records"),
-                    columns=[
-                        {"id": c, "name": c}
-                        for c in ttypes.columns
-                    ],
+                    columns=[{"id": c, "name": c} for c in ttypes.columns],
                     sort_action="native",
                     sort_mode="single",
                     filter_action="native",

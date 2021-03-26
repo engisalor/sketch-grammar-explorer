@@ -16,7 +16,6 @@ for i in range(0, len(cqllines)):
 # modify CQL rules
 for x in dt:
     # change default attribute syntax ("N.*" to [tag="N.*"])
-    dt[x][1] = re.sub('(?<!=)("[\|\.\*A-Z]+")', "[tag=\g<0>]", dt[x][1]) 
+    dt[x][1] = re.sub('(?<!=)("[\|\.\*A-Z]+")', "[tag=\g<0>]", dt[x][1])
     # limit to within sentence
-    dt[x][1] = dt[x][1] + ' within <s/>'
-
+    dt[x][1] = dt[x][1] + " within <s/>"

@@ -12,18 +12,20 @@ import scripts.calls as calls
 #     {"attr": "class.REGION", "corpus": "user/PilarLeon/hejuly2019_backup"},
 #     ])
 
+
 def MultiCall(queries):
     print("MULTICALL start")
     results = []
     # make calls and combine results, w/ API throttling
     for x in range(len(queries[1])):
         print("... defining call", str(x))
-        query_type, settings = getattr(calls,queries[0])(**queries[1][x])
+        query_type, settings = getattr(calls, queries[0])(**queries[1][x])
         temp = calls.BasicCall(query_type, settings)
         results.append(temp)
         calls.wait(len(queries[1]))
     print("MULTICALL done")
     return results
+
 
 ###
 # get structures from corpus w/ size
@@ -34,7 +36,8 @@ def MultiCall(queries):
 # maxitems removes structs with too many values
 # (SkE may force a limit of 1000 on some corpora)
 
-def Structs(info, drops = [], maxitems = 500):
+
+def Structs(info, drops=[], maxitems=500):
     dt = {}
     for y in range(len(info[0]["structs"])):
         # get main structs
@@ -52,6 +55,7 @@ def Structs(info, drops = [], maxitems = 500):
     # return
     return dt
 
+
 ###
 # get word sketch types in a grammar
 ###
@@ -59,7 +63,8 @@ def Structs(info, drops = [], maxitems = 500):
 # supply a text file with the same format as the EcoLexicon Semantic Sketch Grammar
 # TODO this should be made more flexible for other corpora
 
-def WStypes(grammar = "grammar.txt"):
+
+def WStypes(grammar="grammar.txt"):
     # set data paths
     data_folder = pathlib.Path("")
     fgrammar = data_folder / "grammar.txt"
@@ -78,6 +83,6 @@ def WStypes(grammar = "grammar.txt"):
     # make dict of wstypes and cql
     dt = {}
     for x in range(len(wstypes)):
-        key = re.search(r",\"\.\*(.+)\.\.\.",wstypes[x]).group(1)
+        key = re.search(r",\"\.\*(.+)\.\.\.", wstypes[x]).group(1)
         dt[key] = wstypes[x]
     return dt
