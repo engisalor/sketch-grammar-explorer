@@ -49,28 +49,32 @@ class Call:
 
         return version
 
-    def format_text(self):
-        """Extract and format calls from text input"""
+    def format_calls(self):
+        """Extract and format calls from input"""
 
-        # Preprocess text
-        calls_str = re.sub('"""', "'''", self.calls_str)
-        calls_list = [line for line in calls_str.splitlines() if line]
-        calls_list = [
-            "".join(["{", line, "}"]) if not line.startswith("{") else line
-            for line in calls_list
-        ]
+        # Parse input type
+        if type(self.calls_input) is list:
+            calls_dicts = self.calls_input
+        elif type(self.calls_input) is dict:
+            calls_dicts = [self.calls_input]
+        elif type(self.calls_input) is str:
+            calls_str = re.sub('"""', "'''", self.calls_input)
+            calls_list = [line for line in calls_str.splitlines() if line]
+            calls_list = [
+                "".join(["{", line, "}"]) if not line.startswith("{") else line
+                for line in calls_list
+            ]
+            calls_dicts = [
+                ast.literal_eval(calls_list[x])
+                if "'''" in calls_list[x]
+                else json.loads(calls_list[x])
+                for x in range(len(calls_list))
+            ]
+        else:
+            print("ERROR-format_calls: unknown format")
 
-        # Parse list items
-        calls_dicts = [
-            ast.literal_eval(calls_list[x])
-            if "'''" in calls_list[x]
-            else json.loads(calls_list[x])
-            for x in range(len(calls_list))
-        ]
-
-        # Remove spaces
+        # Remove spaces from dict items
         needs_spaces = ["usesubcorp"]
-
         for call in calls_dicts:
             call = {re.sub(" +", "", k): v for k, v in call.items()}
             call = {
@@ -282,11 +286,11 @@ class Call:
 class view(Call):
     """Subclass with variables and methods for view API calls"""
 
-    def __init__(self, calls_str):
+    def __init__(self, calls_input):
         super().__init__()
         self.call_type = "view?"
-        self.calls_str = calls_str
-        self.formatted = self.format_text()
+        self.calls_input = calls_input
+        self.formatted = self.format_calls()
         self.wait = self.setwait()
         self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
         self.results = []
@@ -389,8 +393,20 @@ class view(Call):
 # TODO add dry_run w/ log in app
 # TODO load data from file
 
-# calls_str = """
-# "q": ["alemma,\\"ice\\""], "refs": "doc,s", "corpname": "preloaded/ecolexicon_en", "viewmode": "sen", "pagesize": 10, "fromp": 1
-# """
-# z = view(calls_str=calls_str)
+# calls_input = [
+#     {
+#         "q": ["alemma,\"ice\""],
+#         "refs": "doc,s", 
+#         "corpname": "preloaded/ecolexicon_en", 
+#         "viewmode": "sen", 
+#         "pagesize": 1000, 
+#         "fromp": 1,
+#         "l": "LABEL_AAA"
+#         },
+#     {
+#         "fromp": 2
+#         },   
+#     ]
+
+# z = view(calls_input=calls_input)
 # z.make_calls(dry_run=True)
