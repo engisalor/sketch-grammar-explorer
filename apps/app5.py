@@ -273,7 +273,7 @@ def updatetable(trigger, page_size, page_current, sort_by, filter_query):
 )
 def cacheTable(trigger):
     cache_IDs = cache.get("ledger")
-    if cache_IDs is None:
+    if cache_IDs is None or len(cache_IDs) == 0:
         return [], []
     else:
         return cache_IDs, [
