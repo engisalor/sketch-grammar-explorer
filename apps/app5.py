@@ -44,11 +44,11 @@ layout = html.Div(
             },
         ),
         dcc.Textarea(
-            id="calls_str",
+            id="calls_input",
             persistence=True,
             persistence_type="session",
-            placeholder=r""""q:" ''' "water" ''' 
-"fromp": 2
+            placeholder=r""""q": ["alemma,\"ice\""], "refs": "doc,s", "corpname": "preloaded/ecolexicon_en", "viewmode": "sen", "pagesize": 20, "fromp": 1
+"fromp":2
 """,
             style={
                 "display": "inline-flex",
@@ -85,12 +85,13 @@ layout = html.Div(
                     style_header={"backgroundColor": "white", "fontWeight": "bold"},
                 ),
                 html.H5("Results"),
+                html.Div([
+                        html.Button('Add column', id='newColumn', n_clicks=0),
+                    ]),
                 dash_table.DataTable(
                     id="resultsTable",
                     data=pd.DataFrame().to_dict("records"),
                     columns=[],
-                    # export_format='csv',
-                    # export_headers='names',
                     merge_duplicate_headers=True,
                     filter_action="custom",
                     filter_query="",
@@ -130,10 +131,10 @@ layout = html.Div(
 @app.callback(
     Output("store_IDs", "data"),
     [Input("submit", "n_clicks"), Input("clear_cache", "n_clicks")],
-    [State("calls_str", "value")],
+    [State("calls_input", "value")],
     prevent_initial_call=False,
 )
-def submitcall(submitclicks, clearclicks, calls_str):
+def submitcall(submitclicks, clearclicks, calls_input):
     # get button_id
     ctx = dash.callback_context
     if not ctx.triggered:
@@ -148,7 +149,7 @@ def submitcall(submitclicks, clearclicks, calls_str):
 
     # do call
     if button_id == "submit":
-        call_data = getattr(classes, "view")(calls_str=calls_str)
+        call_data = getattr(classes, "view")(calls_input=calls_input)
         call_data.make_calls(cache=cache, cache_IDs=cache_IDs)
         cache_IDs.extend(call_data.IDs)
 
