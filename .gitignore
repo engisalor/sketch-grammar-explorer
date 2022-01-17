@@ -1,0 +1,16 @@
+**/__pycache__/
+.*
+*.csv
+*.json
+*.txt
+*.xlsx
+*.xml
+*.yaml
+*.yml
+
+!.gitignore
+!requirements.txt
+
+!sge/data/**
+sge/data/.config.yml
+sge/data/__pycache__/

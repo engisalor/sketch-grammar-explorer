@@ -1,0 +1,13 @@
+type: freqs
+call0:
+  metadata:
+    category1: tag1
+  call:
+    q:
+    - alemma,"rock"
+    corpname: preloaded/ecolexicon_en
+    freq_sort: freq
+    fcrit:
+    - doc.domains 0
+    - doc.genre 0
+    - doc.editor 0
