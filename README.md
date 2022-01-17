@@ -50,16 +50,16 @@ keyring.delete_password("Sketch Grammar Explorer", "<username>")
 
 ***Automated***
 
-Optionally, run `config()` to automate the process.
+Optionally, run `config.credentials()` to automate the process.
 
 ## Making API calls
 
-To get started using example calls, run `examples()` to generate basic input files in `calls/`. Then run `Call()` with a path to an input file. Retrieved API data is stored in a folder of the same name.
+To get started using example calls, run `config.examples()` to generate basic input files in `calls/`. Then run `Call()` with a path to an input file. Retrieved API data is stored in a folder of the same name.
 
 ``` python
 import sge
 
-sge.examples()
+sge.config.examples()
 job = sge.Call("calls/freqs.yml")
 ```
 
