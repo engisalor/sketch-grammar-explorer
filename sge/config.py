@@ -3,8 +3,10 @@ import getpass
 import pathlib
 import yaml
 
+import sge
 
-def config(hidden_config=False):
+
+def credentials(hidden_config=False):
     """Manage Sketch Engine API credentials.
 
     `hidden_config=True` uses a config file untracked by git (".config.yml").
@@ -71,3 +73,28 @@ def config(hidden_config=False):
         _plaintext()
     else:
         print("Selection not available: try again")
+
+def examples(dir="calls", format=".yml", overwrite=False):
+    """Generate example input files to `dir` with format `.yml` or `.json`).
+
+    `overwrite=True` skips warning for existing files
+    """
+
+    path = pathlib.Path(dir)
+    print(f'Saving example calls to "{dir}/"')
+
+    for k, v in sge.data.json_tests.items():
+        file = path / pathlib.Path(k).with_suffix(format)
+
+        yn = "y"
+
+        if file.exists() and not overwrite:
+            yn = input(f'Overwrite "{file}"? (y/N) ')
+
+        if yn == "y":
+            path.mkdir(parents=True, exist_ok=True)
+            sge.Parse(v, dest=file)
+        else:
+            pass
+
+    print("Done")
