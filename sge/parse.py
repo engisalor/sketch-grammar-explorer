@@ -8,7 +8,7 @@ import sge
 class Parse:
     """Parses and returns/saves a JSON/YAML file or dict of API calls.
 
-    `dest="<filepath>"` saves object to file in given format 
+    `dest="<filepath>"` saves object to file in given format
     - (can be used to convert between file formats)
     """
 

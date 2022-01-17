@@ -1,6 +1,5 @@
 import pathlib
 import json
-from lxml import etree
 import requests
 import time
 import hashlib
@@ -8,7 +7,6 @@ import pandas as pd
 import shutil
 from pprint import pprint
 import re
-import keyring
 import yaml
 
 import sge
@@ -94,6 +92,8 @@ class Call:
 
         # Try keyring
         if not credentials["api_key"]:
+            import keyring
+
             credentials["api_key"] = keyring.get_password(app, credentials["username"])
         if not credentials["api_key"] or not credentials["username"]:
             raise ValueError("No API key/username found")
@@ -287,6 +287,8 @@ class Call:
         temp.to_excel(self.file, header=False, index=False)
 
     def _save_xml(self):
+        from lxml import etree
+
         xml = etree.fromstring(self.response.content)
         header_old = xml.find("header")
         header = self._make_header()

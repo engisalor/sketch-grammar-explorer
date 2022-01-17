@@ -18,7 +18,7 @@ Sketch Grammar Explorer (SGE) is a Python package for using the [Sketch Engine A
 
 ## Setup
 
-Built with Python 3.10.1+ and tested on 3.7.3+.
+Built with Python 3.10 and tested on 3.7.
 
 **Installation**
 
@@ -26,8 +26,9 @@ Built with Python 3.10.1+ and tested on 3.7.3+.
   - download the [latest release](https://github.com/engisalor/sketch-grammar-explorer/releases) or clone this repo
 - get a [Sketch Engine API key](https://www.sketchengine.eu/documentation/api-documentation/)
 - install dependencies:
-  - for current versions `pip install -r requirements.txt`
-  - or `pip install numpy pandas requests pyyaml keyring openpyxl lxml`
+  - current versions `pip install -r requirements.txt`
+  - required `pip install numpy pandas requests pyyaml`
+  - optional `pip install keyring openpyxl lxml`
 
 **API credentials**
 

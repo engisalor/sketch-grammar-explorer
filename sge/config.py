@@ -1,4 +1,3 @@
-import keyring
 import getpass
 import pathlib
 import yaml
@@ -34,6 +33,8 @@ def credentials(hidden_config=False):
             print("Operation cancelled")
 
     def _add_keyring():
+        import keyring
+
         print("\nAdd credentials to keyring:")
         user = input("User: ")
         key = getpass.getpass()
@@ -43,6 +44,8 @@ def credentials(hidden_config=False):
         print("User: {}".format(app))
 
     def _del_keyring():
+        import keyring
+
         print("Remove credentials from keyring:")
         user = input("User: ")
         keyring.delete_password(app, user)
@@ -73,6 +76,7 @@ def credentials(hidden_config=False):
         _plaintext()
     else:
         print("Selection not available: try again")
+
 
 def examples(dir="calls", format=".yml", overwrite=False):
     """Generate example input files to `dir` with format `.yml` or `.json`).
