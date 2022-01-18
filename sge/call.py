@@ -4,7 +4,6 @@ import requests
 import time
 import hashlib
 import pandas as pd
-import shutil
 from pprint import pprint
 import re
 import yaml
@@ -194,7 +193,8 @@ class Call:
         else:
             if self.clear and self.dest_path.exists():
                 print("... clearing", self.dest_path)
-                shutil.rmtree(self.dest_path)
+                for f in self.trash:
+                    pathlib.Path.unlink(f)
 
             if self.clear or not self.skip:
                 print("... disabling skip")
@@ -362,18 +362,30 @@ class Call:
     def __repr__(self) -> str:
         """Print job details."""
 
-        s = "\n".join(
-            [
-                "... source: {}".format(str(self.input)),
-                "... destination: {}".format(str(self.dest_path)),
-                "... wait: {}".format(str(self.wait)),
-                "... skip: {}".format(str(self.skip)),
-                "... clear: {}".format(str(self.clear)),
-                "... version: {}".format(str(self.version)),
-                "... timestamp: {}".format(str(self.timestamp)),
-                "... total calls: {}".format(str(len(self.calls))),
-            ]
-        )
+        trashed = [x.name for x in self.trash]
+        skipped = [k for k, v in self.calls.items() if v.get("skip")]
+        if self.clear or not self.skip:
+            skipped = []
+
+        dt = {
+            "input      ": self.input,
+            "destination": str(self.dest_path),
+            "format     ": self.global_parameters["format"],
+            "calls #    ": len(self.calls),
+            "wait       ": self.wait,
+            "version    ": self.version,
+            "timestamp  ": self.timestamp,
+            "skip       ": self.skip,
+            "skipped #  ": len(skipped),
+            "skipped    ": skipped,
+            "clear      ": self.clear,
+            "cleared #  ": len(trashed),
+            "cleared    ": trashed,
+        }
+        
+        s = [" ".join([k, str(v)]) for k, v in dt.items()]
+        s = "\n".join(s)
+
         return s
 
     def __init__(
@@ -418,6 +430,12 @@ class Call:
             raise TypeError("Input must be filepath (str) or dict")
 
         # Execute
+        self.trash = []
+        if self.clear:
+            files = list(self.dest_path.glob("*"))
+            suffixes = [".csv", ".json", ".txt", ".xlsx", ".xml"]
+            self.trash = [file for file in files if file.suffix in suffixes]
+
         self.calls = sge.Parse(input).calls
         if not self.calls:
             pass
