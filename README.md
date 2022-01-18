@@ -192,7 +192,7 @@ call2:
 
 **Skipping repeats**
 
-If `skip=True`, calls won't be repeated when identical data of the same file type already exists. Repeats are identified using hashes of `call` dictionaries (not metadata). If the contents of `"call"` change at all, they are considered unique calls.
+If `skip=True`, calls won't be repeated when identical data of the same file type already exists. Repeats are identified using hashes of `call` dictionaries. If the contents of `"call"` change at all, they are considered unique calls.
 
 The order of parameters is ignored for repeat identification. These are considered identical:
 
@@ -224,7 +224,7 @@ Sketch Engine monitors API activity and will block excessive calls or other acti
 
 **API usage**
 
-To learn more about the API, it's helpful to inspect network activity while making queries in Sketch Engine with a web browser (using Developer Tools). Importantly, Sketch Engine has internal API methods that only function in web browsers, so merely copy-pasting certain methods into SGE won't necessarily work. Sketch Engine's API is also actively developed syntax/functionalities may change.
+To learn more about the API, it's helpful to inspect network activity while making queries in Sketch Engine with a web browser (using Developer Tools). Importantly, Sketch Engine has internal API methods that only function in web browsers, so merely copy-pasting certain methods into SGE won't necessarily work. Sketch Engine's API is also actively developed and syntax/functionalities may change.
 
 **Double-checking accuracy**
 
@@ -234,7 +234,44 @@ Before relying heavily on the API, it's a good idea to practice trying the same 
 
 Hash functions are essential for software, but they can benefit linguists too. Using the hashes of corpus queries improves traceability, replicability, and quality control. While taking the hash of a simple, routine query may seem overkill, consider the many settings Sketch Engine has and the ways that errors can be silently introduced. When running hundreds of queries, the impact of a single change is hard to ignore.
 
-Hashes are used in SGE to help users instantly recognize if two queries differ, however simple or complex. Generally speaking, if the corpus's content has not changed, two identical hashes should guarantee the same result. When using CQL rules that look more like paragraphs than phrases, hashes make it easy to notice if just one apostrophe has been misplaced. This is equally true of parameters, like if the search is changed from `lemma_lc` to `lemma`. Sometimes they simply aren't relevant, but users are encouraged to rely on hashes as part of an accountable corpus linguistics workflow.
+Hashes are used in SGE to help users instantly recognize if two queries differ, however simple or complex. Generally speaking, if the corpus's content has not changed, two identical hashes should guarantee the same result. When using CQL rules that look more like paragraphs than phrases, hashes make it easy to notice if just one character has been misplaced. This is also true of parameters, like if the search is changed from `lemma_lc` to `lemma`. Sometimes they simply aren't relevant, but users are encouraged to rely on hashes when working on complex samples.
+
+For example, the queries for these two calls look identical:
+
+```yml
+type: freqs # (call source: EcoLexicon)
+call0:
+  call:
+    q: atag,2:"N.*" [tag!="V.*"]{0,7} [lemma="be|,|\("]? "RB.*"* [word="caused|produced|generated|provoked|induced|triggered|originated"]
+      "RB.*"* ([word="by"]|[word="because"][word="of"]? | [word="due"] [word="to"])
+      [tag!="V.*"]{0,7} 1:"N.*" within <s/>
+    corpname: preloaded/ecolexicon_en
+    freq_sort: freq
+    fcrit:
+    - doc.domains 0
+    - doc.genre 0
+    - doc.editor 0
+    - doc.user 0
+call1:
+  call:
+    q: atag,2:"N.*" [tag!="V.*"]{0,7} [lemma="be|,|\("]? "RB.*"* [word="caused|produced|generated|provoked|induced|triggered|originated"]
+      "RB.*"* ([word="by"]|[word="because"][word="of"] | [word="due"] [word="to"])
+      [tag!="V.*"]{0,7} 1:"N.*" within <s/>
+```
+Rather than check manually, compare the hashes that SGE produces:
+
+```python
+# Run job with above content as example
+job = sge.Call(example, dry_run=True)
+
+# Print hashes of calls
+for k,v in job.calls.items():
+    print(k, v["hash"])
+
+# Output
+call0 1efc9e48a328203a2508c27738a1cba2
+call1 585ce5dc8169a885fa018ad30cf7e1ed
+```
 
 ## Tools
 
@@ -242,7 +279,7 @@ SGE will offer more features to automate repetitive tasks and procedures for cer
 
 **`convert_grammar()`** converts a sketch grammar into SGE-formatted queries (requires modifications depending on input)
 
-**`Parse()`** parses and returns/saves a JSON/YAML file or dict of API calls
+**`Parse()`** parses and returns a dict of API calls or saves to a JSON/YAML file.
 - `dest="<filepath>"` saves object to file in given format 
   - (can be used to convert between file formats)
 
