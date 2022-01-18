@@ -68,7 +68,7 @@ job = sge.Call("calls/freqs.yml")
 **`input`** a dictionary or a path to a YAML/JSON file containing API calls
   - if a dict, requires `dest="<destination folder>"`
 
-**`dry_run`** make a `Call` object that can be inspected prior to executing requests
+**`dry_run`** make a `Call` object that can be inspected prior to executing requests (`False`)
   - with `job` as an instance of `Call`: 
   - `job` prints a summary
   - `job.print_calls()` prints 10 call details at a time

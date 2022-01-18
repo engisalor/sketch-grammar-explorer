@@ -12,37 +12,35 @@ import sge
 
 
 class Call:
-    """Execute Sketch Engine API calls from an input file in calls/.
+    """Execute Sketch Engine API calls (saves files and returns class instance).
 
-    `input` dictionary or a path to a YAML/JSON file containing API calls
+    Options
 
-    * if a dict, requires `dest="<destination folder>"`
+    `input` a dictionary or a path to a YAML/JSON file containing API calls
+      - if a dict, requires `dest="<destination folder>"`
 
-    `dry_run` make a Call object that can be inspected prior to executing requests
+    `dry_run` make a `Call` object that can be inspected prior to executing requests (`False`)
+      - with `job` as an instance of `Call`:
+      - `job` prints a summary
+      - `job.print_calls()` prints 10 call details at a time
+      - `job.calls` accesses all call details
 
-    * if job is an instance of Call:
-    * job prints a summary
-    * job.print_calls() prints 10 call details at a time
-    * job.calls accesses all call details
+    `skip` skip calls if identical data already exists in the destination folder (`True`)
+      - only compares files of the same format
+      - note: close data files to ensure read access
 
-    `skip` skip calls if identical data already exists in the destination folder (True)
+    `clear` remove existing data in destination folder before running current calls (`False`)
 
-    * only compares files of the same format
-    * note: close data files to ensure read access
+    `timestamp` include a timestamp (`False`)
 
-    `clear` remove existing data in destination folder before running current calls (False)
+    `format` specify output format (`"json"`)
 
-    `timestamp` include a timestamp (False)
+    - `"csv"`, `"txt"`, `"json"`, `"xlsx"`, or `"xml"` (see compatibilities table)
+    - `"json"` offers more detailed metadata and API error messages
 
-    `format` save data with format ("json")
+    `any_format` allow any combination of call types and formats (`False`)
 
-    * "csv", "txt", "json", "xlsx", or "xml"
-    * see compatibilities table
-    * "json" offers more detailed metadata and API error messages
-
-    `any_format` allow any combination of call types and formats (False)
-
-    `asyn` retrieve rough calculations, "0" (default) or "1" """
+    `asyn` retrieve rough calculations, `"0"` (default) or `"1"`"""
 
     def _enforce_formats(self):
         """Block known incompatible format and call type combinations."""
@@ -382,7 +380,7 @@ class Call:
             "cleared #  ": len(trashed),
             "cleared    ": trashed,
         }
-        
+
         s = [" ".join([k, str(v)]) for k, v in dt.items()]
         s = "\n".join(s)
 
