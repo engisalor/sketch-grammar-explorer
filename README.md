@@ -234,12 +234,12 @@ Before relying heavily on the API, it's a good idea to practice trying the same 
 
 Hash functions are essential for software, but they can benefit linguists too. Using the hashes of corpus queries improves traceability, replicability, and quality control. While taking the hash of a simple, routine query may seem overkill, consider the many settings Sketch Engine has and the ways that errors can be silently introduced. When running hundreds of queries, the impact of a single change is hard to ignore.
 
-Hashes are used in SGE to help users instantly recognize if two queries differ, however simple or complex. Generally speaking, if the corpus's content has not changed, two identical hashes should guarantee the same result. When using CQL rules that look more like paragraphs than phrases, hashes make it easy to notice if just one character has been misplaced. This is also true of parameters, like if the search is changed from `lemma_lc` to `lemma`. Sometimes they simply aren't relevant, but users are encouraged to rely on hashes when working on complex samples.
+Hashes are used in SGE to help users instantly recognize if two queries differ, however simple or complex. Generally speaking, if the corpus's content has not changed, two identical hashes should guarantee the same result. When using CQL rules that look more like paragraphs than phrases, hashes make it easy to notice if just one character has been misplaced or one parameter changed. Sometimes they simply aren't relevant, but users are encouraged to rely on hashes when working on complex samples.
 
-For example, the queries for these two calls look identical:
+For example, the queries for these two calls look identical at first glance:
 
 ```yml
-type: freqs # (call source: EcoLexicon)
+type: freqs # (query from EcoLexicon)
 call0:
   call:
     q: atag,2:"N.*" [tag!="V.*"]{0,7} [lemma="be|,|\("]? "RB.*"* [word="caused|produced|generated|provoked|induced|triggered|originated"]
@@ -258,19 +258,18 @@ call1:
       "RB.*"* ([word="by"]|[word="because"][word="of"] | [word="due"] [word="to"])
       [tag!="V.*"]{0,7} 1:"N.*" within <s/>
 ```
-Rather than check manually, compare the hashes that SGE produces:
+
+Compare the hashes that SGE produces and saves with call data:
 
 ```python
-# Run job with above content as example
-job = sge.Call(example, dry_run=True)
+job = sge.Call(above_example, dry_run=True)
 
-# Print hashes of calls
 for k,v in job.calls.items():
-    print(k, v["hash"])
+    print(k, v["hash"][:5])
 
-# Output
-call0 1efc9e48a328203a2508c27738a1cba2
-call1 585ce5dc8169a885fa018ad30cf7e1ed
+# Different hashes
+'call0 1efc9'
+'call1 585ce'
 ```
 
 ## Tools
