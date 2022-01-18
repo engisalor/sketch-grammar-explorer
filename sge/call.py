@@ -427,6 +427,12 @@ class Call:
         else:
             raise TypeError("Input must be filepath (str) or dict")
 
+        # Prevent using paths outside cwd
+        cwd = pathlib.Path.cwd()
+        abs_path = cwd / self.dest_path
+        if not cwd in abs_path.parents:
+            raise ValueError(f"Invalid destination path: \"{self.dest_path}\": paths must be relative to current working directory")
+        
         # Execute
         self.trash = []
         if self.clear:
