@@ -194,25 +194,13 @@ call2:
 
 If `skip=True`, calls won't be repeated when identical data of the same file type already exists. Repeats are identified using hashes of `call` dictionaries. If the contents of `"call"` change at all, they are considered unique calls.
 
-The order of parameters is ignored for repeat identification. These are considered identical:
-
-```yml
-    q:
-    corpname: preloaded/ecolexicon_en
-    - alemma,"rock"
-
-    corpname: preloaded/ecolexicon_en
-    q:
-    - alemma,"rock"
-```
-
 Repeats are not detected across input files. Queries from `calls1.yml` and `calls2.yml` are stored in their respective data folders and are treated as independent samples.
 
 ### Notes
 
 **Modifying saved data**
 
-Copy saved data to a different folder before making modifications. SGE doesn't detect file changes and will overwrite folder contents if `clear=True`.
+SGE doesn't track changes you make to downloaded data and will overwrite files if `skip=False` or `clear=True`. Be sure to use separate destination folders for different samples or copy samples to another location to prevent data loss. 
 
 **Working with different call types**
 
@@ -224,53 +212,11 @@ Sketch Engine monitors API activity and will block excessive calls or other acti
 
 **API usage**
 
-To learn more about the API, it's helpful to inspect network activity while making queries in Sketch Engine with a web browser (using Developer Tools). Importantly, Sketch Engine has internal API methods that only function in web browsers, so merely copy-pasting certain methods into SGE won't necessarily work. Sketch Engine's API is also actively developed and syntax/functionalities may change.
+To learn more about the API, it's helpful to inspect network activity while making queries in Sketch Engine with a web browser (using Developer Tools). Importantly, Sketch Engine has internal API methods that only function in web browsers, so merely copy-pasting certain methods into SGE won't necessarily work. Sketch Engine's API is also actively developed and syntax/functionalities may also change.
 
 **Double-checking accuracy**
 
 Before relying heavily on the API, it's a good idea to practice trying the same queries in a web browser and via API to make sure the results are identical, especially for an important data sample.
-
-**Hashing for corpus linguists**
-
-Hash functions are essential for software, but they can benefit linguists too. Using the hashes of corpus queries improves traceability, replicability, and quality control. While taking the hash of a simple, routine query may seem overkill, consider the many settings Sketch Engine has and the ways that errors can be silently introduced. When running hundreds of queries, the impact of a single change is hard to ignore.
-
-Hashes are used in SGE to help users instantly recognize if two queries differ, however simple or complex. Generally speaking, if the corpus's content has not changed, two identical hashes should guarantee the same result. When using CQL rules that look more like paragraphs than phrases, hashes make it easy to notice if just one character has been misplaced or one parameter changed. Sometimes they simply aren't relevant, but users are encouraged to rely on hashes when working on complex samples.
-
-For example, the queries for these two calls look identical at first glance:
-
-```yml
-type: freqs # (query from EcoLexicon)
-call0:
-  call:
-    q: atag,2:"N.*" [tag!="V.*"]{0,7} [lemma="be|,|\("]? "RB.*"* [word="caused|produced|generated|provoked|induced|triggered|originated"]
-      "RB.*"* ([word="by"]|[word="because"][word="of"]? | [word="due"] [word="to"])
-      [tag!="V.*"]{0,7} 1:"N.*" within <s/>
-    corpname: preloaded/ecolexicon_en
-    freq_sort: freq
-    fcrit:
-    - doc.domains 0
-    - doc.genre 0
-    - doc.editor 0
-    - doc.user 0
-call1:
-  call:
-    q: atag,2:"N.*" [tag!="V.*"]{0,7} [lemma="be|,|\("]? "RB.*"* [word="caused|produced|generated|provoked|induced|triggered|originated"]
-      "RB.*"* ([word="by"]|[word="because"][word="of"] | [word="due"] [word="to"])
-      [tag!="V.*"]{0,7} 1:"N.*" within <s/>
-```
-
-Compare the hashes that SGE produces and saves with call data:
-
-```python
-job = sge.Call(above_example, dry_run=True)
-
-for k,v in job.calls.items():
-    print(k, v["hash"][:5])
-
-# Different hashes
-'call0 1efc9'
-'call1 585ce'
-```
 
 ## Tools
 
@@ -284,7 +230,7 @@ SGE will offer more features to automate repetitive tasks and procedures for cer
 
 ## About
 
-SGE has been developed to meet research needs at the University of Granada (Spain) Translation and Interpreting Department. Specifically, it is meant to support the computational linguistics techniques that feed the [EcoLexicon](https://lexicon.ugr.es/) terminological knowledge base (see the articles [here](https://aclanthology.org/W16-4709/) and [here](https://arxiv.org/pdf/1804.05294.pdf) for an introduction).
+SGE has been developed to meet research needs at the University of Granada (Spain) Translation and Interpreting Department, in part to support the computational linguistics techniques that feed the [EcoLexicon](https://lexicon.ugr.es/) terminological knowledge base (see the articles [here](https://aclanthology.org/W16-4709/) and [here](https://arxiv.org/pdf/1804.05294.pdf) for an introduction).
 
 The name refers to sketch grammars, which are series of generalized corpus queries in Sketch Engine that are useful for studying terminology and other lexical items (see their [bibliography](https://www.sketchengine.eu/bibliography-of-sketch-engine/)).
 
