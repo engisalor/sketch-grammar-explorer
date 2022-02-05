@@ -187,7 +187,7 @@ class Call:
         )
 
         if self.dry_run:
-            print("... DRY-RUN\n{}".format(self))
+            print("... DRY-RUN (see details with __repr__ on a Call instance")
         else:
             if self.clear and self.dest_path.exists():
                 print("... clearing", self.dest_path)
