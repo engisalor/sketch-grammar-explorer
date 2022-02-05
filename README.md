@@ -22,9 +22,15 @@ Built with Python 3.10 and tested on 3.7.
 
 **Installation**
 
-- get SGE
-  - download the [latest release](https://github.com/engisalor/sketch-grammar-explorer/releases) or clone this repo
 - get a [Sketch Engine API key](https://www.sketchengine.eu/documentation/api-documentation/)
+
+Install directly from GitHub:
+
+- `pip install git+https://github.com/engisalor/sketch-grammar-explorer.git` 
+
+Or manually:
+
+- clone this repo or download the [latest release](https://github.com/engisalor/sketch-grammar-explorer/releases) 
 - install dependencies:
   - current versions `pip install -r requirements.txt`
   - required `pip install numpy pandas requests pyyaml`
@@ -32,11 +38,7 @@ Built with Python 3.10 and tested on 3.7.
 
 **API credentials**
 
-Sketch Engine credentials can be supplied in plaintext or using the `keyring` package. 
-
-***Manually***
-
-Either add your username and API key to `data/config.yml`, or only add your username and execute the `keyring` command below to have your OS manage your key. `data/.config.yml` can be used instead to keep credentials untracked by git.
+Run `config.credentials()` to automate the creation of a `config.yml` file in the project directory. Follow the prompts to store an API key in plaintext or with the `keyring` package. If necessary, the keyring entry can be modified directly as shown below.
 
 ```python
 import keyring
@@ -47,10 +49,6 @@ keyring.set_password("Sketch Grammar Explorer","<username>", "<api_key>")
 # to delete credentials later
 keyring.delete_password("Sketch Grammar Explorer", "<username>")
 ```
-
-***Automated***
-
-Optionally, run `config.credentials()` to automate the process.
 
 ## Making API calls
 

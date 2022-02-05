@@ -8,6 +8,9 @@
 *.yaml
 *.yml
 
+build/
+*.egg-info
+
 !.gitignore
 !requirements.txt
 !config.yml
