@@ -98,10 +98,11 @@ SGE can save data in all formats provided by Sketch Engine, although only JSON i
 **Compatible call types and file formats**
 | call type | csv | txt | json | xlsx | xml |
 |-----------|-----|-----|------|------|-----|
-| collx     | -   | -   | yes  | -    | -   |
-| freqs     | yes | yes | yes  | yes  | yes |
-| wsketch   | -   | -   | yes  | yes  | -   |
-| view      | -   | -   | yes  | -    | -   |
+| collx     |     |     | +    |      |     |
+| freqs     | +   | +   | +    | +    | +   |
+| wordlist  | +   |     | +    | +    | +   |
+| wsketch   |     |     | +    | +    |     |
+| view      |     |     | +    |      |     |
 
 ### Input files
 

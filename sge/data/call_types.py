@@ -4,7 +4,7 @@ call_types = {
     "wsketch": ["json", "xlsx"],
     "view": ["json"],
     "corp_info": [],
-    "wordlist": [],
+    "wordlist": ["csv", "json", "xlsx", "xml"],
     "attr_vals": [],
     "thes": [],
     "wsdiff": [],

@@ -58,4 +58,14 @@ json_tests = {
             },
         },
     },
+    "wordlist": {
+        "type": "wordlist",
+        "call0": {
+            "call": {
+            "corpname": "preloaded/ecolexicon_en",
+            "wltype": "simple",
+            "wlattr": "lemma"
+            },
+        },
+    },
 }
