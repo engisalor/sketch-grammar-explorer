@@ -215,6 +215,8 @@ class Call:
                 **v["call"],
             }
             self.response = requests.get(self.url_base, params=parameters)
+            if not self.response:
+                print(f"... bad response: {self.response}")
 
     def _check_response(self):
         """Print API error details when available."""
