@@ -72,7 +72,7 @@ class Call:
 
         app = "Sketch Grammar Explorer"
         credentials = None
-        path = pathlib.Path("sge/data")
+        path = pathlib.Path("")
         files = list(path.glob("*config.yml"))
         hidden_config = ".config.yml" in [x.name for x in files]
 

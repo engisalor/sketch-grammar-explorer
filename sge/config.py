@@ -11,7 +11,7 @@ def credentials(hidden_config=False):
     `hidden_config=True` uses a config file untracked by git (".config.yml").
     """
 
-    path = pathlib.Path("sge/data")
+    path = pathlib.Path("")
 
     if hidden_config:
         creds_file = path / ".config.yml"

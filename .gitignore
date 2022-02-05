@@ -10,7 +10,7 @@
 
 !.gitignore
 !requirements.txt
+!config.yml
 
 !sge/data/**
-sge/data/.config.yml
 sge/data/__pycache__/
