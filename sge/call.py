@@ -134,7 +134,7 @@ class Call:
                 hash = dt["request_sge"]["details"]["hash"]
             elif file.suffix in [".csv", ".txt", ".xml"]:
                 with open(file, "r") as f:
-                    header = f.read(1000)
+                    header = f.read()
                 hash = re.search("([a-z0-9]{32})", header)[0]
             elif file.suffix == ".xlsx":
                 df = pd.read_excel(file, header=None)
