@@ -36,7 +36,7 @@ Sketch Engine credentials can be supplied in plaintext or using the `keyring` pa
 
 ***Manually***
 
-Either add your username and API key to `data/config.yml`, or just add your username and execute the `keyring` command below to have your OS manage your key. `data/.config.yml` can be used instead to keep credentials untracked by git.
+Either add your username and API key to `data/config.yml`, or only add your username and execute the `keyring` command below to have your OS manage your key. `data/.config.yml` can be used instead to keep credentials untracked by git.
 
 ```python
 import keyring
@@ -54,7 +54,7 @@ Optionally, run `config.credentials()` to automate the process.
 
 ## Making API calls
 
-To get started using example calls, run `config.examples()` to generate basic input files in `calls/`. Then run `Call()` with a path to an input file. Retrieved API data is stored in a folder of the same name.
+To get started using example calls, run `config.examples()` to generate basic input files in the current working directory. Then run `Call()` with a path to an input file. Retrieved API data is stored in a folder of the same name.
 
 ``` python
 import sge
@@ -115,7 +115,7 @@ One or more calls can be executed by creating an input file readable by SGE that
 - each call has a dictionary of API parameters in `"call"` 
 - calls can optionally contain metadata in other key:value pairs
   
-The call below queries the lemma "rock" in the [EcoLexicon English Corpus](https://www.sketchengine.eu/ecolexicon-corpus/) and retrieves frequencies by domain text type.
+The call below queries the lemma "rock" in the [EcoLexicon English Corpus](https://www.sketchengine.eu/ecolexicon-corpus/) and retrieves frequencies by several text types.
 
 **YAML** 
 
@@ -217,7 +217,7 @@ To learn more about the API, it's helpful to inspect network activity while maki
 
 **Double-checking accuracy**
 
-Before relying heavily on the API, it's a good idea to practice trying the same queries in a web browser and via API to make sure the results are identical, especially for an important data sample.
+Before relying heavily on the API, it's a good idea to practice trying the same queries both in a web browser and via API to make sure the results are identical.
 
 ## Tools
 
@@ -226,8 +226,7 @@ SGE will offer more features to automate repetitive tasks and procedures for cer
 **`convert_grammar()`** converts a sketch grammar into SGE-formatted queries (requires modifications depending on input)
 
 **`Parse()`** parses and returns a dict of API calls or saves to a JSON/YAML file.
-- `dest="<filepath>"` saves object to file in given format 
-  - (can be used to convert between file formats)
+- `dest="<filepath>"` saves an object to file (can be used to convert between file formats)
 
 ## About
 
