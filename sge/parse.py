@@ -82,7 +82,7 @@ class Parse:
         else:
             self.output_file = None
 
-        self.call_types = [k for k in sge.data.call_types.keys()]
+        self.call_types = [k for k in sge.call_types.keys()]
 
         # Get input
         if isinstance(input, str):

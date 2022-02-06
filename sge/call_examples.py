@@ -1,4 +1,4 @@
-json_tests = {
+call_examples = {
     "collx": {
         "type": "collx",
         "call0": {

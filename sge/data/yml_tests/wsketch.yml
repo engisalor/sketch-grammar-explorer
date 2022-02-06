@@ -1,8 +1,0 @@
-type: wsketch
-call0:
-  metadata:
-    category1: tag1
-  call:
-    lemma: climate change
-    lpos: -n
-    corpname: preloaded/ecolexicon_en

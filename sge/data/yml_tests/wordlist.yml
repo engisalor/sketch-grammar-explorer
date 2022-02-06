@@ -1,6 +1,0 @@
-type: wordlist
-wordlist:
-  call:
-    corpname: preloaded/ecolexicon_en
-    wltype: simple
-    wlattr: lemma

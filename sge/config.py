@@ -87,7 +87,7 @@ def examples(dir="calls", format=".yml", overwrite=False):
     path = pathlib.Path(dir)
     print(f'Saving example calls to "{dir}/"')
 
-    for k, v in sge.data.json_tests.items():
+    for k, v in sge.call_examples.items():
         file = path / pathlib.Path(k).with_suffix(format)
 
         yn = "y"

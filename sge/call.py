@@ -402,7 +402,7 @@ class Call:
     ):
 
         # Settings
-        self.accepted_formats = sge.data.call_types
+        self.accepted_formats = sge.call_types
         self.dry_run = dry_run
         self.skip = skip
         self.clear = clear
