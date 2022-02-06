@@ -24,14 +24,13 @@ Built with Python 3.10 and tested on 3.7.
 
 - get a [Sketch Engine API key](https://www.sketchengine.eu/documentation/api-documentation/)
 
-Install directly from GitHub:
+Install/update from GitHub with pip:
 
-- `pip install git+https://github.com/engisalor/sketch-grammar-explorer.git` 
+- `pip install --upgrade git+https://github.com/engisalor/sketch-grammar-explorer.git` 
 
 Or manually:
 
-- clone this repo or download the [latest release](https://github.com/engisalor/sketch-grammar-explorer/releases) 
-- install dependencies:
+- clone this repo and install dependencies:
   - current versions `pip install -r requirements.txt`
   - required `pip install numpy pandas requests pyyaml`
   - optional `pip install keyring openpyxl lxml`
