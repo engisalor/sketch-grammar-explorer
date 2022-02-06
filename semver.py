@@ -247,7 +247,7 @@ class New_semver:
 
         # Commit version/date updates
         if do_commit == "y":
-            subprocess.call(["git", "add", "CITATION.cff"])
+            subprocess.call(["git", "add", "CITATION.cff", "setup.cfg"])
             subprocess.call(["git", "commit", "-m", "docs: update"])
 
         do_tag = input("\nCreate new release tag? y/n")
