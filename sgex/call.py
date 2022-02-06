@@ -8,7 +8,7 @@ from pprint import pprint
 import re
 import yaml
 
-import sge
+import sgex
 
 
 class Call:
@@ -402,7 +402,7 @@ class Call:
     ):
 
         # Settings
-        self.accepted_formats = sge.call_types
+        self.accepted_formats = sgex.call_types
         self.dry_run = dry_run
         self.skip = skip
         self.clear = clear
@@ -442,7 +442,7 @@ class Call:
             suffixes = [".csv", ".json", ".txt", ".xlsx", ".xml"]
             self.trash = [file for file in files if file.suffix in suffixes]
 
-        self.calls = sge.Parse(input).calls
+        self.calls = sgex.Parse(input).calls
         if not self.calls:
             pass
         else:

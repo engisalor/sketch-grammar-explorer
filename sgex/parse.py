@@ -2,7 +2,7 @@ import pathlib
 import json
 import yaml
 
-import sge
+import sgex
 
 
 class Parse:
@@ -82,7 +82,7 @@ class Parse:
         else:
             self.output_file = None
 
-        self.call_types = [k for k in sge.call_types.keys()]
+        self.call_types = [k for k in sgex.call_types.keys()]
 
         # Get input
         if isinstance(input, str):

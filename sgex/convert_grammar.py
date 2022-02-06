@@ -1,7 +1,7 @@
 import re
 import pathlib
 
-import sge
+import sgex
 
 
 def convert_grammar(input, dest):
@@ -79,4 +79,4 @@ def convert_grammar(input, dest):
 
     grammar["0"]["call"] = call0
 
-    sge.Parse(grammar, dest=dest)
+    sgex.Parse(grammar, dest=dest)

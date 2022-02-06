@@ -24,13 +24,8 @@ Built with Python 3.10 and tested on 3.7.
 
 - get a [Sketch Engine API key](https://www.sketchengine.eu/documentation/api-documentation/)
 
-Install/update from GitHub with pip:
-
-- `pip install --upgrade git+https://github.com/engisalor/sketch-grammar-explorer.git` 
-
-Or manually:
-
-- clone this repo and install dependencies:
+- run `pip install sgex` 
+- or clone this repo and install dependencies:
   - current versions `pip install -r requirements.txt`
   - required `pip install numpy pandas requests pyyaml`
   - optional `pip install keyring openpyxl lxml`
@@ -54,10 +49,10 @@ keyring.delete_password("Sketch Grammar Explorer", "<username>")
 To get started using example calls, run `config.examples()` to generate basic input files in the current working directory. Then run `Call()` with a path to an input file. Retrieved API data is stored in a folder of the same name.
 
 ``` python
-import sge
+import sgex
 
-sge.config.examples()
-job = sge.Call("calls/freqs.yml")
+sgex.config.examples()
+job = sgex.Call("calls/freqs.yml")
 ```
 
 **Options**

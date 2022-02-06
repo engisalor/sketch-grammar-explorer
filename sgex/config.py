@@ -2,7 +2,7 @@ import getpass
 import pathlib
 import yaml
 
-import sge
+import sgex
 
 
 def credentials(hidden_config=False):
@@ -87,7 +87,7 @@ def examples(dir="calls", format=".yml", overwrite=False):
     path = pathlib.Path(dir)
     print(f'Saving example calls to "{dir}/"')
 
-    for k, v in sge.call_examples.items():
+    for k, v in sgex.call_examples.items():
         file = path / pathlib.Path(k).with_suffix(format)
 
         yn = "y"
@@ -97,7 +97,7 @@ def examples(dir="calls", format=".yml", overwrite=False):
 
         if yn == "y":
             path.mkdir(parents=True, exist_ok=True)
-            sge.Parse(v, dest=file)
+            sgex.Parse(v, dest=file)
         else:
             pass
 
