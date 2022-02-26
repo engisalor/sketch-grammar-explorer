@@ -40,7 +40,11 @@ class Call:
 
     `any_format` allow any combination of call types and formats (`False`)
 
-    `asyn` retrieve rough calculations, `"0"` (default) or `"1"`"""
+    `asyn` retrieve rough calculations, `"0"` (default) or `"1"`
+
+    `server` specify a server ("https://api.sketchengine.eu/bonito/run.cgi")
+
+    `wait` enable waiting between calls (True)"""
 
     def _enforce_formats(self):
         """Block known incompatible format and call type combinations."""
@@ -70,7 +74,6 @@ class Call:
         Otherwise defaults to "config.yml"
         """
 
-        app = "Sketch Grammar Explorer"
         credentials = None
         path = pathlib.Path("")
         files = list(path.glob("*config.yml"))
@@ -85,13 +88,17 @@ class Call:
         with open(file, "r") as stream:
             credentials = yaml.safe_load(stream)
 
-        credentials = {k.strip(): v.strip() for k, v in credentials.items()}
+        credentials = {
+            k.strip(): v.strip() for k, v in credentials[self.server].items()
+        }
 
         # Try keyring
         if not credentials["api_key"]:
             import keyring
 
-            credentials["api_key"] = keyring.get_password(app, credentials["username"])
+            credentials["api_key"] = keyring.get_password(
+                self.server, credentials["username"]
+            )
         if not credentials["api_key"] or not credentials["username"]:
             raise ValueError("No API key/username found")
 
@@ -168,7 +175,7 @@ class Call:
         """Set wait time for SkE API usage."""
 
         n = len(self.calls)
-        if n == 1:
+        if n == 1 or not self.wait_enabled:
             wait = 0
         elif 2 <= n < 100:
             wait = 2
@@ -182,12 +189,8 @@ class Call:
     def _pre_calls(self):
         """Prepare for making calls w/ current parameters."""
 
-        self.url_base = "".join(
-            ["https://api.sketchengine.eu/bonito/run.cgi/", self.call_type]
-        )
-
         if self.dry_run:
-            print("... DRY-RUN (see details with __repr__ on a Call instance")
+            pass
         else:
             if self.clear and self.dest_path.exists():
                 print("... clearing", self.dest_path)
@@ -368,10 +371,12 @@ class Call:
             skipped = []
 
         dt = {
+            "server     ": self.server,
             "input      ": self.input,
             "destination": str(self.dest_path),
             "format     ": self.global_parameters["format"],
             "calls #    ": len(self.calls),
+            "use wait   ": self.wait_enabled,
             "wait       ": self.wait,
             "version    ": self.version,
             "timestamp  ": self.timestamp,
@@ -399,6 +404,8 @@ class Call:
         asyn="0",
         any_format=False,
         dest=None,
+        server="https://api.sketchengine.eu/bonito/run.cgi",
+        wait=True,
     ):
 
         # Settings
@@ -408,6 +415,8 @@ class Call:
         self.clear = clear
         self.global_parameters = {"asyn": asyn, "format": format}
         self.format_accepted = True
+        self.server = server.strip("/")
+        self.wait_enabled = wait
         self._version()
         if timestamp:
             self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -433,8 +442,10 @@ class Call:
         cwd = pathlib.Path.cwd()
         abs_path = cwd / self.dest_path
         if not cwd in abs_path.parents:
-            raise ValueError(f"Invalid destination path: \"{self.dest_path}\": paths must be relative to current working directory")
-        
+            raise ValueError(
+                f'Invalid destination path: "{self.dest_path}": paths must be relative to current working directory'
+            )
+
         # Execute
         self.trash = []
         if self.clear:
@@ -448,6 +459,7 @@ class Call:
         else:
             self.call_type = "".join([self.calls["type"], "?"])
             del self.calls["type"]
+            self.url_base = "/".join([self.server, self.call_type])
 
             if not any_format:
                 self._enforce_formats()

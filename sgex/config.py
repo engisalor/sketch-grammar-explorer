@@ -5,29 +5,55 @@ import yaml
 import sgex
 
 
-def credentials(hidden_config=False):
+def credentials():
     """Manage Sketch Engine API credentials.
 
-    `hidden_config=True` uses a config file untracked by git (".config.yml").
-    """
+    Options:
+
+    - choose whether to use a hidden config file
+    - add credentials for multiple servers
+    - delete credentials in keyring
+    - store keys in plaintext or with keyring
+
+    To delete credentials from a config file, manually open it and edit contents."""
 
     path = pathlib.Path("")
+    server = "https://api.sketchengine.eu/bonito/run.cgi"
+    credentials = {}
 
-    if hidden_config:
+    hidden_config = input(
+        "\nWelcome to Sketch Grammar Explorer\nUse hidden config file? (y/N) "
+    )
+    if hidden_config.lower() == "y":
         creds_file = path / ".config.yml"
     else:
         creds_file = path / "config.yml"
 
-    app = "Sketch Grammar Explorer"
+    try:
+        with open(creds_file, "r") as stream:
+            credentials = yaml.safe_load(stream)
+        print(f'Loading "{creds_file}"')
+    except:
+        print(f'Making new "{creds_file}"')
 
-    def _save_creds(user, key):
+    def _set_server():
+        new_server = input(
+            f"Server:\n- leave empty for default (https://api.sketchengine.eu/bonito/run.cgi)\n- trailing slashes are removed\n"
+        )
+        if not new_server:
+            new_server = server
+        new_server = new_server.strip("/")
+
+        return new_server
+
+    def _save_creds(server, user, key):
         yn = "y"
         if pathlib.Path(creds_file).exists():
             yn = input("\nOverwrite {}? (y/N) ".format(creds_file))
         if yn.lower() == "y":
             with open(creds_file, "w", encoding="utf-8") as f:
-                dt = {"username": user, "api_key": key}
-                yaml.dump(dt, f, allow_unicode=True, sort_keys=False, indent=2)
+                credentials[server] = {"username": user, "api_key": key}
+                yaml.dump(credentials, f, allow_unicode=True, sort_keys=False, indent=2)
             print("Done")
         else:
             print("Operation cancelled")
@@ -36,20 +62,23 @@ def credentials(hidden_config=False):
         import keyring
 
         print("\nAdd credentials to keyring:")
+
+        new_server = _set_server()
         user = input("User: ")
         key = getpass.getpass()
-        keyring.set_password("Sketch Grammar Explorer", user, key)
-        _save_creds(user, "")
-        print("Service: {}".format(app))
-        print("User: {}".format(app))
+        keyring.set_password(new_server, user, key)
+        _save_creds(new_server, user, "")
+        print("Server: {}".format(new_server))
+        print("User: {}".format(new_server))
 
     def _del_keyring():
         import keyring
 
         print("Remove credentials from keyring:")
+        new_server = _set_server()
         user = input("User: ")
-        keyring.delete_password(app, user)
-        check = keyring.get_password(app, user)
+        keyring.delete_password(new_server, user)
+        check = keyring.get_password(new_server, user)
         if not check:
             print("Credentials removed")
         else:
@@ -57,13 +86,12 @@ def credentials(hidden_config=False):
 
     def _plaintext():
         print("\nStore username AND key to {}:".format(creds_file))
+        new_server = _set_server()
         user = input("User: ")
         key = getpass.getpass()
-        _save_creds(user, key)
+        _save_creds(new_server, user, key)
 
     # Execute
-    print("Welcome to", app)
-
     response = input(
         "Select an option below:\n1 - store API key w/ keyring\n2 - delete credentials w/ keyring\n3 - store username AND key in plaintext\n"
     )

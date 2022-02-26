@@ -1,2 +1,3 @@
-username: ""
-api_key: ""
+https://api.sketchengine.eu/bonito/run.cgi:
+  username: ''
+  api_key: ''
