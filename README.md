@@ -14,7 +14,7 @@
 
 ## Introduction
 
-Sketch Grammar Explorer (SGE) is a Python package for using the [Sketch Engine API](https://www.sketchengine.eu/). This includes (or will include) modules for related data analysis tasks: preparing sets of API calls, munging data, generating spreadsheets, and visualization. The goal is to develop a flexible scaffold for any kind of programmatic work with Sketch Engine.
+Sketch Grammar Explorer (SGE) is a Python package for using the [Sketch Engine](https://www.sketchengine.eu/) API. The goal is to develop a flexible scaffold for any kind of programmatic work with Sketch Engine and [NoSketch Engine](https://nlp.fi.muni.cz/trac/noske).
 
 ## Setup
 
@@ -22,31 +22,37 @@ Built with Python 3.10 and tested on 3.7.
 
 **Installation**
 
-- get a [Sketch Engine API key](https://www.sketchengine.eu/documentation/api-documentation/)
+- get a [Sketch Engine API key](https://www.sketchengine.eu/documentation/api-documentation/) (if using their server)
 
-- run `pip install sgex` 
-- or clone this repo and install dependencies:
+Install with pip:
+
+- `pip install sgex` 
+
+Or manual install:
+
+- clone this repo
+- install dependencies:
   - current versions `pip install -r requirements.txt`
   - required `pip install numpy pandas requests pyyaml`
   - optional `pip install keyring openpyxl lxml`
 
 **API credentials**
 
-Run `config.credentials()` to automate the creation of a `config.yml` file in the project directory. Follow the prompts to store an API key in plaintext or with the `keyring` package. If necessary, the keyring entry can be modified directly as shown below.
+Run `sgex.config.credentials()` to automate the creation of a `config.yml` file in the project directory. Follow the prompts to store an API key in plaintext or with the `keyring` package. If a server doesn't require credentials, use any non-empty string, e.g., `'null'` for both `username` and `api_key`. If necessary, a keyring entry can be modified directly as shown below.
 
 ```python
 import keyring
 
 # to add credentials
-keyring.set_password("Sketch Grammar Explorer","<username>", "<api_key>")
+keyring.set_password("<server>","<username>", "<api_key>")
 
 # to delete credentials later
-keyring.delete_password("Sketch Grammar Explorer", "<username>")
+keyring.delete_password("<server>", "<username>")
 ```
 
 ## Making API calls
 
-To get started using example calls, run `config.examples()` to generate basic input files in the current working directory. Then run `Call()` with a path to an input file. Retrieved API data is stored in a folder of the same name.
+To get started using example calls, run `sgex.config.examples()` to generate basic input files in the current working directory. Then run `sgex.Call()` with a path to an input file. Retrieved API data is stored in a folder of the same name.
 
 ``` python
 import sgex
@@ -83,11 +89,16 @@ job = sgex.Call("calls/freqs.yml")
 
 **`asyn`** retrieve rough calculations, `"0"` (default) or `"1"`
 
+**`server`** specify what server to call (`"https://api.sketchengine.eu/bonito/run.cgi"`)
+
+**`wait`** enable waiting between calls (`True`)
+
 ### Output formats
 
 SGE can save data in all formats provided by Sketch Engine, although only JSON is compatible with all call types. Known incompatibilities are blocked unless `any_format=True`.
 
 **Compatible call types and file formats**
+
 | call type | csv | txt | json | xlsx | xml |
 |-----------|-----|-----|------|------|-----|
 | collx     |     |     | +    |      |     |
@@ -111,7 +122,7 @@ The call below queries the lemma "rock" in the [EcoLexicon English Corpus](https
 
 **YAML** 
 
-YAML files (`.yml` or `.yaml`) allow queries to be copied directly into Sketch Engine's browser application.
+Queries can be copied directly from YAML files into Sketch Engine's browser application without adding/removing escape characters.
 
 ```yml
 type: freqs
@@ -201,7 +212,7 @@ Each call type, `freqs` (frequencies), `view` (concordance), `wsketch` (word ske
 
 **Too many requests**
 
-Sketch Engine monitors API activity and will block excessive calls or other activity outside of their [Fair Use Policy](https://www.sketchengine.eu/fair-use-policy/). While learning the API, test calls selectively, slowly, and avoiding repeated identical calls.
+Sketch Engine monitors API activity and will block excessive calls or other activity outside of their [Fair Use Policy](https://www.sketchengine.eu/fair-use-policy/). While learning the API, test calls selectively, slowly, and avoiding repeated identical calls. Keep `wait=True` unless using a local server.
 
 **API usage**
 
