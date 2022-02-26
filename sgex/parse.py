@@ -28,6 +28,7 @@ class Parse:
 
     def _verify(self):
         self.verified = set()
+        print(f"... verifying calls")
         if not self.calls:
             self.verified.add(False)
         elif not "type" in self.calls.keys():

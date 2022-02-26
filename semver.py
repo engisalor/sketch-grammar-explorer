@@ -12,7 +12,7 @@ class New_semver:
     Breaks if no tags or new commits.
 
     Requires user actions:
-    * merge changes to main first 
+    * merge changes to main first
     * revision of generated .release-notes.txt
     * approval before commiting version/date updates
     * approval before making release tag
@@ -208,9 +208,7 @@ class New_semver:
     def make_release(self):
 
         # Ask for input before making release
-        _ = input(
-            "\nRevise \".release-notes.txt\" & press any key to continue"
-        )
+        _ = input('\nRevise ".release-notes.txt" & press any key to continue')
 
         # Get approved release version
         file = ".release-notes.txt"
@@ -272,5 +270,6 @@ class New_semver:
         self.save_release_notes()
         self.make_release()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     New_semver()
