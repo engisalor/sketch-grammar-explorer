@@ -15,7 +15,7 @@ def credentials():
     - delete credentials in keyring
     - store keys in plaintext or with keyring
 
-    To delete credentials from a config file, manually open it and edit contents."""
+    Directly modify a config file for other tasks or as an alternative to this method."""
 
     path = pathlib.Path("")
     server = "https://api.sketchengine.eu/bonito/run.cgi"
@@ -109,7 +109,7 @@ def credentials():
 def examples(dir="calls", format=".yml", overwrite=False):
     """Generate example input files to `dir` with format `.yml` or `.json`).
 
-    `overwrite=True` skips warning for existing files
+    `overwrite=True` skips warning for replacing existing files
     """
 
     path = pathlib.Path(dir)

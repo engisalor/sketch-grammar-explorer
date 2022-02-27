@@ -25,7 +25,7 @@ class Call:
       - `job.print_calls()` prints 10 call details at a time
       - `job.calls` accesses all call details
 
-    `skip` skip calls if identical data already exists in the destination folder (`True`)
+    `skip` skip calls when an identical calls already exist in the destination folder (`True`)
       - only compares files of the same format
       - note: close data files to ensure read access
 
@@ -34,17 +34,17 @@ class Call:
     `timestamp` include a timestamp (`False`)
 
     `format` specify output format (`"json"`)
-
-    - `"csv"`, `"txt"`, `"json"`, `"xlsx"`, or `"xml"` (see compatibilities table)
-    - `"json"` offers more detailed metadata and API error messages
+      - `"csv"`, `"txt"`, `"json"`, `"xlsx"`, or `"xml"` (see compatibilities table)
+      - `"json"` offers more detailed metadata and API error messages
 
     `any_format` allow any combination of call types and formats (`False`)
 
     `asyn` retrieve rough calculations, `"0"` (default) or `"1"`
 
-    `server` specify a server ("https://api.sketchengine.eu/bonito/run.cgi")
+    `server` specify what server to call (`"https://api.sketchengine.eu/bonito/run.cgi"`)
+      - be sure to omit trailing forward slashes
 
-    `wait` enable waiting between calls (True)"""
+    `wait` enable waiting between calls (`True`)"""
 
     def _enforce_formats(self):
         """Block known incompatible format and call type combinations."""

@@ -26,7 +26,7 @@ Built with Python 3.10 and tested on 3.7.
 
 Install with pip:
 
-- `pip install sgex` 
+- `pip install sgex`
 
 Or manual install:
 
@@ -67,12 +67,12 @@ job = sgex.Call("calls/freqs.yml")
   - if a dict, requires `dest="<destination folder>"`
 
 **`dry_run`** make a `Call` object that can be inspected prior to executing requests (`False`)
-  - with `job` as an instance of `Call`: 
+  - with `job` as an instance of `Call`:
   - `job` prints a summary
   - `job.print_calls()` prints 10 call details at a time
   - `job.calls` accesses all call details
 
-**`skip`** skip calls if identical data already exists in the destination folder (`True`)
+**`skip`** skip calls when an identical calls already exist in the destination folder (`True`)
   - only compares files of the same format
   - note: close data files to ensure read access
 
@@ -81,15 +81,15 @@ job = sgex.Call("calls/freqs.yml")
 **`timestamp`** include a timestamp (`False`)
 
 **`format`** specify output format (`"json"`)
-
-- `"csv"`, `"txt"`, `"json"`, `"xlsx"`, or `"xml"` (see compatibilities table)
-- `"json"` offers more detailed metadata and API error messages
+  - `"csv"`, `"txt"`, `"json"`, `"xlsx"`, or `"xml"` (see compatibilities table)
+  - `"json"` offers more detailed metadata and API error messages
 
 **`any_format`** allow any combination of call types and formats (`False`)
 
 **`asyn`** retrieve rough calculations, `"0"` (default) or `"1"`
 
 **`server`** specify what server to call (`"https://api.sketchengine.eu/bonito/run.cgi"`)
+  - be sure to omit trailing forward slashes
 
 **`wait`** enable waiting between calls (`True`)
 
@@ -111,16 +111,16 @@ SGE can save data in all formats provided by Sketch Engine, although only JSON i
 
 **SGE call structure**
 
-One or more calls can be executed by creating an input file readable by SGE that contains API calls in the form dictionaries of parameters. 
+One or more calls can be executed by creating an input file readable by SGE that contains API calls in the form dictionaries of parameters.
 
 - input files require a `"type"` key indicating what kind of call it is (`"freqs"`)
 - the key of each call serves as a call-id (`"call0"`)
-- each call has a dictionary of API parameters in `"call"` 
+- each call has a dictionary of API parameters in `"call"`
 - calls can optionally contain metadata in other key:value pairs
-  
+
 The call below queries the lemma "rock" in the [EcoLexicon English Corpus](https://www.sketchengine.eu/ecolexicon-corpus/) and retrieves frequencies by several text types.
 
-**YAML** 
+**YAML**
 
 Queries can be copied directly from YAML files into Sketch Engine's browser application without adding/removing escape characters.
 
@@ -140,7 +140,7 @@ call0:
     - doc.editor 0
 ```
 
-**JSON** 
+**JSON**
 
 JSON requires consistent usage of double quotes and escape characters:
 
@@ -162,7 +162,7 @@ JSON requires consistent usage of double quotes and escape characters:
       "fcrit": [
         "doc.domains 0",
         "doc.genre 0",
-        "doc.editor 0"]}}} 
+        "doc.editor 0"]}}}
 ```
 
 ### Features
@@ -204,7 +204,7 @@ Repeats are not detected across input files. Queries from `calls1.yml` and `call
 
 **Modifying saved data**
 
-SGE doesn't track changes you make to downloaded data and will overwrite files if `skip=False` or `clear=True`. Be sure to use separate destination folders for different samples or copy samples to another location to prevent data loss. 
+SGE doesn't track changes to downloaded data and will overwrite files if `skip=False` or `clear=True`. Be sure to separate/backup data sets to prevent data loss.
 
 **Working with different call types**
 
@@ -212,7 +212,7 @@ Each call type, `freqs` (frequencies), `view` (concordance), `wsketch` (word ske
 
 **Too many requests**
 
-Sketch Engine monitors API activity and will block excessive calls or other activity outside of their [Fair Use Policy](https://www.sketchengine.eu/fair-use-policy/). While learning the API, test calls selectively, slowly, and avoiding repeated identical calls. Keep `wait=True` unless using a local server.
+Sketch Engine monitors API activity and will block excessive calls or other activity outside of their [Fair Use Policy](https://www.sketchengine.eu/fair-use-policy/). While learning the API, test calls selectively, slowly, and avoid repeated identical calls. Keep `wait=True` unless using a local server.
 
 **API usage**
 
@@ -228,7 +228,7 @@ SGE will offer more features to automate repetitive tasks and procedures for cer
 
 **`convert_grammar()`** converts a sketch grammar into SGE-formatted queries (requires modifications depending on input)
 
-**`Parse()`** parses and returns a dict of API calls or saves to a JSON/YAML file.
+**`Parse()`** parses and returns a dict of API calls or saves to a JSON/YAML file
 - `dest="<filepath>"` saves an object to file (can be used to convert between file formats)
 
 ## About
