@@ -6,7 +6,7 @@ import sgex
 
 def convert_grammar(input, dest):
     """
-    Converts a sketch grammar into a list of SGE-formatted queries.
+    Converts a sketch grammar into a list of SGEX-formatted queries.
 
     Currently designed for the EcoLexicon Semantic Sketch Grammar - requires modification for other inputs.
 

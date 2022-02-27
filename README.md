@@ -14,7 +14,7 @@
 
 ## Introduction
 
-Sketch Grammar Explorer (SGE) is a Python package for using the [Sketch Engine](https://www.sketchengine.eu/) API. The goal is to develop a flexible scaffold for any kind of programmatic work with Sketch Engine and [NoSketch Engine](https://nlp.fi.muni.cz/trac/noske).
+Sketch Grammar Explorer (SGEX) is a Python package for using the [Sketch Engine](https://www.sketchengine.eu/) API. The goal is to develop a flexible scaffold for any kind of programmatic work with Sketch Engine and [NoSketch Engine](https://nlp.fi.muni.cz/trac/noske).
 
 ## Setup
 
@@ -95,7 +95,7 @@ job = sgex.Call("calls/freqs.yml")
 
 ### Output formats
 
-SGE can save data in all formats provided by Sketch Engine, although only JSON is compatible with all call types. Known incompatibilities are blocked unless `any_format=True`.
+SGEX can save data in all formats provided by Sketch Engine, although only JSON is compatible with all call types. Known incompatibilities are blocked unless `any_format=True`.
 
 **Compatible call types and file formats**
 
@@ -109,9 +109,9 @@ SGE can save data in all formats provided by Sketch Engine, although only JSON i
 
 ### Input files
 
-**SGE call structure**
+**SGEX call structure**
 
-One or more calls can be executed by creating an input file readable by SGE that contains API calls in the form dictionaries of parameters.
+One or more calls can be executed by creating an input file readable by SGEX that contains API calls in the form dictionaries of parameters.
 
 - input files require a `"type"` key indicating what kind of call it is (`"freqs"`)
 - the key of each call serves as a call-id (`"call0"`)
@@ -204,7 +204,7 @@ Repeats are not detected across input files. Queries from `calls1.yml` and `call
 
 **Modifying saved data**
 
-SGE doesn't track changes to downloaded data and will overwrite files if `skip=False` or `clear=True`. Be sure to separate/backup data sets to prevent data loss.
+SGEX doesn't track changes to downloaded data and will overwrite files if `skip=False` or `clear=True`. Be sure to separate/backup data sets to prevent data loss.
 
 **Working with different call types**
 
@@ -216,7 +216,7 @@ Sketch Engine monitors API activity and will block excessive calls or other acti
 
 **API usage**
 
-To learn more about the API, it's helpful to inspect network activity while making queries in Sketch Engine with a web browser (using Developer Tools). Importantly, Sketch Engine has internal API methods that only function in web browsers, so merely copy-pasting certain methods into SGE won't necessarily work. Sketch Engine's API is also actively developed and syntax/functionalities may also change.
+To learn more about the API, it's helpful to inspect network activity while making queries in Sketch Engine with a web browser (using Developer Tools). Importantly, Sketch Engine has internal API methods that only function in web browsers, so merely copy-pasting certain methods into SGEX won't necessarily work. Sketch Engine's API is also actively developed and syntax/functionalities may also change.
 
 **Double-checking accuracy**
 
@@ -224,16 +224,16 @@ Before relying heavily on the API, it's a good idea to practice trying the same 
 
 ## Tools
 
-SGE will offer more features to automate repetitive tasks and procedures for certain methodologies. Feel free to suggest features.
+SGEX will offer more features to automate repetitive tasks and procedures for certain methodologies. Feel free to suggest features.
 
-**`convert_grammar()`** converts a sketch grammar into SGE-formatted queries (requires modifications depending on input)
+**`convert_grammar()`** converts a sketch grammar into SGEX-formatted queries (requires modifications depending on input)
 
 **`Parse()`** parses and returns a dict of API calls or saves to a JSON/YAML file
 - `dest="<filepath>"` saves an object to file (can be used to convert between file formats)
 
 ## About
 
-SGE has been developed to meet research needs at the University of Granada (Spain) Translation and Interpreting Department, in part to support the computational linguistics techniques that feed the [EcoLexicon](https://lexicon.ugr.es/) terminological knowledge base (see the articles [here](https://aclanthology.org/W16-4709/) and [here](https://arxiv.org/pdf/1804.05294.pdf) for an introduction).
+SGEX has been developed to meet research needs at the University of Granada (Spain) Translation and Interpreting Department, in part to support the computational linguistics techniques that feed the [EcoLexicon](https://lexicon.ugr.es/) terminological knowledge base (see the articles [here](https://aclanthology.org/W16-4709/) and [here](https://arxiv.org/pdf/1804.05294.pdf) for an introduction).
 
 The name refers to sketch grammars, which are series of generalized corpus queries in Sketch Engine that are useful for studying terminology and other lexical items (see their [bibliography](https://www.sketchengine.eu/bibliography-of-sketch-engine/)).
 
@@ -241,4 +241,4 @@ Questions, suggestions, and support are welcome.
 
 ## Citation
 
-If you use SGE, please [cite it](CITATION.cff).
+If you use SGEX, please [cite it](CITATION.cff).

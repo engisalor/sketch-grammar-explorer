@@ -105,7 +105,7 @@ class Call:
         return credentials
 
     def _version(self):
-        """Get SGE version from CITATION.cff."""
+        """Get SGEX version from CITATION.cff."""
         try:
             with open("CITATION.cff", "r") as f:
                 lines = f.readlines()
