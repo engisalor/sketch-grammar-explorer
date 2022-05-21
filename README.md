@@ -72,7 +72,7 @@ job = sgex.Call("calls/freqs.yml")
   - `job.print_calls()` prints 10 call details at a time
   - `job.calls` accesses all call details
 
-**`skip`** skip calls when an identical calls already exist in the destination folder (`True`)
+**`skip`** skip calls when identical calls already exist in the destination folder (`True`)
   - only compares files of the same format
   - note: close data files to ensure read access
 
