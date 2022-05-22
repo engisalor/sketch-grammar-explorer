@@ -51,7 +51,9 @@ keyring.delete_password("<server>", "<username>")
 
 ## Making API calls
 
-To get started using example calls, run `sgex.config.examples()` to generate basic input files in `calls/`. Then run `sgex.Call()` with a path to an input file. Retrieved API data is stored in sqlite databases in `data/`.
+To get started using example calls, run `sgex.config.examples()` to generate basic input files in `calls/`. Then run `sgex.Call()` with a path to an input file. Retrieved API data is stored in sqlite databases in `data/`. 
+
+API responses can also be saved directly to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `sgex.CallToFile()`. This method has fewer options, like skip detection, and always overwrites existing data (see its docstring).
 
 ``` python
 import sgex
