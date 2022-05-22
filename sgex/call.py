@@ -11,34 +11,35 @@ import sgex
 
 
 class Call:
-    """Executes Sketch Engine API calls, saves data to sqlite (sgex.db).
+    """Executes Sketch Engine API calls, saves data to sqlite database.
 
     Options
 
     `input` a dictionary or a path to a YAML/JSON file containing API calls
 
+    `db` define a database to use (`"sgex.db"`)
+
     `dry_run` make a `Call` object that can be inspected before executing requests (`False`)
-      - with `job` as an instance of `Call`:
-      - `job` prints a summary
-      - `job.calls` accesses all call details
+      - `object` prints a job summary
+      - `object.calls` accesses all call details
 
     `skip` skip calls when identical calls already exist in the destination folder (`True`)
       - based on a hash of unique call parameters
 
     `clear` remove existing data before running current calls (`False`)
 
-    `timestamp` include a timestamp (`False`)
+    `timestamp` include a timestamp (`True`)
 
-    `format` specify output format (`"json"`)
-      - `"json"` available for all call types, includes API error messages
-      - `"csv"` available for some call types
-
-    `asyn` retrieve rough calculations, `"0"` (default) or `"1"`
+    `keep` only save desired json items (`None` - saves everything)
+      - a str (if one item), otherwise a list/dict
 
     `server` specify what server to call (`"https://api.sketchengine.eu/bonito/run.cgi"`)
       - must omit trailing forward slashes
 
-    `wait` enable waiting between calls (`True`)"""
+    `wait` enable waiting between calls (`True`)
+
+    `asyn` retrieve rough calculations, `"0"` (default) or `"1"`"""
+
 
     def _credentials(self):
         """Gets SkE API credentials from keyring/file.
@@ -135,37 +136,36 @@ class Call:
         """Runs or skip an api call."""
 
         self.response = None
-        if v["skip"]:
-            print("... skipping", k)
-        else:
-            print("... calling", k)
+        if not v["skip"]:
+            t0 = time.perf_counter()
             parameters = {
                 **credentials,
                 **self.global_parameters,
                 **v["call"],
             }
             self.response = requests.get(self.url_base, params=parameters)
+            t1 = time.perf_counter()
+            print(f"... called {t1 - t0:0.2f} secs:", k)
             if not self.response:
                 print(f"... bad response: {self.response}")
-
-    def _check_response(self):
-        """Prints API error details when available."""
-
-        if self.global_parameters["format"] == "json":
-            if "error" in self.response.json():
-                print("... Error API", self.response.json()["error"])
 
     def _post_call(self, v, k):
         """Saves API response data to sqlite database."""
 
-        if self.global_parameters["format"] == "json":
-            data = json.dumps(self.response.json())
-        elif self.global_parameters["format"] == "csv":
-            data = self.response.text
-        else:
-            print("... Error: unknown format (must be 'json' or 'csv')")
+        # Error detection
+        error = None
+        if "error" in self.response.json():
+            print("    error API:", self.response.json()["error"])
+            error = self.response.json()["error"]
 
-        # Add/replace data
+        # Keep only desired data
+        if self.keeps:
+            kept = {k:v for k,v in self.response.json().items() if k in self.keeps}
+            data = json.dumps(kept)
+        else:
+            data = json.dumps(self.response.json())
+
+        # Add metadata
         meta = None
         if "meta" in v.keys():
             if isinstance(v["meta"], (dict, list, tuple)):
@@ -173,24 +173,24 @@ class Call:
             else:
                 meta = v["meta"]
 
+        # Write to db
         self.c.execute(
-            "INSERT OR REPLACE INTO calls VALUES (?,?,?,?,?,?,?,?)",
+            "INSERT OR REPLACE INTO calls VALUES (?,?,?,?,?,?,?,?,?)",
             (
                 self.input,
                 self.call_type[:-1],
                 k,
                 v["hash"],
+                self.timestamp,
                 json.dumps(v["call"], sort_keys=True),
                 meta,
-                self.global_parameters["format"],
+                error,
                 data,
             ),
             )
-
         self.conn.commit()
 
         # Wait
-        print("... waiting", self.wait)
         time.sleep(self.wait)
 
     def _make_calls(self, credentials):
@@ -202,6 +202,7 @@ class Call:
             if self.clear:
                 print("... clearing")
                 self.c.execute("DROP TABLE calls")
+                self._make_table()
                 self.conn.commit()
                 for x in self.calls.values():
                     x["skip"] = False
@@ -209,19 +210,35 @@ class Call:
             for k, v in self.calls.items():
                 self._do_call(v, k, credentials)
                 if self.response:
-                    self._check_response()
                     self._post_call(v, k)
+
+    def _make_table(self):
+        self.c.execute(
+            """CREATE TABLE IF NOT EXISTS calls (
+            input,
+            type text,
+            id text,
+            hash text PRIMARY KEY,
+            timestamp text,
+            call text,
+            meta text,
+            error text,
+            response text) WITHOUT ROWID"""
+        )
+        self.c.execute("pragma journal_mode = WAL")
+        self.c.execute("pragma synchronous = normal")
 
     def __repr__(self) -> str:
         """Prints job details."""
 
         dt = {
+            "timestamp  ": self.timestamp,
             "input      ": self.input,
+            "db         ": self.db,
             "server     ": self.server,
-            "format     ": self.global_parameters["format"],
+            "keep       ": self.keeps,
             "calls #    ": len(self.calls),
             "wait       ": self.wait,
-            "timestamp  ": self.timestamp,
             "skip       ": self.skip,
             "clear      ": self.clear,
         }
@@ -234,45 +251,42 @@ class Call:
     def __init__(
         self,
         input,
+        db="sgex.db",
         dry_run=False,
         skip=True,
         clear=False,
-        timestamp=False,
-        format="json",
-        asyn="0",
+        timestamp=True,
+        keep=None,
         server="https://api.sketchengine.eu/bonito/run.cgi",
         wait=True,
+        asyn="0",
     ):
+        t0 = time.perf_counter()
 
         # Settings
         self.dry_run = dry_run
         self.skip = skip
         self.clear = clear
-        self.global_parameters = {"asyn": asyn, "format": format}
+        self.global_parameters = {"asyn": asyn, "format": "json"}
         self.server = server.strip("/")
         self.wait_enabled = wait
         self.input = "dict"
-        self.timestamp = ""
+        self.timestamp = None
+        self.keeps = keep
+        self.db = "".join(["data/", db])
 
+        if isinstance(keep, str):
+            self.keep = [keep]
         if timestamp:
             self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
         if isinstance(input, str):
             self.input = pathlib.Path(input).name
 
         # Database
-        self.conn = sql.connect("sgex.db")
+        pathlib.Path.mkdir(pathlib.Path("data"),exist_ok=True)
+        self.conn = sql.connect(self.db)
         self.c = self.conn.cursor()
-        self.c.execute(
-            """CREATE TABLE IF NOT EXISTS calls (
-            input,
-            type text,
-            id text,
-            hash text UNIQUE,
-            call text,
-            meta text,
-            format text,
-            response text)"""
-        )
+        self._make_table()
 
         # Execute
         self.calls = sgex.Parse(input).calls
@@ -294,3 +308,6 @@ class Call:
         # Close
         self.c.close()
         self.conn.close()
+
+        t1 = time.perf_counter()
+        print(f"... total elapsed {t1 - t0:0.4f} secs")

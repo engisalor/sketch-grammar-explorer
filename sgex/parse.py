@@ -34,13 +34,6 @@ class Parse:
         elif not "type" in self.calls.keys():
             self.verified.add(False)
             raise ValueError('No "type" key in {}'.format(self.input_file))
-        elif not self.calls["type"] in self.call_types:
-            self.verified.add(False)
-            raise ValueError(
-                'Unknown call type "{}"\n(must be in {})'.format(
-                    self.calls["type"], self.call_types
-                )
-            )
         else:
             for k, v in self.calls.items():
                 if k != "type":
@@ -82,8 +75,6 @@ class Parse:
             self.output_file = pathlib.Path(dest)
         else:
             self.output_file = None
-
-        self.call_types = [k for k in sgex.call_types.keys()]
 
         # Get input
         if isinstance(input, str):
