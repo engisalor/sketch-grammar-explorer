@@ -1,13 +1,8 @@
 **/__pycache__/
 .*
-*.csv
-*.json
-*.txt
-*.xlsx
-*.xml
-*.yaml
-*.yml
-*.db
+
+calls/
+data/
 
 build/
 *.egg-info
@@ -15,4 +10,3 @@ dist/
 
 !.gitignore
 !requirements.txt
-!config.yml
