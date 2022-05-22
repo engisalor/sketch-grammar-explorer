@@ -137,28 +137,32 @@ class Call:
 
         self.response = None
         if not v["skip"]:
-            t0 = time.perf_counter()
             parameters = {
                 **credentials,
                 **self.global_parameters,
                 **v["call"],
             }
+            
+            t0 = time.perf_counter()
             self.response = requests.get(self.url_base, params=parameters)
             t1 = time.perf_counter()
-            print(f"... called {t1 - t0:0.2f} secs:", k)
+    
+            # Error detection
             if not self.response:
                 print(f"... bad response: {self.response}")
-
+            else:
+                self.error = None
+                if "error" in self.response.json():
+                    self.error = self.response.json()["error"]
+                    print(f"... {t1 - t0:0.2f} secs:", k, "error:", self.error)
+                else:
+                    print(f"... {t1 - t0:0.2f} secs:", k)
+    
     def _post_call(self, v, k):
         """Saves API response data to sqlite database."""
 
-        # Error detection
-        error = None
-        if "error" in self.response.json():
-            print("    error API:", self.response.json()["error"])
-            error = self.response.json()["error"]
-
         # Keep only desired data
+        # FIXME works for flat dict: what about supporting nested dicts?
         if self.keeps:
             kept = {k:v for k,v in self.response.json().items() if k in self.keeps}
             data = json.dumps(kept)
@@ -184,7 +188,7 @@ class Call:
                 self.timestamp,
                 json.dumps(v["call"], sort_keys=True),
                 meta,
-                error,
+                self.error,
                 data,
             ),
             )
@@ -237,7 +241,7 @@ class Call:
             "db         ": self.db,
             "server     ": self.server,
             "keep       ": self.keeps,
-            "calls #    ": len(self.calls),
+            "calls      ": len(self.calls),
             "wait       ": self.wait,
             "skip       ": self.skip,
             "clear      ": self.clear,
@@ -310,4 +314,4 @@ class Call:
         self.conn.close()
 
         t1 = time.perf_counter()
-        print(f"... total elapsed {t1 - t0:0.4f} secs")
+        print(f"... {t1 - t0:0.2f} secs total")
