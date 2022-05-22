@@ -2,7 +2,7 @@ call_examples = {
     "collx": {
         "type": "collx",
         "call0": {
-            "metadata": {"category1": "tag1"},
+            "meta": {"category1": "tag1"},
             "call": {
                 "corpname": "preloaded/ecolexicon_en",
                 "format": "json",
@@ -24,7 +24,7 @@ call_examples = {
     "freqs": {
         "type": "freqs",
         "call0": {
-            "metadata": {"category1": "tag1"},
+            "meta": {"category1": "tag1"},
             "call": {
                 "q": ['alemma,"rock"'],
                 "corpname": "preloaded/ecolexicon_en",
@@ -36,7 +36,7 @@ call_examples = {
     "view": {
         "type": "view",
         "call0": {
-            "metadata": {"category1": "tag1"},
+            "meta": {"category1": "tag1"},
             "call": {
                 "q": ['alemma,"ice"'],
                 "corpname": "preloaded/ecolexicon_en",
@@ -50,7 +50,7 @@ call_examples = {
     "wsketch": {
         "type": "wsketch",
         "call0": {
-            "metadata": {"category1": "tag1"},
+            "meta": {"category1": "tag1"},
             "call": {
                 "lemma": "climate change",
                 "lpos": "-n",

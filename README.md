@@ -107,7 +107,7 @@ Queries can be copied directly from YAML files into Sketch Engine's browser appl
 ```yml
 type: freqs
 call0:
-  metadata:
+  meta:
     category1: tag1
   call:
     q:
@@ -130,7 +130,7 @@ JSON requires consistent usage of double quotes and escape characters:
 ```json
 { "type": "freqs",
   "call0": {
-    "metadata": {
+    "meta": {
       "category1": "tag1"
     },
     "call":{
@@ -176,7 +176,7 @@ call2:
 
 **Skipping repeats**
 
-If `skip=True`, a call won't be repeated when an identical call has already been made. Repeats are identified using hashes of `call` dictionaries, which excludes metadata. If the contents of `"call"` change at all (even one character), they are considered unique calls. If `skip=False`, existing data is replaced when a new call has the same hash.
+If `skip=True`, a call won't be repeated when an identical call has already been made. Repeats are identified using hashes of `call` dictionaries. If the contents of `"call"` change at all (even one character), they are considered unique calls. If `skip=False`, existing data is replaced when a new call has the same hash.
 
 ### Notes
 
