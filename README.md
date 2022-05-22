@@ -4,7 +4,6 @@
   - [Introduction](#introduction)
   - [Setup](#setup)
   - [Making API calls](#making-api-calls)
-    - [Output formats](#output-formats)
     - [Input files](#input-files)
     - [Features](#features)
     - [Notes](#notes)
@@ -33,8 +32,8 @@ Or manual install:
 - clone this repo
 - install dependencies:
   - current versions `pip install -r requirements.txt`
-  - required `pip install numpy pandas requests pyyaml`
-  - optional `pip install keyring openpyxl lxml`
+  - required `pip install pandas requests pyyaml`
+  - optional `pip install keyring`
 
 **API credentials**
 
@@ -52,7 +51,7 @@ keyring.delete_password("<server>", "<username>")
 
 ## Making API calls
 
-To get started using example calls, run `sgex.config.examples()` to generate basic input files in the current working directory. Then run `sgex.Call()` with a path to an input file. Retrieved API data is stored in a folder of the same name.
+To get started using example calls, run `sgex.config.examples()` to generate basic input files in `calls/`. Then run `sgex.Call()` with a path to an input file. Retrieved API data is stored in sqlite databases in `data/`.
 
 ``` python
 import sgex
@@ -64,48 +63,29 @@ job = sgex.Call("calls/freqs.yml")
 **Options**
 
 **`input`** a dictionary or a path to a YAML/JSON file containing API calls
-  - if a dict, requires `dest="<destination folder>"`
 
-**`dry_run`** make a `Call` object that can be inspected prior to executing requests (`False`)
-  - with `job` as an instance of `Call`:
-  - `job` prints a summary
-  - `job.print_calls()` prints 10 call details at a time
-  - `job.calls` accesses all call details
+**`db`** define a database to use (`"sgex.db"`)
+
+**`dry_run`** make a `Call` object that can be inspected before executing requests (`False`)
+  - `object` prints a job summary
+  - `object.calls` accesses all call details
 
 **`skip`** skip calls when identical calls already exist in the destination folder (`True`)
-  - only compares files of the same format
-  - note: close data files to ensure read access
+  - based on a hash of unique call parameters
 
-**`clear`** remove existing data in destination folder before running current calls (`False`)
+**`clear`** remove existing data before running current calls (`False`)
 
-**`timestamp`** include a timestamp (`False`)
+**`timestamp`** include a timestamp (`True`)
 
-**`format`** specify output format (`"json"`)
-  - `"csv"`, `"txt"`, `"json"`, `"xlsx"`, or `"xml"` (see compatibilities table)
-  - `"json"` offers more detailed metadata and API error messages
-
-**`any_format`** allow any combination of call types and formats (`False`)
-
-**`asyn`** retrieve rough calculations, `"0"` (default) or `"1"`
+`keep` only save desired json items (`None` - saves everything)
+  - a str (if one item), otherwise a list/dict
 
 **`server`** specify what server to call (`"https://api.sketchengine.eu/bonito/run.cgi"`)
-  - be sure to omit trailing forward slashes
+  - must omit trailing forward slashes
 
 **`wait`** enable waiting between calls (`True`)
 
-### Output formats
-
-SGEX can save data in all formats provided by Sketch Engine, although only JSON is compatible with all call types. Known incompatibilities are blocked unless `any_format=True`.
-
-**Compatible call types and file formats**
-
-| call type | csv | txt | json | xlsx | xml |
-|-----------|-----|-----|------|------|-----|
-| collx     |     |     | +    |      |     |
-| freqs     | +   | +   | +    | +    | +   |
-| wordlist  | +   |     | +    | +    | +   |
-| wsketch   |     |     | +    | +    |     |
-| view      |     |     | +    |      |     |
+**`asyn`** retrieve rough calculations, `"0"` (default) or `"1"`"""
 
 ### Input files
 
@@ -116,7 +96,7 @@ One or more calls can be executed by creating an input file readable by SGEX tha
 - input files require a `"type"` key indicating what kind of call it is (`"freqs"`)
 - the key of each call serves as a call-id (`"call0"`)
 - each call has a dictionary of API parameters in `"call"`
-- calls can optionally contain metadata in other key:value pairs
+- calls can optionally contain metadata in `"meta"`
 
 The call below queries the lemma "rock" in the [EcoLexicon English Corpus](https://www.sketchengine.eu/ecolexicon-corpus/) and retrieves frequencies by several text types.
 
@@ -196,15 +176,9 @@ call2:
 
 **Skipping repeats**
 
-If `skip=True`, calls won't be repeated when identical data of the same file type already exists. Repeats are identified using hashes of `call` dictionaries. If the contents of `"call"` change at all, they are considered unique calls.
-
-Repeats are not detected across input files. Queries from `calls1.yml` and `calls2.yml` are stored in their respective data folders and are treated as independent samples.
+If `skip=True`, a call won't be repeated when an identical call has already been made. Repeats are identified using hashes of `call` dictionaries, which excludes metadata. If the contents of `"call"` change at all (even one character), they are considered unique calls. If `skip=False`, existing data is replaced when a new call has the same hash.
 
 ### Notes
-
-**Modifying saved data**
-
-SGEX doesn't track changes to downloaded data and will overwrite files if `skip=False` or `clear=True`. Be sure to separate/backup data sets to prevent data loss.
 
 **Working with different call types**
 
