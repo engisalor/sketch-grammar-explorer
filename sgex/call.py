@@ -300,7 +300,6 @@ class Call:
             "input      ": self.input,
             "db         ": self.db,
             "server     ": self.server,
-            "keep       ": self.keeps,
             "calls      ": len(self.calls),
             "wait       ": self.wait,
             "skip       ": self.skip,

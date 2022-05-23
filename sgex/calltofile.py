@@ -141,6 +141,7 @@ class CallToFile:
         server="https://api.sketchengine.eu/bonito/run.cgi",
         wait=True,
     ):
+        t0 = time.perf_counter()
 
         # Settings
         self.input = input
@@ -162,3 +163,6 @@ class CallToFile:
             sgex.Call._wait(self)
             sgex.Call._reuse_parameters(self)
             self._make_calls(credentials)
+
+        t1 = time.perf_counter()
+        print(f"... {t1 - t0:0.2f} secs total")
