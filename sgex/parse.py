@@ -26,15 +26,8 @@ class Parse:
                 raise ValueError("Unknown format (must be .json .yml .yaml)")
 
     def _verify(self):
-        self.verified = set()
-        print(f"... verifying calls")
-        if not self.calls:
-            self.verified.add(False)
-        else:
-            for k, v in self.calls.items():
-                if not "call" in v.keys():
-                    self.verified.add(False)
-                    raise ValueError('No "call" key in "{}"'.format(k))
+        # Disabled
+        pass
 
     def _save(self):
         if not self.output_file:
@@ -81,7 +74,7 @@ class Parse:
             raise TypeError("Valid inputs: filepath (str) or dict")
 
         # Execute
-        self._verify()
+        # self._verify()
 
         if not self.output_file:
             self._return()
