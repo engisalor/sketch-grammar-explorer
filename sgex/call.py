@@ -105,19 +105,32 @@ class Call:
                 x["skip"] = True
 
     def _reuse_parameters(self):
-        """Reuses API parameters unless defined explicitly."""
+        """Reuses parameters unless defined explicitly.
+        
+        Parameters are reused for sequential calls of the same type. If a call
+        type is specified, nothing is reused. Otherwise, when a parameter changes,
+        it will be reused until redefined again in a later call.
+
+        If parameters are part of a dictionary, individual key:values are reused.
+        Otherwise, the item is replaced flatly."""
 
         ls = [(k, v) for k, v in self.calls.items()]
         for x in range(len(ls)):
-            if x == 0:
+            if x == 0 or "type" in ls[x][1]:
                 pass
             else:
-                filename = ls[x][0]
-                previous = {**ls[x - 1][1]["call"]}
-                current = {**ls[x][1]["call"]}
-                self.calls[filename]["call"] = {**previous, **current}
+                id = ls[x][0]
 
-    def _wait(self):
+                # Flat copy previous call
+                previous = {**ls[x - 1][1]}
+                current = {**ls[x][1]}
+                self.calls[id] = {**previous, **current}
+
+                # Replace individual dictionary values
+                for k,v in ls[x][1].items():
+                    if isinstance(v,dict):
+                        self.calls[id][k] = {**{**ls[x - 1][1][k]}, **{**ls[x][1][k]}}
+
         """Sets wait time for SkE API usage."""
 
         n = len(self.calls)
