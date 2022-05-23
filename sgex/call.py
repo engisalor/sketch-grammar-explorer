@@ -6,12 +6,13 @@ import hashlib
 import pandas as pd
 import yaml
 import sqlite3 as sql
+from concurrent.futures import ThreadPoolExecutor
 
 import sgex
 
 
 class Call:
-    """Executes Sketch Engine API calls, saves data to sqlite database.
+    """Executes Sketch Engine API calls & saves data to sqlite database.
 
     Options
 
@@ -30,16 +31,15 @@ class Call:
 
     `timestamp` include a timestamp (`True`)
 
-    `keep` only save desired json items (`None` - saves everything)
-      - a str (if one item), otherwise a list/dict
-
     `server` specify what server to call (`"https://api.sketchengine.eu/bonito/run.cgi"`)
       - must omit trailing forward slashes
 
     `wait` enable waiting between calls (`True`)
 
-    `asyn` retrieve rough calculations, `"0"` (default) or `"1"`"""
+    `asyn` retrieve rough calculations, `"0"` (default) or `"1"`
 
+    `threads` number of threads when running calls asynchronously (18)
+      - asynchronous calling is activated when using a local server & `wait=False`"""
 
     def _credentials(self):
         """Gets SkE API credentials from keyring/file.
@@ -131,8 +131,10 @@ class Call:
                     if isinstance(v,dict):
                         self.calls[id][k] = {**{**ls[x - 1][1][k]}, **{**ls[x][1][k]}}
 
+    def _set_wait(self):
         """Sets wait time for SkE API usage."""
 
+        # TODO allow user to define wait values
         n = len(self.calls)
         if n == 1 or not self.wait_enabled:
             wait = 0
@@ -145,89 +147,134 @@ class Call:
 
         self.wait = wait
 
-    def _do_call(self, v, k, credentials):
-        """Runs or skip an api call."""
+    def _make_manifest(self, credentials):
+        """Makes a call manifest with ids, params & request urls."""
 
-        self.response = None
-        if not v["skip"]:
-            parameters = {
-                **credentials,
-                **self.global_parameters,
-                **v["call"],
-            }
-            
-            t0 = time.perf_counter()
-            self.response = requests.get(self.url_base, params=parameters)
-            t1 = time.perf_counter()
-    
-            # Error detection
-            if not self.response:
-                print(f"... bad response: {self.response}")
-            else:
-                self.error = None
-                if "error" in self.response.json():
-                    self.error = self.response.json()["error"]
-                    print(f"... {t1 - t0:0.2f} secs:", k, "error:", self.error)
-                else:
-                    print(f"... {t1 - t0:0.2f} secs:", k)
-    
-    def _post_call(self, v, k):
-        """Saves API response data to sqlite database."""
+        req = requests.models.PreparedRequest()
+        manifest = []
 
-        # Keep only desired data
-        # FIXME works for flat dict: what about supporting nested dicts?
-        if self.keeps:
-            kept = {k:v for k,v in self.response.json().items() if k in self.keeps}
-            data = json.dumps(kept)
+        for k, v in self.calls.items():
+            if not v["skip"]:
+                parameters = {
+                    **credentials,
+                    **self.global_parameters,
+                    **v["call"],
+                }
+
+                call_type = "".join([v["type"], "?"])
+                url_base = "/".join([self.server, call_type])
+                req.prepare_url(url_base, parameters)
+                manifest.append({"id": k, "params": v, "url": req.url})
+
+        print(f"... {len(manifest)} / {len(self.calls)} prepared")
+        return manifest
+
+    def _make_calls(self, manifest):
+        """Runs calls in manifest sequentially."""
+
+        for manifest_item in manifest:
+            # Run call
+            self.t0 = time.perf_counter()
+            response = requests.get(manifest_item["url"])
+            self.t1 = time.perf_counter()
+
+            # Process packet
+            packet = {"item": manifest_item, "response": response}
+            self._post_call(packet)
+
+            # Wait
+            time.sleep(self.wait)
+
+    def _make_local_calls(self, manifest):
+        """Runs calls in manifest asynchronously.
+        
+        Enabled when using a local server & `wait=False`."""
+
+        THREAD_POOL = self.threads
+        session = requests.Session()
+        session.mount(
+            'https://',
+            requests.adapters.HTTPAdapter(pool_maxsize=THREAD_POOL,
+                                        # max_retries=3,
+                                        pool_block=True)
+        )
+
+        def get(manifest_item):
+            self.t0 = time.perf_counter()
+            response = session.get(manifest_item["url"])
+            self.t1 = time.perf_counter()
+            return {"item": manifest_item, "response": response}
+
+        with ThreadPoolExecutor(max_workers=THREAD_POOL) as executor:
+            for packet in list(executor.map(get, manifest)):
+                # Process packets
+                self._post_call(packet)
+
+    def _post_call(self, packet):
+        """Processes and saves call data."""
+
+        if not packet["response"]:
+            print("... bad response:", packet["response"])
         else:
-            data = json.dumps(self.response.json())
+            error = None
+            if "error" in packet["response"].json():
+                error = packet["response"].json()["error"]
 
-        # Add metadata
-        meta = None
-        if "meta" in v.keys():
-            if isinstance(v["meta"], (dict, list, tuple)):
-                meta = json.dumps(v["meta"], sort_keys=True)
+            # Keep only desired data
+            # FIXME works for flat dict: what about supporting nested dicts?
+            if "keep" in packet["item"]["params"]:
+                keep = packet["item"]["params"]["keep"]
+                if isinstance(keep, str):
+                    keeps = [keep]
+                kept = {k:v for k,v in packet["response"].json().items() if k in keeps}
+                data = json.dumps(kept)
             else:
-                meta = v["meta"]
+                data = json.dumps(packet["response"].json())
 
-        # Write to db
-        self.c.execute(
-            "INSERT OR REPLACE INTO calls VALUES (?,?,?,?,?,?,?,?,?)",
-            (
-                self.input,
-                self.call_type[:-1],
-                k,
-                v["hash"],
-                self.timestamp,
-                json.dumps(v["call"], sort_keys=True),
-                meta,
-                self.error,
-                data,
-            ),
-            )
-        self.conn.commit()
+            # Add metadata
+            meta = None
+            if "meta" in packet["item"]["params"].keys():
+                if isinstance(packet["item"]["params"]["meta"], (dict, list, tuple)):
+                    meta = json.dumps(packet["item"]["params"]["meta"], sort_keys=True)
+                else:
+                    meta = packet["item"]["params"]["meta"]
 
-        # Wait
-        time.sleep(self.wait)
+            # Write to db
+            self.c.execute(
+                "INSERT OR REPLACE INTO calls VALUES (?,?,?,?,?,?,?,?,?)",
+                (
+                    self.input,
+                    packet["item"]["params"]["type"][:-1],
+                    packet["item"]["id"],
+                    packet["item"]["params"]["hash"],
+                    self.timestamp,
+                    json.dumps(packet["item"]["params"]["call"], sort_keys=True),
+                    meta,
+                    error,
+                    data,
+                ),
+                )
 
-    def _make_calls(self, credentials):
-        """Manages the API call process (do_call & post_call)."""
+            # Finish task
+            self.conn.commit()
+            print(f"... {self.t1 - self.t0:0.2f}", packet["item"]["id"], end=" ")
+            if error:
+                print(error)
+            else:
+                print("")
 
+    def _pre_calls(self):
         if self.dry_run:
-            pass
+            for x in self.calls.values():
+                x["skip"] = True
         else:
             if self.clear:
-                print("... clearing")
+                print("... clearing", self.db)
                 self.c.execute("DROP TABLE calls")
                 self._make_table()
                 self.conn.commit()
                 for x in self.calls.values():
                     x["skip"] = False
-
-            for k, v in self.calls.items():
-                self._do_call(v, k, credentials)
-                if self.response:
-                    self._post_call(v, k)
 
     def _make_table(self):
         self.c.execute(
@@ -273,10 +320,10 @@ class Call:
         skip=True,
         clear=False,
         timestamp=True,
-        keep=None,
         server="https://api.sketchengine.eu/bonito/run.cgi",
         wait=True,
         asyn="0",
+        threads=16,
     ):
         t0 = time.perf_counter()
 
@@ -289,11 +336,9 @@ class Call:
         self.wait_enabled = wait
         self.input = "dict"
         self.timestamp = None
-        self.keeps = keep
         self.db = "".join(["data/", db])
+        self.threads = threads
 
-        if isinstance(keep, str):
-            self.keep = [keep]
         if timestamp:
             self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
         if isinstance(input, str):
@@ -306,25 +351,27 @@ class Call:
         self._make_table()
 
         # Execute
+        credentials = self._credentials()
         self.calls = sgex.Parse(input).calls
+        self._set_wait()
+        self._reuse_parameters()
+        self._hashes_add()
+        self._hashes_compare()
+        self._pre_calls()
+        manifest = self._make_manifest(credentials)
 
-        if not self.calls:
-            pass
+        local_hosts = ("http://localhost:")
+        if  self.server.startswith(local_hosts) and not wait:
+            print("... asynchronous")
+            self.wait = 0
+            self._make_local_calls(manifest)
         else:
-            self.call_type = "".join([self.calls["type"], "?"])
-            del self.calls["type"]
-            self.url_base = "/".join([self.server, self.call_type])
-
-            credentials = self._credentials()
-            self._wait()
-            self._reuse_parameters()
-            self._hashes_add()
-            self._hashes_compare()
-            self._make_calls(credentials)
+            print("... wait =", self.wait)
+            self._make_calls(manifest)
 
         # Close
         self.c.close()
         self.conn.close()
 
         t1 = time.perf_counter()
-        print(f"... {t1 - t0:0.2f} secs total")
+        print(f"... {t1 - t0:0.2f} total")
