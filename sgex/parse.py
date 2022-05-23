@@ -13,7 +13,6 @@ class Parse:
     """
 
     def _load(self):
-
         if not self.input_file.exists():
             raise FileNotFoundError
         else:
@@ -31,15 +30,11 @@ class Parse:
         print(f"... verifying calls")
         if not self.calls:
             self.verified.add(False)
-        elif not "type" in self.calls.keys():
-            self.verified.add(False)
-            raise ValueError('No "type" key in {}'.format(self.input_file))
         else:
             for k, v in self.calls.items():
-                if k != "type":
-                    if not "call" in v.keys():
-                        self.verified.add(False)
-                        raise ValueError('No "call" key in "{}"'.format(k))
+                if not "call" in v.keys():
+                    self.verified.add(False)
+                    raise ValueError('No "call" key in "{}"'.format(k))
 
     def _save(self):
         if not self.output_file:
