@@ -106,27 +106,15 @@ def credentials():
         print("Selection not available: try again")
 
 
-def examples(dir="calls", format=".yml", overwrite=False):
-    """Generate example input files to `dir` with format `.yml` or `.json`).
-
-    `overwrite=True` skips warning for replacing existing files
-    """
+def examples(dir="calls", format=".yml"):
+    """Generates example input files to `dir` with format `.yml` or `.json`)."""
 
     path = pathlib.Path(dir)
-    print(f'Saving example calls to "{dir}/"')
+    file = path / pathlib.Path("examples").with_suffix(format)
+    yn = input(f'Save to "{file}"? (y/N) ')
 
-    for k, v in sgex.call_examples.items():
-        file = path / pathlib.Path(k).with_suffix(format)
-
-        yn = "y"
-
-        if file.exists() and not overwrite:
-            yn = input(f'Overwrite "{file}"? (y/N) ')
-
-        if yn == "y":
-            path.mkdir(parents=True, exist_ok=True)
-            sgex.Parse(v, dest=file)
-        else:
-            pass
-
-    print("Done")
+    if yn == "y":
+        path.mkdir(parents=True, exist_ok=True)
+        sgex.Parse(sgex.call_examples, dest=file)
+    else:
+        pass
