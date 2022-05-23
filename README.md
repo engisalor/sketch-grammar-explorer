@@ -51,15 +51,15 @@ keyring.delete_password("<server>", "<username>")
 
 ## Making API calls
 
-To get started using example calls, run `sgex.config.examples()` to generate basic input files in `calls/`. Then run `sgex.Call()` with a path to an input file. Retrieved API data is stored in sqlite databases in `data/`. 
+To get started using example calls, run `sgex.config.examples()` to generate an input file in `calls/`. Then run `sgex.Call()` with a path to an input file. Retrieved API data is stored in sqlite databases in `data/`. 
 
-API responses can also be saved directly to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `sgex.CallToFile()`. This method has fewer options, like skip detection, and always overwrites existing data (see its docstring).
+API responses can also be saved directly to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `sgex.CallToFile()`. This method has fewer options and always overwrites existing data (see its docstring).
 
 ``` python
 import sgex
 
 sgex.config.examples()
-job = sgex.Call("calls/freqs.yml")
+job = sgex.Call("calls/examples.yml")
 ```
 
 **Options**
@@ -79,15 +79,15 @@ job = sgex.Call("calls/freqs.yml")
 
 **`timestamp`** include a timestamp (`True`)
 
-`keep` only save desired json items (`None` - saves everything)
-  - a str (if one item), otherwise a list/dict
-
 **`server`** specify what server to call (`"https://api.sketchengine.eu/bonito/run.cgi"`)
   - must omit trailing forward slashes
 
 **`wait`** enable waiting between calls (`True`)
 
-**`asyn`** retrieve rough calculations, `"0"` (default) or `"1"`"""
+**`asyn`** retrieve rough calculations, `"0"` (default) or `"1"`
+
+**`threads`** number of threads when running calls asynchronously (18)
+  - asynchronous calling is activated when using a local server & `wait=False`
 
 ### Input files
 
@@ -95,10 +95,11 @@ job = sgex.Call("calls/freqs.yml")
 
 One or more calls can be executed by creating an input file readable by SGEX that contains API calls in the form dictionaries of parameters.
 
-- input files require a `"type"` key indicating what kind of call it is (`"freqs"`)
-- the key of each call serves as a call-id (`"call0"`)
+- the key of each call serves as an id (`"call0"`)
+- call types (frequency, concordance, etc.) are defined with `"type"`
 - each call has a dictionary of API parameters in `"call"`
 - calls can optionally contain metadata in `"meta"`
+- `"keep"` can be used to save only a portion of response data
 
 The call below queries the lemma "rock" in the [EcoLexicon English Corpus](https://www.sketchengine.eu/ecolexicon-corpus/) and retrieves frequencies by several text types.
 
@@ -107,8 +108,8 @@ The call below queries the lemma "rock" in the [EcoLexicon English Corpus](https
 Queries can be copied directly from YAML files into Sketch Engine's browser application without adding/removing escape characters.
 
 ```yml
-type: freqs
 call0:
+  type: freqs
   meta:
     category1: tag1
   call:
@@ -130,8 +131,8 @@ JSON requires consistent usage of double quotes and escape characters:
 - double-escaping for special characters: `"atag,1:\"N.*\" [word=\",|\\(\"]`
 
 ```json
-{ "type": "freqs",
-  "call0": {
+{ "call0": {
+    "type": "freqs",
     "meta": {
       "category1": "tag1"
     },
@@ -151,12 +152,14 @@ JSON requires consistent usage of double quotes and escape characters:
 
 **Recycling parameters**
 
-Parameters are reused unless defined explicitly in every call. For example, the job below contains three similar calls. Instead of writing out every parameter for each, only the first call is complete. The proceeding calls only contain differing parameters (their queries). Other parameters (`corpname`, etc.), are passed from the first call successively to the rest.
+Parameters are reused unless defined explicitly in every call. For example, the job below contains three similar calls. Instead of writing out every parameter for each, only the first call is complete. The proceeding calls only contain new parameters to define.
+
+Parameters can be passed through sequential calls of the same type. If `type` appears in a new call, nothing is reused. When parameters are part of a dictionary, its items are passed individually, whereas strings, lists, and other data types are replaced. Recycling parameters is not recursive.
 
 ```yml
-type: freqs
 
 call0:
+  type: freqs
   call:
     q:
     - alemma,"rock"
@@ -179,6 +182,14 @@ call2:
 **Skipping repeats**
 
 If `skip=True`, a call won't be repeated when an identical call has already been made. Repeats are identified using hashes of `call` dictionaries. If the contents of `"call"` change at all (even one character), they are considered unique calls. If `skip=False`, existing data is replaced when a new call has the same hash.
+
+**Asynchronous calling**
+
+When using a local server and with `wait=False`, SGEX enables asynchronous calling. This can increase performance substantially depending on the device. 16 threads are used by default.
+
+**Discarding unwanted data with `keep`**
+
+SGEX saves the entire response for each API call by default. `keep` can be used to specify what data to keep and what to discard. For example, if `keep="concsize"` is set for `freqs` calls, only the absolute frequency is kept and the rest of the response is discarded. Currently, `keep` works for top-level items only, not nested JSON data.
 
 ### Notes
 
