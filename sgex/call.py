@@ -30,9 +30,7 @@ class Call:
 
     `wait` wait between calls (`True`) (follows SkE wait policy)
 
-
     `threads` set threads for asynchronous calling (18) - use with localhost & `wait=False`)
-
 
     `asyn` retrieve rough calculations, `"0"` (default) or `"1"`
     

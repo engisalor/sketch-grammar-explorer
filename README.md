@@ -51,9 +51,9 @@ keyring.delete_password("<server>", "<username>")
 
 ## Making API calls
 
-To get started using example calls, run `sgex.config.examples()` to generate an input file in `calls/`. Then run `sgex.Call()` with a path to an input file. Retrieved API data is stored in sqlite databases in `data/`. 
+To get started using example calls, run `sgex.config.examples()` to generate an input file in `calls/`. Then run `sgex.Call()` with a path to an input file. Retrieved API data is stored in sqlite databases in `data/`. The default database is `sgex.db`, but new databases are created when new filenames are supplied.
 
-API responses can also be saved directly to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `sgex.CallToFile()`. This method has fewer options and always overwrites existing data (see its docstring).
+API responses can also be saved directly to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `output="csv"`, etc. This always overwrites existing data and is incompatible with some call types. JSON is the universal format and the only one with error reporting.
 
 ``` python
 import sgex
@@ -64,30 +64,25 @@ job = sgex.Call("calls/examples.yml")
 
 **Options**
 
-**`input`** a dictionary or a path to a YAML/JSON file containing API calls
+**`input`** a dictionary or path to a YAML/JSON file containing API calls
 
-**`db`** define a database to use (`"sgex.db"`)
+**`output`** save to sqlite (default `sgex.db`) or files: `json`, `csv`, `xlsx`, `xml`, `txt`
 
-**`dry_run`** make a `Call` object that can be inspected before executing requests (`False`)
-  - `object` prints a job summary
-  - `object.calls` accesses all call details
+**`dry_run`** make a `Call` object without executing requests (`False`)
 
-**`skip`** skip calls when identical calls already exist in the destination folder (`True`)
-  - based on a hash of unique call parameters
+**`skip`** skip calls when a hash of the same parameters already exists in sqlite (`True`)
 
-**`clear`** remove existing data before running current calls (`False`)
+**`clear`** remove existing sqlite data before running current calls (`False`)
 
-**`timestamp`** include a timestamp (`True`)
+**`server`** (`"https://api.sketchengine.eu/bonito/run.cgi"`)
 
-**`server`** specify what server to call (`"https://api.sketchengine.eu/bonito/run.cgi"`)
-  - must omit trailing forward slashes
+**`wait`** wait between calls (`True`) (follows SkE wait policy)
 
-**`wait`** enable waiting between calls (`True`)
+`threads` set threads for asynchronous calling (18) - use with localhost & `wait=False`)
 
-**`asyn`** retrieve rough calculations, `"0"` (default) or `"1"`
+`asyn` retrieve rough calculations, `"0"` (default) or `"1"`
 
-**`threads`** number of threads when running calls asynchronously (18)
-  - asynchronous calling is activated when using a local server & `wait=False`
+`progress` print call progress (`True`)
 
 ### Input files
 
@@ -154,7 +149,7 @@ JSON requires consistent usage of double quotes and escape characters:
 
 Parameters are reused unless defined explicitly in every call. For example, the job below contains three similar calls. Instead of writing out every parameter for each, only the first call is complete. The proceeding calls only contain new parameters to define.
 
-Parameters can be passed through sequential calls of the same type. If `type` appears in a new call, nothing is reused. When parameters are part of a dictionary, its items are passed individually, whereas strings, lists, and other data types are replaced. Recycling parameters is not recursive.
+Parameters can be passed through sequential calls of the same type. If `type` appears in a new call, nothing is reused. When parameters are part of a dictionary, its items are passed individually, whereas strings, lists, and other data types are replaced.
 
 ```yml
 
@@ -181,15 +176,15 @@ call2:
 
 **Skipping repeats**
 
-If `skip=True`, a call won't be repeated when an identical call has already been made. Repeats are identified using hashes of `call` dictionaries. If the contents of `"call"` change at all (even one character), they are considered unique calls. If `skip=False`, existing data is replaced when a new call has the same hash.
+If `skip=True`, a call won't be repeated when an identical call has already been made in a sqlite database. Repeats are identified using hashes of `call` dictionaries. If the contents of `"call"` change at all (even one character), they are considered unique calls. If `skip=False`, existing data is replaced when a new call has the same hash.
 
 **Asynchronous calling**
 
-When using a local server and with `wait=False`, SGEX enables asynchronous calling. This can increase performance substantially depending on the device. 16 threads are used by default.
+When using a local server and with `wait=False`, SGEX enables asynchronous calling. This can increase performance substantially. 16 threads are used by default.
 
 **Discarding unwanted data with `keep`**
 
-SGEX saves the entire response for each API call by default. `keep` can be used to specify what data to keep and what to discard. For example, if `keep="concsize"` is set for `freqs` calls, only the absolute frequency is kept and the rest of the response is discarded. Currently, `keep` works for top-level items only, not nested JSON data.
+SGEX saves the entire response for each API call by default. `keep` can be used to specify what data to add to a sqlite database and what to discard. For example, if `keep="concsize"` is set for `freqs` calls, only the absolute frequency is kept and the rest of the response is discarded. Currently, `keep` works for top-level items only, not nested JSON data.
 
 ### Notes
 
