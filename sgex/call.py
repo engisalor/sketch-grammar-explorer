@@ -168,7 +168,6 @@ class Call:
                 req.prepare_url(url_base, parameters)
                 manifest.append({"id": k, "params": v, "url": req.url})
 
-        print(f"... {len(manifest)} / {len(self.calls)} prepared")
         return manifest
 
     def _make_calls(self, manifest):
@@ -179,6 +178,7 @@ class Call:
             self.t0 = time.perf_counter()
             response = requests.get(manifest_item["url"])
             self.t1 = time.perf_counter()
+            self._print_progress(response, manifest_item)
 
             # Process packet
             packet = {"item": manifest_item, "response": response}
@@ -205,6 +205,7 @@ class Call:
             self.t0 = time.perf_counter()
             response = session.get(manifest_item["url"])
             self.t1 = time.perf_counter()
+            self._print_progress(response, manifest_item)
             return {"item": manifest_item, "response": response}
 
         with ThreadPoolExecutor(max_workers=THREAD_POOL) as executor:
@@ -263,7 +264,14 @@ class Call:
             if error:
                 print(error)
             else:
-                print("")
+    def _print_progress(self,response, manifest_item):
+        if self.progress:
+            error = ""
+            if self.db in self.db_extensions:
+                error = ""
+                if "error" in response.json():
+                    error = response.json()["error"]
+            print(f"{self.t1 - self.t0:0.2f}", manifest_item["id"], error)
 
     def _pre_calls(self):
         if self.dry_run:
