@@ -4,7 +4,6 @@ call_examples = {
         "meta": {"category1": "tag1"},
         "call": {
             "corpname": "preloaded/ecolexicon_en",
-            "format": "json",
             "q": ['alemma_lc,"climate" within <doc (user="Expert") />'],
             "default_attr": "lemma_lc",
             "cmaxitems": 1000,
