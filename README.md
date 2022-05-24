@@ -64,19 +64,19 @@ job = sgex.Call("calls/examples.yml")
 
 **Options**
 
-**`input`** a dictionary or path to a YAML/JSON file containing API calls
+`input` a dictionary or path to a YAML/JSON file containing API calls
 
-**`output`** save to sqlite (default `sgex.db`) or files: `json`, `csv`, `xlsx`, `xml`, `txt`
+`output` save to sqlite (default `sgex.db`) or files: `json`, `csv`, `xlsx`, `xml`, `txt`
 
-**`dry_run`** make a `Call` object without executing requests (`False`)
+`dry_run` make a `Call` object without executing requests (`False`)
 
-**`skip`** skip calls when a hash of the same parameters already exists in sqlite (`True`)
+`skip` skip calls when a hash of the same parameters already exists in sqlite (`True`)
 
-**`clear`** remove existing sqlite data before running current calls (`False`)
+`clear` remove existing sqlite data before running current calls (`False`)
 
-**`server`** (`"https://api.sketchengine.eu/bonito/run.cgi"`)
+`server` (`"https://api.sketchengine.eu/bonito/run.cgi"`)
 
-**`wait`** wait between calls (`True`) (follows SkE wait policy)
+`wait` wait between calls (`True`) (follows SkE wait policy)
 
 `threads` set threads for asynchronous calling (18) - use with localhost & `wait=False`)
 
