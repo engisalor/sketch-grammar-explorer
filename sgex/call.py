@@ -107,29 +107,31 @@ class Call:
     def _reuse_parameters(self):
         """Reuses parameters unless defined explicitly.
         
-        Parameters are reused for sequential calls of the same type. If a call
-        type is specified, nothing is reused. Otherwise, when a parameter changes,
+        Parameters are reused for sequential calls of the same type. If `type`
+        is specified, nothing is reused. Otherwise, when a parameter changes,
         it will be reused until redefined again in a later call.
 
         If parameters are part of a dictionary, individual key:values are reused.
         Otherwise, the item is replaced flatly."""
 
-        ls = [(k, v) for k, v in self.calls.items()]
-        for x in range(len(ls)):
-            if x == 0 or "type" in ls[x][1]:
-                pass
-            else:
+        def _propagate(ls, k):
+            for x in range(1, len(ls)):
+                current = ls[x][1]
                 id = ls[x][0]
+                previous = ls[x - 1][1] 
+                if k in current and k != "type":
+                    if isinstance(current[k], dict):
+                        p_dt = {**previous[k]}
+                        c_dt = {**current[k]}
+                        self.calls[id][k] = {**p_dt, **c_dt}
+                    else:
+                        self.calls[id][k] = current[k]
+                else:
+                    if k in previous:
+                        self.calls[id][k] = previous[k]
 
-                # Flat copy previous call
-                previous = {**ls[x - 1][1]}
-                current = {**ls[x][1]}
-                self.calls[id] = {**previous, **current}
-
-                # Replace individual dictionary values
-                for k,v in ls[x][1].items():
-                    if isinstance(v,dict):
-                        self.calls[id][k] = {**{**ls[x - 1][1][k]}, **{**ls[x][1][k]}}
+        ls = [(k, v) for k, v in self.calls.items()]
+        [_propagate(ls, k) for k in ["type", "meta", "keep", "call"]]
 
     def _set_wait(self):
         """Sets wait time for SkE API usage."""
