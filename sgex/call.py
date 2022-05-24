@@ -190,10 +190,12 @@ class Call:
         THREAD_POOL = self.threads
         session = requests.Session()
         session.mount(
-            'https://',
-            requests.adapters.HTTPAdapter(pool_maxsize=THREAD_POOL,
+            "https://",
+            requests.adapters.HTTPAdapter(
+                pool_maxsize=THREAD_POOL,
                                         # max_retries=3,
-                                        pool_block=True)
+                pool_block=True,
+            ),
         )
 
         def get(manifest_item):
@@ -230,14 +232,20 @@ class Call:
                     keep = packet["item"]["params"]["keep"]
                     if isinstance(keep, str):
                         keeps = [keep]
-                    kept = {k:v for k,v in packet["response"].json().items() if k in keeps}
+                    kept = {
+                        k: v for k, v in packet["response"].json().items() if k in keeps
+                    }
                     self.data = json.dumps(kept)
 
                 # Add metadata
                 meta = None
                 if "meta" in packet["item"]["params"].keys():
-                    if isinstance(packet["item"]["params"]["meta"], (dict, list, tuple)):
-                        meta = json.dumps(packet["item"]["params"]["meta"], sort_keys=True)
+                    if isinstance(
+                        packet["item"]["params"]["meta"], (dict, list, tuple)
+                    ):
+                        meta = json.dumps(
+                            packet["item"]["params"]["meta"], sort_keys=True
+                        )
                     else:
                         meta = packet["item"]["params"]["meta"]
 
@@ -289,6 +297,7 @@ class Call:
 
     def _save_xml(self):
         from lxml import etree
+
         xml = etree.fromstring(self.data.content)
 
         with open(self.file, "wb") as f:
@@ -301,7 +310,7 @@ class Call:
                 )
             )
 
-    def _print_progress(self,response, manifest_item):
+    def _print_progress(self, response, manifest_item):
         if self.progress:
             error = ""
             if self.global_parameters["format"] == "json":
@@ -394,7 +403,7 @@ class Call:
         t0 = time.perf_counter()
         print(self.timestamp, f"START  {self.input}")
 
-        pathlib.Path.mkdir(pathlib.Path("data"),exist_ok=True)
+        pathlib.Path.mkdir(pathlib.Path("data"), exist_ok=True)
         # Database
         if output.endswith(self.db_extensions):
             self.output = "".join(["data/", output])
@@ -407,7 +416,7 @@ class Call:
             self.output = "data/raw"
             self.extension = "".join([".", output.strip(".")])
             self.global_parameters["format"] = output.strip(".")
-            pathlib.Path.mkdir(pathlib.Path(self.output),exist_ok=True)
+            pathlib.Path.mkdir(pathlib.Path(self.output), exist_ok=True)
 
         # Prepare
         credentials = self._credentials()
@@ -431,8 +440,8 @@ class Call:
 
         # Execute
         if manifest:
-            local_hosts = ("http://localhost:")
-            if  self.server.startswith(local_hosts) and not wait:
+            local_hosts = "http://localhost:"
+            if self.server.startswith(local_hosts) and not wait:
                 self.wait = 0
                 self._make_local_calls(manifest)
             else:
