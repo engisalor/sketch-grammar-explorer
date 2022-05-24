@@ -33,7 +33,7 @@ Or manual install:
 - install dependencies:
   - current versions `pip install -r requirements.txt`
   - required `pip install pandas requests pyyaml`
-  - optional `pip install keyring`
+  - optional `pip install keyring openpyxl lxml`
 
 **API credentials**
 
@@ -78,7 +78,7 @@ job = sgex.Call("calls/examples.yml")
 
 `wait` wait between calls (`True`) (follows SkE wait policy)
 
-`threads` set threads for asynchronous calling (18) - use with localhost & `wait=False`)
+`threads` set threads for asynchronous calling (18) - use with localhost & `wait=False`
 
 `asyn` retrieve rough calculations, `"0"` (default) or `"1"`
 
