@@ -16,30 +16,27 @@ class Call:
 
     Options
 
-    `input` a dictionary or a path to a YAML/JSON file containing API calls
+    `input` a dictionary or path to a YAML/JSON file containing API calls
 
-    `db` define a database to use (`"sgex.db"`)
+    `output` save to sqlite (default `sgex.db`) or files: `json`, `csv`, `xlsx`, `xml`, `txt`
 
-    `dry_run` make a `Call` object that can be inspected before executing requests (`False`)
-      - `object` prints a job summary
-      - `object.calls` accesses all call details
+    `dry_run` make a `Call` object without executing requests (`False`)
 
-    `skip` skip calls when identical calls already exist in the destination folder (`True`)
-      - based on a hash of unique call parameters
+    `skip` skip calls when a hash of the same parameters already exists in sqlite (`True`)
 
-    `clear` remove existing data before running current calls (`False`)
+    `clear` remove existing sqlite data before running current calls (`False`)
 
-    `timestamp` include a timestamp (`True`)
+    `server` (`"https://api.sketchengine.eu/bonito/run.cgi"`)
 
-    `server` specify what server to call (`"https://api.sketchengine.eu/bonito/run.cgi"`)
-      - must omit trailing forward slashes
+    `wait` wait between calls (`True`) (follows SkE wait policy)
 
-    `wait` enable waiting between calls (`True`)
+
+    `threads` set threads for asynchronous calling (18) - use with localhost & `wait=False`)
+
 
     `asyn` retrieve rough calculations, `"0"` (default) or `"1"`
-
-    `threads` number of threads when running calls asynchronously (18)
-      - asynchronous calling is activated when using a local server & `wait=False`"""
+    
+    `progress` print call progress (`True`)"""
 
     def _credentials(self):
         """Gets SkE API credentials from keyring/file.
@@ -129,7 +126,7 @@ class Call:
                 else:
                     if k in previous:
                         self.calls[id][k] = previous[k]
-
+       
         ls = [(k, v) for k, v in self.calls.items()]
         [_propagate(ls, k) for k in ["type", "meta", "keep", "call"]]
 
@@ -217,57 +214,99 @@ class Call:
         """Processes and saves call data."""
 
         if not packet["response"]:
-            print("... bad response:", packet["response"])
+            print("Bad response:", packet["response"])
+            self.errors.append(packet["response"])
         else:
-            error = None
-            if "error" in packet["response"].json():
-                error = packet["response"].json()["error"]
+            # Error handling
+            if self.global_parameters["format"] == "json":
+                self.data = json.dumps(packet["response"].json())
+                error = None
+                if "error" in packet["response"].json():
+                    error = packet["response"].json()["error"]
+                    self.errors.append(error)
+            
+            # SQLite
+            if self.output.endswith(self.db_extensions):
+                # Keep data
+                if "keep" in packet["item"]["params"]:
+                    keep = packet["item"]["params"]["keep"]
+                    if isinstance(keep, str):
+                        keeps = [keep]
+                    kept = {k:v for k,v in packet["response"].json().items() if k in keeps}
+                    self.data = json.dumps(kept)
 
-            # Keep only desired data
-            # FIXME works for flat dict: what about supporting nested dicts?
-            if "keep" in packet["item"]["params"]:
-                keep = packet["item"]["params"]["keep"]
-                if isinstance(keep, str):
-                    keeps = [keep]
-                kept = {k:v for k,v in packet["response"].json().items() if k in keeps}
-                data = json.dumps(kept)
-            else:
-                data = json.dumps(packet["response"].json())
+                # Add metadata
+                meta = None
+                if "meta" in packet["item"]["params"].keys():
+                    if isinstance(packet["item"]["params"]["meta"], (dict, list, tuple)):
+                        meta = json.dumps(packet["item"]["params"]["meta"], sort_keys=True)
+                    else:
+                        meta = packet["item"]["params"]["meta"]
 
-            # Add metadata
-            meta = None
-            if "meta" in packet["item"]["params"].keys():
-                if isinstance(packet["item"]["params"]["meta"], (dict, list, tuple)):
-                    meta = json.dumps(packet["item"]["params"]["meta"], sort_keys=True)
-                else:
-                    meta = packet["item"]["params"]["meta"]
+                # Write to db
+                self.c.execute(
+                    "INSERT OR REPLACE INTO calls VALUES (?,?,?,?,?,?,?,?,?)",
+                    (
+                        self.input,
+                        packet["item"]["params"]["type"][:-1],
+                        packet["item"]["id"],
+                        packet["item"]["params"]["hash"],
+                        self.timestamp,
+                        json.dumps(packet["item"]["params"]["call"], sort_keys=True),
+                        meta,
+                        error,
+                        self.data,
+                    ),
+                    )
+                self.conn.commit()
+            
+            # Filesystem
+            else:                
+                # Save to specified format
+                self.data = packet["response"]
+                dir = pathlib.Path(self.output)
+                name = pathlib.Path(packet["item"]["id"]).with_suffix(self.extension)
+                self.file = dir / name
+                save_method = "".join(["_save_", self.global_parameters["format"]])
+                getattr(Call, save_method)(self)
 
-            # Write to db
-            self.c.execute(
-                "INSERT OR REPLACE INTO calls VALUES (?,?,?,?,?,?,?,?,?)",
-                (
-                    self.input,
-                    packet["item"]["params"]["type"][:-1],
-                    packet["item"]["id"],
-                    packet["item"]["params"]["hash"],
-                    self.timestamp,
-                    json.dumps(packet["item"]["params"]["call"], sort_keys=True),
-                    meta,
-                    error,
-                    data,
-                ),
+    def _save_csv(self):
+        with open(self.file, "w", encoding="utf-8") as f:
+            f.write(self.data.text)
+
+    def _save_json(self):
+        self.data = self.data.json()
+        del self.data["request"]["username"]
+        del self.data["request"]["api_key"]
+        with open(self.file, "w", encoding="utf-8") as f:
+            json.dump(self.data, f, ensure_ascii=False, indent=1)
+
+    def _save_txt(self):
+        with open(self.file, "w", encoding="utf-8") as f:
+            f.write(self.data.text)
+
+    def _save_xlsx(self):
+        xlsx = pd.read_excel(self.data.content, header=None)
+        xlsx.to_excel(self.file, header=False, index=False)
+
+    def _save_xml(self):
+        from lxml import etree
+        xml = etree.fromstring(self.data.content)
+
+        with open(self.file, "wb") as f:
+            f.write(
+                etree.tostring(
+                    xml,
+                    encoding="UTF-8",
+                    xml_declaration=True,
+                    pretty_print=True,
                 )
+            )
 
-            # Finish task
-            self.conn.commit()
-            print(f"... {self.t1 - self.t0:0.2f}", packet["item"]["id"], end=" ")
-            if error:
-                print(error)
-            else:
     def _print_progress(self,response, manifest_item):
         if self.progress:
             error = ""
-            if self.db in self.db_extensions:
+            if self.output in self.db_extensions:
                 error = ""
                 if "error" in response.json():
                     error = response.json()["error"]
@@ -278,8 +317,9 @@ class Call:
             for x in self.calls.values():
                 x["skip"] = True
         else:
-            if self.clear:
-                print("... clearing", self.db)
+            if self.clear and self.output.endswith(self.db_extensions):
+                ts = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+                print(ts, f"CLEAR  {self.output}")
                 self.c.execute("DROP TABLE calls")
                 self._make_table()
                 self.conn.commit()
@@ -308,7 +348,7 @@ class Call:
         dt = {
             "timestamp  ": self.timestamp,
             "input      ": self.input,
-            "db         ": self.db,
+            "output     ": self.output,
             "server     ": self.server,
             "calls      ": len(self.calls),
             "wait       ": self.wait,
@@ -324,63 +364,90 @@ class Call:
     def __init__(
         self,
         input,
-        db="sgex.db",
+        output="sgex.db",
         dry_run=False,
         skip=True,
         clear=False,
-        timestamp=True,
         server="https://api.sketchengine.eu/bonito/run.cgi",
         wait=True,
         asyn="0",
         threads=16,
+        progress=True,
     ):
-        t0 = time.perf_counter()
-
         # Settings
         self.dry_run = dry_run
         self.skip = skip
         self.clear = clear
-        self.global_parameters = {"asyn": asyn, "format": "json"}
         self.server = server.strip("/")
         self.wait_enabled = wait
-        self.input = "dict"
         self.timestamp = None
-        self.db = "".join(["data/", db])
+        self.global_parameters = {"asyn": asyn}
         self.threads = threads
-
-        if timestamp:
-            self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.progress = progress
+        self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.input = "dict"
+        self.db_extensions = (".db")
+        self.errors = []
         if isinstance(input, str):
             self.input = pathlib.Path(input).name
 
-        # Database
-        pathlib.Path.mkdir(pathlib.Path("data"),exist_ok=True)
-        self.conn = sql.connect(self.db)
-        self.c = self.conn.cursor()
-        self._make_table()
+        t0 = time.perf_counter()
+        print(self.timestamp, f"START  {self.input}")
 
-        # Execute
+        pathlib.Path.mkdir(pathlib.Path("data"),exist_ok=True)
+        # Database
+        if output.endswith(self.db_extensions):
+            self.output = "".join(["data/", output])
+            self.conn = sql.connect(self.output)
+            self.c = self.conn.cursor()
+            self._make_table()
+            self.global_parameters["format"] = "json"
+        # Filesystem
+        else:
+            self.output = "data/raw"
+            self.extension = "".join([".", output.strip(".")])
+            self.global_parameters["format"] = output.strip(".")
+            pathlib.Path.mkdir(pathlib.Path(self.output),exist_ok=True)
+
+        # Prepare
         credentials = self._credentials()
         self.calls = sgex.Parse(input).calls
         self._set_wait()
         self._reuse_parameters()
-        self._hashes_add()
-        self._hashes_compare()
+
+        # SQLite
+        if output.endswith(self.db_extensions):
+            self._hashes_add()
+            self._hashes_compare()
+        # Filesystem
+        else:
+            for x in self.calls.values():
+                x["skip"] = False
+
         self._pre_calls()
         manifest = self._make_manifest(credentials)
+        ts = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(ts, f"QUEUED {len(manifest)} / {len(self.calls)}")
 
-        local_hosts = ("http://localhost:")
-        if  self.server.startswith(local_hosts) and not wait:
-            print("... asynchronous")
-            self.wait = 0
-            self._make_local_calls(manifest)
-        else:
-            print("... wait =", self.wait)
-            self._make_calls(manifest)
-
-        # Close
-        self.c.close()
-        self.conn.close()
+        # Execute
+        if manifest:
+            local_hosts = ("http://localhost:")
+            if  self.server.startswith(local_hosts) and not wait:
+                self.wait = 0
+                self._make_local_calls(manifest)
+            else:
+                self._make_calls(manifest)
+        
+        # Wrap up
+        if output.endswith(self.db_extensions):
+            self.c.close()
+            self.conn.close()
 
         t1 = time.perf_counter()
-        print(f"... {t1 - t0:0.2f} total")
+        ts = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(ts, f"CALLED {len(manifest)} in {t1 - t0:0.2f} secs")
+ 
+        if self.global_parameters["format"] == "json":
+            print(ts, f"ERRORS {len(self.errors)} {set(self.errors)}")
+        else:
+            print(ts, f"ERRORS NA")
