@@ -304,8 +304,7 @@ class Call:
     def _print_progress(self,response, manifest_item):
         if self.progress:
             error = ""
-            if self.output in self.db_extensions:
-                error = ""
+            if self.global_parameters["format"] == "json":
                 if "error" in response.json():
                     error = response.json()["error"]
             print(f"{self.t1 - self.t0:0.2f}", manifest_item["id"], error)
@@ -344,14 +343,17 @@ class Call:
         """Prints job details."""
 
         dt = {
-            "timestamp  ": self.timestamp,
+            "\nDRY RUN    ": self.timestamp,
             "input      ": self.input,
             "output     ": self.output,
-            "server     ": self.server,
-            "calls      ": len(self.calls),
-            "wait       ": self.wait,
+            "format     ": self.global_parameters["format"],
             "skip       ": self.skip,
             "clear      ": self.clear,
+            "server     ": self.server,
+            "wait       ": self.wait,
+            "threads    ": self.threads,
+            "asyn       ": self.global_parameters["asyn"],
+            "progress   ": self.progress,
         }
 
         s = [" ".join([k, str(v)]) for k, v in dt.items()]
