@@ -78,7 +78,7 @@ job = sgex.Call("calls/examples.yml")
 
 `wait` wait between calls (`True`) (follows SkE wait policy)
 
-`threads` set threads for asynchronous calling (18) - use with localhost & `wait=False`
+`threads` for asynchronous calling (`None` for default, otherwise an integer)
 
 `asyn` retrieve rough calculations, `"0"` (default) or `"1"`
 
@@ -180,7 +180,7 @@ If `skip=True`, a call won't be repeated when an identical call has already been
 
 **Asynchronous calling**
 
-When using a local server and with `wait=False`, SGEX enables asynchronous calling. This can increase performance substantially. 16 threads are used by default.
+When using a local server and with `wait=False`, SGEX enables asynchronous calling. This can increase performance substantially. `threads` is user adjustable, but by default already adjusts to the number of CPUs available (see `max_workers` for [concurrent.futures](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor)). In this mode, all calls in an input file must finish before responses are saved: if interrupted, the whole process needs to be restarted.
 
 **Discarding unwanted data with `keep`**
 

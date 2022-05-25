@@ -7,6 +7,7 @@ import pandas as pd
 import yaml
 import sqlite3 as sql
 from concurrent.futures import ThreadPoolExecutor
+import os
 
 import sgex
 
@@ -30,7 +31,7 @@ class Call:
 
     `wait` wait between calls (`True`) (follows SkE wait policy)
 
-    `threads` set threads for asynchronous calling (18) - use with localhost & `wait=False`)
+    `threads` for asynchronous calling (`None` for default, otherwise an integer)
 
     `asyn` retrieve rough calculations, `"0"` (default) or `"1"`
     
@@ -352,7 +353,7 @@ class Call:
         """Prints job details."""
 
         dt = {
-            "\nDRY RUN    ": self.timestamp,
+            "\nDETAILS  ": "",
             "input      ": self.input,
             "output     ": self.output,
             "format     ": self.global_parameters["format"],
@@ -380,7 +381,7 @@ class Call:
         server="https://api.sketchengine.eu/bonito/run.cgi",
         wait=True,
         asyn="0",
-        threads=16,
+        threads=None,
         progress=True,
     ):
         # Settings
@@ -391,7 +392,7 @@ class Call:
         self.wait_enabled = wait
         self.timestamp = None
         self.global_parameters = {"asyn": asyn}
-        self.threads = threads
+        self.threads = min(32, os.cpu_count() + 4)
         self.progress = progress
         self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
         self.input = "dict"
@@ -399,6 +400,8 @@ class Call:
         self.errors = []
         if isinstance(input, str):
             self.input = pathlib.Path(input).name
+        if threads:
+            self.threads = threads
 
         t0 = time.perf_counter()
         print(self.timestamp, f"START  {self.input}")
