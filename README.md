@@ -37,7 +37,9 @@ Or manual install:
 
 **API credentials**
 
-Run `sgex.config.credentials()` to automate the creation of a `config.yml` file in the project directory. Follow the prompts to store an API key in plaintext or with the `keyring` package. If a server doesn't require credentials, use any non-empty string, e.g., `'null'` for both `username` and `api_key`. If necessary, a keyring entry can be modified directly as shown below.
+Run `sgex.config.credentials()` to automate the creation of a `config.yml` file in the project directory. Follow the prompts to store an API key in plaintext or with the `keyring` package. The config file can also be created manually (see[config example](/config.yml)).
+
+Credentials consist of servers, usernames, and API keys. To add more servers, just modify `config.yml`. If a server doesn't require credentials, use any non-empty string, e.g., `'null'` for both `username` and `api_key`. If necessary, a keyring entry can be modified directly as shown below.
 
 ```python
 import keyring
@@ -53,9 +55,9 @@ keyring.delete_password("<server>", "<username>")
 
 To get started using example calls, run `sgex.config.examples()` to generate an input file in `calls/`. Then run `sgex.Call()` with a path to an input file. Retrieved API data is stored in sqlite databases in `data/`. The default database is `sgex.db`; new databases are created when other filenames are supplied.
 
-API responses can also be saved directly to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `output="csv"` (overwrites previous data). JSON is the universal format and the only one with error reporting. 
+API responses can also be saved directly to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `output="csv"`, etc. This always overwrites prexisting data. 
 
-Supported formats generally depend on the shape of the data: e.g., `view` requires JSON and `freqs` accepts all file types. NoSketch Engine servers may not output XLSX.
+JSON is the universal format and the only one with error reporting. Supported formats generally depend on the shape of the data: e.g., `view` requires JSON and `freqs` accepts all file types. NoSketch Engine servers may not output XLSX.
 
 ``` python
 import sgex
@@ -74,7 +76,7 @@ job = sgex.Call("calls/examples.yml")
 
 `skip` skip calls when a hash of the same call parameters exists in sqlite (`True`)
 
-`clear` remove existing sqlite data before running current calls (`False`)
+`clear` remove existing data before calls (sqlite table or `data/raw/`) (`False`)
 
 `server` (`"https://api.sketchengine.eu/bonito/run.cgi"`)
 
@@ -96,7 +98,7 @@ One or more calls can be executed by creating an input file readable by SGEX tha
 - call types (frequency, concordance, etc.) are defined with `"type"`
 - each call has a dictionary of API parameters in `"call"`
 - calls can optionally contain metadata in `"meta"`
-- `"keep"` can be used to save only a portion of response data
+- `"keep"` can be used to save only a portion of response data (JSON only)
 
 The call below queries the lemma "rock" in the [EcoLexicon English Corpus](https://www.sketchengine.eu/ecolexicon-corpus/) and retrieves frequencies by several text types.
 
