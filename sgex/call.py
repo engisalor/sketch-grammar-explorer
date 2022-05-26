@@ -241,17 +241,9 @@ class Call:
     def _post_call(self, packet):
         """Processes and saves call data."""
 
-        # Error handling
         packet["response"].raise_for_status()
+    
         if self.format == "json":
-            self.data = json.dumps(packet["response"].json())
-            error = None
-            if "error" in packet["response"].json():
-                error = packet["response"].json()["error"]
-                self.errors.append(error)
-        
-        # SQLite
-        if self.output.endswith(self.db_extensions):
             # Keep data
             if "keep" in packet["item"]["params"]:
                 keep = packet["item"]["params"]["keep"]
@@ -260,11 +252,25 @@ class Call:
                 kept = {
                     k: v for k, v in packet["response"].json().items() if k in keeps
                 }
-                self.data = json.dumps(kept)
-
+                self.data = kept
+            else:
+                self.data = packet["response"].json()
+            # Scrub credentials            
+            if "request" in self.data:
+                for i in ["api_key", "username"]:
+                    if i in self.data["request"]:
+                        del self.data["request"][i]
+            # API errors
+            error = None
+            if "error" in packet["response"].json():
+                error = packet["response"].json()["error"]
+                self.errors.append(error)
+        
+        # SQLite
+        if self.output.endswith(self.db_extensions):
             # Add metadata
             meta = None
-            if "meta" in packet["item"]["params"].keys():
+            if "meta" in packet["item"]["params"]:
                 if isinstance(
                     packet["item"]["params"]["meta"], (dict, list, tuple)
                 ):
@@ -286,7 +292,7 @@ class Call:
                     json.dumps(packet["item"]["params"]["call"], sort_keys=True),
                     meta,
                     error,
-                    self.data,
+                    json.dumps(self.data),
                 ),
                 )
             self.conn.commit()
@@ -294,7 +300,8 @@ class Call:
         # Filesystem
         else:                
             # Save to specified format
-            self.data = packet["response"]
+            if not self.format == "json":
+                self.data = packet["response"]
             dir = pathlib.Path(self.output)
             name = pathlib.Path(packet["item"]["id"]).with_suffix(self.extension)
             self.file = dir / name
@@ -306,9 +313,6 @@ class Call:
             f.write(self.data.text)
 
     def _save_json(self):
-        self.data = self.data.json()
-        del self.data["request"]["username"]
-        del self.data["request"]["api_key"]
         with open(self.file, "w", encoding="utf-8") as f:
             json.dump(self.data, f, ensure_ascii=False, indent=1)
 
@@ -348,12 +352,12 @@ class Call:
             for x in self.calls.values():
                 x["skip"] = True
         elif self.clear and self.output.endswith(self.db_extensions):
-                logging.info(f"CLEAR {self.output}")
-                self.c.execute("DROP TABLE calls")
-                self._make_table()
-                self.conn.commit()
-                for x in self.calls.values():
-                    x["skip"] = False
+            logging.info(f"CLEAR {self.output}")
+            self.c.execute("DROP TABLE calls")
+            self._make_table()
+            self.conn.commit()
+            for x in self.calls.values():
+                x["skip"] = False
         elif self.clear and self.output == "data/raw":
             logging.info(f"CLEAR {self.output}")
             shutil.rmtree(self.output)
