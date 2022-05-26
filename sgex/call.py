@@ -110,24 +110,30 @@ class Call:
         If parameters are part of a dictionary, individual key:values are reused.
         Otherwise, the item is replaced flatly."""
 
-        def _propagate(ls, k):
-            for x in range(1, len(ls)):
-                current = ls[x][1]
-                id = ls[x][0]
-                previous = ls[x - 1][1] 
-                if k in current and k != "type":
-                    if isinstance(current[k], dict):
-                        p_dt = {**previous[k]}
-                        c_dt = {**current[k]}
-                        self.calls[id][k] = {**p_dt, **c_dt}
+        def _propagate(self, ids, k):
+            for x in range(len(ids)):
+                prev = ids[x - 1]
+                curr = ids[x]
+
+                if "type" in self.calls[curr] or x == 0:
+                    logging.debug(f"ignore  {k} {curr}")
+                elif isinstance(self.calls[prev].get(k), dict) and isinstance(self.calls[curr].get(k), dict):
+                    self.calls[curr][k] = {**self.calls[prev].get(k),**self.calls[curr].get(k)}
+                    logging.debug(f"combine {k} {curr}")
+                elif self.calls[curr].get(k):
+                    pass
+                    logging.debug(f"ignore  {k} {curr}")
+                elif self.calls[prev].get(k):
+                    self.calls[curr][k] = self.calls[prev].get(k)
+                    logging.debug(f"reuse   {k} {curr}")
                     else:
-                        self.calls[id][k] = current[k]
-                else:
-                    if k in previous:
-                        self.calls[id][k] = previous[k]
+                    logging.debug(f"ignore  {k} {curr}")
        
-        ls = [(k, v) for k, v in self.calls.items()]
-        [_propagate(ls, k) for k in ["type", "meta", "keep", "call"]]
+        logging.debug(f"REUSING parameters")
+        ids = list(self.calls.keys())
+        [_propagate(self, ids, k) for k in ["meta", "keep", "call"]]
+        _propagate(self, ids, "type")
+        self.calls = self.calls
 
     def _set_wait(self):
         """Sets wait time for SkE API usage."""
