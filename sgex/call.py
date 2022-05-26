@@ -43,7 +43,7 @@ class Call:
 
     `server` (`"https://api.sketchengine.eu/bonito/run.cgi"`)
 
-    `wait` wait between calls (`True`) (follows SkE wait policy)
+    `wait` `None` bases policy on server type (`False` if localhost, otherwise `True`) - override with boolean
 
     `threads` for asynchronous calling (`None` for default, otherwise an integer)
 
@@ -403,7 +403,7 @@ class Call:
         skip=True,
         clear=False,
         server="https://api.sketchengine.eu/bonito/run.cgi",
-        wait=True,
+        wait=None,
         threads=None,
         progress=True,
         loglevel="info",
@@ -413,7 +413,6 @@ class Call:
         self.skip = skip
         self.clear = clear
         self.server = server.strip("/")
-        self.wait_enabled = wait
         self.threads = min(32, os.cpu_count() + 4)
         self.progress = progress
         self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -421,10 +420,24 @@ class Call:
         self.db_extensions = (".db")
         self.errors = []
         self.supported_formats = ["csv", "json", "txt", "xml", "xlsx"]
+        local_host = "http://localhost:"
         if isinstance(input, str):
             self.input = pathlib.Path(input).name
         if threads:
             self.threads = threads
+
+        # Enable wait
+        if wait is None:
+            if self.server.startswith(local_host):
+                self.wait_enabled = False
+            else:
+                self.wait_enabled = True
+        elif wait is False:
+            self.wait_enabled = False
+        elif wait is True:
+            self.wait_enabled = True
+        else:
+            raise ValueError(f'Bad wait value {self.wait}: must be None, True, False')
 
         # Logging
         logging.info(f"START sgex.Call")        
@@ -472,7 +485,6 @@ class Call:
         logging.info(f"QUEUED {len(manifest)} / {len(self.calls)}")
 
         if manifest:
-            local_hosts = "http://localhost:"
             if self.server.startswith(local_hosts) and not wait:
                 self.wait = 0
                 self._make_local_calls(manifest)

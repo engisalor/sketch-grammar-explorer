@@ -80,7 +80,7 @@ job = sgex.Call("calls/examples.yml")
 
 `server` (`"https://api.sketchengine.eu/bonito/run.cgi"`)
 
-`wait` wait between calls (`True`) (follows SkE wait policy)
+`wait` `None` bases policy on server type (`False` if localhost, otherwise `True`) - override with boolean
 
 `threads` for asynchronous calling (`None` for default, otherwise an integer)
 
@@ -198,7 +198,7 @@ Each call type, `freqs` (frequencies), `view` (concordance), `wsketch` (word ske
 
 **Too many requests**
 
-Sketch Engine monitors API activity and will block excessive calls or other activity outside of their [Fair Use Policy](https://www.sketchengine.eu/fair-use-policy/). While learning the API, test calls selectively, slowly, and avoid repeated identical calls. Keep `wait=True` unless using a local server.
+Sketch Engine monitors API activity and will block excessive calls or other activity outside of their [Fair Use Policy](https://www.sketchengine.eu/fair-use-policy/). While learning the API, test calls selectively, slowly, and avoid repeated identical calls.
 
 **API usage**
 
