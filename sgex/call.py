@@ -11,6 +11,7 @@ import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import sys
+import shutil
 
 import sgex
 
@@ -38,7 +39,7 @@ class Call:
 
     `skip` skip calls when a hash of the same parameters already exists in sqlite (`True`)
 
-    `clear` remove existing sqlite data before running current calls (`False`)
+    `clear` remove existing data before calls (sqlite table or `data/raw/`) (`False`)
 
     `server` (`"https://api.sketchengine.eu/bonito/run.cgi"`)
 
@@ -346,15 +347,17 @@ class Call:
         if self.dry_run:
             for x in self.calls.values():
                 x["skip"] = True
-        else:
-            if self.clear and self.output.endswith(self.db_extensions):
-                ts = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+        elif self.clear and self.output.endswith(self.db_extensions):
                 logging.info(f"CLEAR {self.output}")
                 self.c.execute("DROP TABLE calls")
                 self._make_table()
                 self.conn.commit()
                 for x in self.calls.values():
                     x["skip"] = False
+        elif self.clear and self.output == "data/raw":
+            logging.info(f"CLEAR {self.output}")
+            shutil.rmtree(self.output)
+            pathlib.Path.mkdir(pathlib.Path(self.output), exist_ok=True)
 
     def _make_table(self):
         self.c.execute(
@@ -413,6 +416,7 @@ class Call:
         self.input = "dict" 
         self.db_extensions = (".db")
         self.errors = []
+        self.supported_formats = ["csv", "json", "txt", "xml", "xlsx"]
         if isinstance(input, str):
             self.input = pathlib.Path(input).name
         if threads:
@@ -448,7 +452,7 @@ class Call:
             self._hashes_add()
             self._hashes_compare()
         # Filesystem
-        elif output in ["csv", "json", "txt", "xml", "xlsx"]:
+        elif output in self.supported_formats:
             self.output = "data/raw"
             self.extension = "".join([".", output.strip(".")])
             self.format = output.strip(".")
