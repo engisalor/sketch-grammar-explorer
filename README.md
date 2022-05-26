@@ -80,9 +80,9 @@ job = sgex.Call("calls/examples.yml")
 
 `threads` for asynchronous calling (`None` for default, otherwise an integer)
 
-`asyn` retrieve rough calculations, `"0"` (default) or `"1"`
-
 `progress` print call progress (`True`)
+
+`loglevel` (`"info"`) see `.sgex.log`
 
 ### Input files
 

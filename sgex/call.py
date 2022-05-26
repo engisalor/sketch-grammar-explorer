@@ -9,15 +9,16 @@ import sqlite3 as sql
 from concurrent.futures import ThreadPoolExecutor
 import os
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import sys
 
 import sgex
 
-targets = logging.StreamHandler(sys.stdout), logging.FileHandler('.sgex.log')
+targets = logging.StreamHandler(sys.stdout), TimedRotatingFileHandler('.sgex.log', backupCount=1)
 logging.basicConfig(
     encoding='utf-8', 
     level=logging.INFO, 
-    format='%(asctime)s %(levelname)s %(message)s',
+    format='%(asctime)s %(message)s',
     datefmt='%Y-%m-%d %I:%M:%S',
     handlers=targets,
     )
@@ -47,7 +48,7 @@ class Call:
 
     `progress` print call progress (`True`)
     
-    `progress` print call progress (`True`)"""
+    `loglevel` (`"info"`) see `.sgex.log`"""
 
     def _credentials(self):
         """Gets SkE API credentials from keyring/file.
@@ -122,29 +123,33 @@ class Call:
         If parameters are part of a dictionary, individual key:values are reused.
         Otherwise, the item is replaced flatly."""
 
+        def _log_entry(self, curr, action, k):
+            self.log_entry[curr].extend([action,k])
+
         def _propagate(self, ids, k):
             for x in range(len(ids)):
                 prev = ids[x - 1]
                 curr = ids[x]
 
                 if "type" in self.calls[curr] or x == 0:
-                    logging.debug(f"ignore  {k} {curr}")
+                    _log_entry(self, curr, " skip:", k)
                 elif isinstance(self.calls[prev].get(k), dict) and isinstance(self.calls[curr].get(k), dict):
                     self.calls[curr][k] = {**self.calls[prev].get(k),**self.calls[curr].get(k)}
-                    logging.debug(f"combine {k} {curr}")
+                    _log_entry(self, curr, " comb:", k)
                 elif self.calls[curr].get(k):
                     pass
-                    logging.debug(f"ignore  {k} {curr}")
+                    _log_entry(self, curr, " skip:", k)
                 elif self.calls[prev].get(k):
                     self.calls[curr][k] = self.calls[prev].get(k)
-                    logging.debug(f"reuse   {k} {curr}")
+                    _log_entry(self, curr, "reuse:", k)
                 else:
-                    logging.debug(f"ignore  {k} {curr}")
+                    _log_entry(self, curr, " skip:", k)
 
-        logging.debug(f"REUSING parameters")
+
         ids = list(self.calls.keys())
-        [_propagate(self, ids, k) for k in ["meta", "keep", "call"]]
-        _propagate(self, ids, "type")
+        self.log_entry = {id: ["PARAMS  "] for id in ids}
+        [_propagate(self, ids, k) for k in ["call", "meta", "keep", "type"]]
+        [logging.debug(f'{" ".join(v)}    {k}') for k,v in self.log_entry.items()]
         self.calls = self.calls
 
     def _set_wait(self):
@@ -170,17 +175,20 @@ class Call:
         manifest = []
 
         for k, v in self.calls.items():
-            if not v["skip"]:
-                parameters = {
-                    **credentials,
+            parameters = {
+                **credentials,
                 **{"format": self.format},
-                    **v["call"],
-                }
+                **v["call"],
+            }
 
-                call_type = "".join([v["type"], "?"])
-                url_base = "/".join([self.server, call_type])
-                req.prepare_url(url_base, parameters)
+            call_type = "".join([v["type"], "?"])
+            url_base = "/".join([self.server, call_type])
+            req.prepare_url(url_base, parameters)
+
+            if not v["skip"]:
                 manifest.append({"id": k, "params": v, "url": req.url})
+            
+            logging.debug(f'REQUEST {req.url.replace(credentials["api_key"],"REDACTED")}')
 
         return manifest
 
