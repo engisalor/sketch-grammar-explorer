@@ -34,7 +34,7 @@ class Call:
 
     `output` save to sqlite (default `sgex.db`) or files: `json`, `csv`, `xlsx`, `xml`, `txt`
 
-    `dry_run` make a `Call` object without executing requests (`False`)
+    `dry_run` (`False`)
 
     `skip` skip calls when a hash of the same parameters already exists in sqlite (`True`)
 
@@ -240,68 +240,65 @@ class Call:
     def _post_call(self, packet):
         """Processes and saves call data."""
 
-        if not packet["response"]:
-            logging.critical(f'BAD RESPONSE {packet["response"]}')
-            self.errors.append(packet["response"])
-        else:
-            # Error handling
-            if self.format == "json":
-                self.data = json.dumps(packet["response"].json())
-                error = None
-                if "error" in packet["response"].json():
-                    error = packet["response"].json()["error"]
-                    self.errors.append(error)
-            
-            # SQLite
-            if self.output.endswith(self.db_extensions):
-                # Keep data
-                if "keep" in packet["item"]["params"]:
-                    keep = packet["item"]["params"]["keep"]
-                    if isinstance(keep, str):
-                        keeps = [keep]
-                    kept = {
-                        k: v for k, v in packet["response"].json().items() if k in keeps
-                    }
-                    self.data = json.dumps(kept)
+        # Error handling
+        packet["response"].raise_for_status()
+        if self.format == "json":
+            self.data = json.dumps(packet["response"].json())
+            error = None
+            if "error" in packet["response"].json():
+                error = packet["response"].json()["error"]
+                self.errors.append(error)
+        
+        # SQLite
+        if self.output.endswith(self.db_extensions):
+            # Keep data
+            if "keep" in packet["item"]["params"]:
+                keep = packet["item"]["params"]["keep"]
+                if isinstance(keep, str):
+                    keeps = [keep]
+                kept = {
+                    k: v for k, v in packet["response"].json().items() if k in keeps
+                }
+                self.data = json.dumps(kept)
 
-                # Add metadata
-                meta = None
-                if "meta" in packet["item"]["params"].keys():
-                    if isinstance(
-                        packet["item"]["params"]["meta"], (dict, list, tuple)
-                    ):
-                        meta = json.dumps(
-                            packet["item"]["params"]["meta"], sort_keys=True
-                        )
-                    else:
-                        meta = packet["item"]["params"]["meta"]
-
-                # Write to db
-                self.c.execute(
-                    "INSERT OR REPLACE INTO calls VALUES (?,?,?,?,?,?,?,?,?)",
-                    (
-                        self.input,
-                        packet["item"]["params"]["type"][:-1],
-                        packet["item"]["id"],
-                        packet["item"]["params"]["hash"],
-                        self.timestamp,
-                        json.dumps(packet["item"]["params"]["call"], sort_keys=True),
-                        meta,
-                        error,
-                        self.data,
-                    ),
+            # Add metadata
+            meta = None
+            if "meta" in packet["item"]["params"].keys():
+                if isinstance(
+                    packet["item"]["params"]["meta"], (dict, list, tuple)
+                ):
+                    meta = json.dumps(
+                        packet["item"]["params"]["meta"], sort_keys=True
                     )
-                self.conn.commit()
-            
-            # Filesystem
-            else:                
-                # Save to specified format
-                self.data = packet["response"]
-                dir = pathlib.Path(self.output)
-                name = pathlib.Path(packet["item"]["id"]).with_suffix(self.extension)
-                self.file = dir / name
-                save_method = "".join(["_save_", self.format])
-                getattr(Call, save_method)(self)
+                else:
+                    meta = packet["item"]["params"]["meta"]
+
+            # Write to db
+            self.c.execute(
+                "INSERT OR REPLACE INTO calls VALUES (?,?,?,?,?,?,?,?,?)",
+                (
+                    self.input,
+                    packet["item"]["params"]["type"][:-1],
+                    packet["item"]["id"],
+                    packet["item"]["params"]["hash"],
+                    self.timestamp,
+                    json.dumps(packet["item"]["params"]["call"], sort_keys=True),
+                    meta,
+                    error,
+                    self.data,
+                ),
+                )
+            self.conn.commit()
+        
+        # Filesystem
+        else:                
+            # Save to specified format
+            self.data = packet["response"]
+            dir = pathlib.Path(self.output)
+            name = pathlib.Path(packet["item"]["id"]).with_suffix(self.extension)
+            self.file = dir / name
+            save_method = "".join(["_save_", self.format])
+            getattr(Call, save_method)(self)
 
     def _save_csv(self):
         with open(self.file, "w", encoding="utf-8") as f:
@@ -375,11 +372,8 @@ class Call:
         self.c.execute("pragma journal_mode = WAL")
         self.c.execute("pragma synchronous = normal")
 
-    def __repr__(self) -> str:
-        """Prints job details."""
-
-        dt = {
-            "\nDETAILS  ": "",
+    def summary(self):
+        return {
             "input      ": self.input,
             "output     ": self.output,
             "format     ": self.format,
@@ -391,10 +385,8 @@ class Call:
             "progress   ": self.progress,
         }
 
-        s = [" ".join([k, str(v)]) for k, v in dt.items()]
-        s = "\n".join(s)
-
-        return s
+    def __repr__(self):
+        return ""
 
     def __init__(
         self,
@@ -427,7 +419,7 @@ class Call:
             self.threads = threads
 
         # Logging
-        logging.info(f"START {self.input}")        
+        logging.info(f"START sgex.Call")        
         numeric_level = getattr(logging, loglevel.upper(), None)
 
         if not isinstance(numeric_level, int):
@@ -486,6 +478,6 @@ class Call:
 
         t1 = time.perf_counter()
         logging.info(f"CALLED {len(manifest)} in {t1 - t0:0.2f} secs")
- 
-        if self.format == "json" and self.errors:
-                logging.warning(f"ERRORS {len(self.errors)} {set(self.errors)}")
+        if self.errors:
+            logging.warning(f"ERRORS {len(self.errors)} {set(self.errors)}")
+        [logging.info(f"{k}{v}") for k,v in self.summary().items()]
