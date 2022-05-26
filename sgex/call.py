@@ -8,8 +8,20 @@ import yaml
 import sqlite3 as sql
 from concurrent.futures import ThreadPoolExecutor
 import os
+import logging
+import sys
 
 import sgex
+
+targets = logging.StreamHandler(sys.stdout), logging.FileHandler('.sgex.log')
+logging.basicConfig(
+    encoding='utf-8', 
+    level=logging.INFO, 
+    format='%(asctime)s %(levelname)s %(message)s',
+    datefmt='%Y-%m-%d %I:%M:%S',
+    handlers=targets,
+    )
+logger = logging.getLogger()
 
 
 class Call:
@@ -126,9 +138,9 @@ class Call:
                 elif self.calls[prev].get(k):
                     self.calls[curr][k] = self.calls[prev].get(k)
                     logging.debug(f"reuse   {k} {curr}")
-                    else:
+                else:
                     logging.debug(f"ignore  {k} {curr}")
-       
+
         logging.debug(f"REUSING parameters")
         ids = list(self.calls.keys())
         [_propagate(self, ids, k) for k in ["meta", "keep", "call"]]
@@ -221,7 +233,7 @@ class Call:
         """Processes and saves call data."""
 
         if not packet["response"]:
-            print("Bad response:", packet["response"])
+            logging.critical(f'BAD RESPONSE {packet["response"]}')
             self.errors.append(packet["response"])
         else:
             # Error handling
@@ -323,7 +335,7 @@ class Call:
             if self.global_parameters["format"] == "json":
                 if "error" in response.json():
                     error = response.json()["error"]
-            print(f"{self.t1 - self.t0:0.2f}", manifest_item["id"], error)
+            logging.info(f'{self.t1 - self.t0:0.2f} {manifest_item["id"]} {error}')
 
     def _pre_calls(self):
         if self.dry_run:
@@ -332,7 +344,7 @@ class Call:
         else:
             if self.clear and self.output.endswith(self.db_extensions):
                 ts = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
-                print(ts, f"CLEAR  {self.output}")
+                logging.info(f"CLEAR {self.output}")
                 self.c.execute("DROP TABLE calls")
                 self._make_table()
                 self.conn.commit()
@@ -389,6 +401,7 @@ class Call:
         asyn="0",
         threads=None,
         progress=True,
+        loglevel="info",
     ):
         # Settings
         self.dry_run = dry_run
@@ -401,7 +414,7 @@ class Call:
         self.threads = min(32, os.cpu_count() + 4)
         self.progress = progress
         self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.input = "dict"
+        self.input = "dict" 
         self.db_extensions = (".db")
         self.errors = []
         if isinstance(input, str):
@@ -409,25 +422,21 @@ class Call:
         if threads:
             self.threads = threads
 
-        t0 = time.perf_counter()
-        print(self.timestamp, f"START  {self.input}")
+        # Logging
+        logging.info(f"START {self.input}")        
+        numeric_level = getattr(logging, loglevel.upper(), None)
 
-        pathlib.Path.mkdir(pathlib.Path("data"), exist_ok=True)
-        # Database
-        if output.endswith(self.db_extensions):
-            self.output = "".join(["data/", output])
-            self.conn = sql.connect(self.output)
-            self.c = self.conn.cursor()
-            self._make_table()
-            self.global_parameters["format"] = "json"
-        # Filesystem
-        else:
-            self.output = "data/raw"
-            self.extension = "".join([".", output.strip(".")])
-            self.global_parameters["format"] = output.strip(".")
-            pathlib.Path.mkdir(pathlib.Path(self.output), exist_ok=True)
+        if not isinstance(numeric_level, int):
+            raise ValueError('Invalid log level: %s' % loglevel)
+        logger.setLevel(numeric_level)
 
+        if dry_run and loglevel != "debug":
+            handlers = logger.handlers
+            logger.removeHandler(handlers[-1])
+        
         # Prepare
+        t0 = time.perf_counter()
+        pathlib.Path.mkdir(pathlib.Path("data"), exist_ok=True)
         credentials = self._credentials()
         self.calls = sgex.Parse(input).calls
         self._set_wait()
@@ -435,19 +444,29 @@ class Call:
 
         # SQLite
         if output.endswith(self.db_extensions):
+            self.output = "".join(["data/", output])
+            self.conn = sql.connect(self.output)
+            self.c = self.conn.cursor()
+            self._make_table()
+            self.global_parameters["format"] = "json"
             self._hashes_add()
             self._hashes_compare()
         # Filesystem
-        else:
+        elif output in ["csv", "json", "txt", "xml", "xlsx"]:
+            self.output = "data/raw"
+            self.extension = "".join([".", output.strip(".")])
+            self.global_parameters["format"] = output.strip(".")
+            pathlib.Path.mkdir(pathlib.Path(self.output), exist_ok=True)
             for x in self.calls.values():
                 x["skip"] = False
-
-        self._pre_calls()
-        manifest = self._make_manifest(credentials)
-        ts = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(ts, f"QUEUED {len(manifest)} / {len(self.calls)}")
+        else:
+            raise ValueError(f'{output} not a recognized output, e.g.: "project.db" or "json"')
 
         # Execute
+        self._pre_calls()
+        manifest = self._make_manifest(credentials)
+        logging.info(f"QUEUED {len(manifest)} / {len(self.calls)}")
+
         if manifest:
             local_hosts = "http://localhost:"
             if self.server.startswith(local_hosts) and not wait:
@@ -462,10 +481,7 @@ class Call:
             self.conn.close()
 
         t1 = time.perf_counter()
-        ts = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(ts, f"CALLED {len(manifest)} in {t1 - t0:0.2f} secs")
+        logging.info(f"CALLED {len(manifest)} in {t1 - t0:0.2f} secs")
  
-        if self.global_parameters["format"] == "json":
-            print(ts, f"ERRORS {len(self.errors)} {set(self.errors)}")
-        else:
-            print(ts, f"ERRORS NA")
+        if self.global_parameters["format"] == "json" and self.errors:
+                logging.warning(f"ERRORS {len(self.errors)} {set(self.errors)}")
