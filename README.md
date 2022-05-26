@@ -51,9 +51,11 @@ keyring.delete_password("<server>", "<username>")
 
 ## Making API calls
 
-To get started using example calls, run `sgex.config.examples()` to generate an input file in `calls/`. Then run `sgex.Call()` with a path to an input file. Retrieved API data is stored in sqlite databases in `data/`. The default database is `sgex.db`, but new databases are created when new filenames are supplied.
+To get started using example calls, run `sgex.config.examples()` to generate an input file in `calls/`. Then run `sgex.Call()` with a path to an input file. Retrieved API data is stored in sqlite databases in `data/`. The default database is `sgex.db`; new databases are created when other filenames are supplied.
 
-API responses can also be saved directly to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `output="csv"`, etc. This always overwrites existing data and is incompatible with some call types. JSON is the universal format and the only one with error reporting.
+API responses can also be saved directly to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `output="csv"` (overwrites previous data). JSON is the universal format and the only one with error reporting. 
+
+Supported formats generally depend on the shape of the data: e.g., `view` requires JSON and `freqs` accepts all file types. NoSketch Engine servers may not output XLSX.
 
 ``` python
 import sgex
@@ -68,9 +70,9 @@ job = sgex.Call("calls/examples.yml")
 
 `output` save to sqlite (default `sgex.db`) or files: `json`, `csv`, `xlsx`, `xml`, `txt`
 
-`dry_run` make a `Call` object without executing requests (`False`)
+`dry_run` (`False`)
 
-`skip` skip calls when a hash of the same parameters already exists in sqlite (`True`)
+`skip` skip calls when a hash of the same call parameters exists in sqlite (`True`)
 
 `clear` remove existing sqlite data before running current calls (`False`)
 
@@ -80,7 +82,7 @@ job = sgex.Call("calls/examples.yml")
 
 `threads` for asynchronous calling (`None` for default, otherwise an integer)
 
-`progress` print call progress (`True`)
+`progress` show progress (`True`)
 
 `loglevel` (`"info"`) see `.sgex.log`
 
