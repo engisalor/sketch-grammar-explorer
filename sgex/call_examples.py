@@ -1,7 +1,7 @@
 call_examples = {
     "collx": {
         "type": "collx",
-        "meta": {"category1": "tag1"},
+        "meta": ["a", "list", "of", "tags"],
         "call": {
             "corpname": "preloaded/ecolexicon_en",
             "q": ['alemma_lc,"climate" within <doc (user="Expert") />'],
@@ -21,7 +21,7 @@ call_examples = {
     "freqs-rock": {
         "type": "freqs",
         "keep": "concsize",
-        "meta": {"text types": ["domain", "genre", "editor"]},
+        "meta": {"text types": ("domain", "genre", "editor")},
         "call": {
             "q": ['alemma,"rock"'],
             "corpname": "preloaded/ecolexicon_en",
@@ -30,6 +30,7 @@ call_examples = {
         },
     },
     "freqs-stone": {
+        "meta": {"a tag": "that is added to previous ones"},
         "call": {
             "q": ['alemma,"stone"'],
         },
@@ -43,6 +44,7 @@ call_examples = {
             "pagesize": 20,
             "fromp": 1,
             "refs": "doc,s",
+            "asyn": 1,
         },
     },
     "wsketch": {
