@@ -45,7 +45,7 @@ class Call:
 
     `threads` for asynchronous calling (`None` for default, otherwise an integer)
 
-    `asyn` retrieve rough calculations, `"0"` (default) or `"1"`
+    `progress` print call progress (`True`)
     
     `progress` print call progress (`True`)"""
 
@@ -173,7 +173,7 @@ class Call:
             if not v["skip"]:
                 parameters = {
                     **credentials,
-                    **self.global_parameters,
+                **{"format": self.format},
                     **v["call"],
                 }
 
@@ -237,7 +237,7 @@ class Call:
             self.errors.append(packet["response"])
         else:
             # Error handling
-            if self.global_parameters["format"] == "json":
+            if self.format == "json":
                 self.data = json.dumps(packet["response"].json())
                 error = None
                 if "error" in packet["response"].json():
@@ -292,7 +292,7 @@ class Call:
                 dir = pathlib.Path(self.output)
                 name = pathlib.Path(packet["item"]["id"]).with_suffix(self.extension)
                 self.file = dir / name
-                save_method = "".join(["_save_", self.global_parameters["format"]])
+                save_method = "".join(["_save_", self.format])
                 getattr(Call, save_method)(self)
 
     def _save_csv(self):
@@ -332,7 +332,7 @@ class Call:
     def _print_progress(self, response, manifest_item):
         if self.progress:
             error = ""
-            if self.global_parameters["format"] == "json":
+            if self.format == "json":
                 if "error" in response.json():
                     error = response.json()["error"]
             logging.info(f'{self.t1 - self.t0:0.2f} {manifest_item["id"]} {error}')
@@ -374,13 +374,12 @@ class Call:
             "\nDETAILS  ": "",
             "input      ": self.input,
             "output     ": self.output,
-            "format     ": self.global_parameters["format"],
+            "format     ": self.format,
             "skip       ": self.skip,
             "clear      ": self.clear,
             "server     ": self.server,
             "wait       ": self.wait,
             "threads    ": self.threads,
-            "asyn       ": self.global_parameters["asyn"],
             "progress   ": self.progress,
         }
 
@@ -398,7 +397,6 @@ class Call:
         clear=False,
         server="https://api.sketchengine.eu/bonito/run.cgi",
         wait=True,
-        asyn="0",
         threads=None,
         progress=True,
         loglevel="info",
@@ -409,8 +407,6 @@ class Call:
         self.clear = clear
         self.server = server.strip("/")
         self.wait_enabled = wait
-        self.timestamp = None
-        self.global_parameters = {"asyn": asyn}
         self.threads = min(32, os.cpu_count() + 4)
         self.progress = progress
         self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -448,14 +444,14 @@ class Call:
             self.conn = sql.connect(self.output)
             self.c = self.conn.cursor()
             self._make_table()
-            self.global_parameters["format"] = "json"
+            self.format = "json"
             self._hashes_add()
             self._hashes_compare()
         # Filesystem
         elif output in ["csv", "json", "txt", "xml", "xlsx"]:
             self.output = "data/raw"
             self.extension = "".join([".", output.strip(".")])
-            self.global_parameters["format"] = output.strip(".")
+            self.format = output.strip(".")
             pathlib.Path.mkdir(pathlib.Path(self.output), exist_ok=True)
             for x in self.calls.values():
                 x["skip"] = False
@@ -483,5 +479,5 @@ class Call:
         t1 = time.perf_counter()
         logging.info(f"CALLED {len(manifest)} in {t1 - t0:0.2f} secs")
  
-        if self.global_parameters["format"] == "json" and self.errors:
+        if self.format == "json" and self.errors:
                 logging.warning(f"ERRORS {len(self.errors)} {set(self.errors)}")
