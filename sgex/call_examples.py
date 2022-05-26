@@ -18,9 +18,10 @@ call_examples = {
             "l": "climate",
         },
     },
-    "freqs": {
+    "freqs-rock": {
         "type": "freqs",
-        "meta": {"category1": "tag1"},
+        "keep": "concsize",
+        "meta": {"text types": ["domain", "genre", "editor"]},
         "call": {
             "q": ['alemma,"rock"'],
             "corpname": "preloaded/ecolexicon_en",
@@ -28,9 +29,13 @@ call_examples = {
             "fcrit": ["doc.domains 0", "doc.genre 0", "doc.editor 0"],
         },
     },
+    "freqs-stone": {
+        "call": {
+            "q": ['alemma,"stone"'],
+        },
+    },
     "view": {
         "type": "view",
-        "meta": {"category1": "tag1"},
         "call": {
             "q": ['alemma,"ice"'],
             "corpname": "preloaded/ecolexicon_en",
@@ -42,7 +47,7 @@ call_examples = {
     },
     "wsketch": {
         "type": "wsketch",
-        "meta": {"category1": "tag1"},
+        "meta": "a string for metadata",
         "call": {
             "lemma": "climate change",
             "lpos": "-n",
