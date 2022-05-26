@@ -485,7 +485,7 @@ class Call:
         logging.info(f"QUEUED {len(manifest)} / {len(self.calls)}")
 
         if manifest:
-            if self.server.startswith(local_hosts) and not wait:
+            if self.server.startswith(local_host) and not wait:
                 self.wait = 0
                 self._make_local_calls(manifest)
             else:
