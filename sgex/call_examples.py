@@ -20,7 +20,6 @@ call_examples = {
     },
     "freqs-rock": {
         "type": "freqs",
-        "keep": "concsize",
         "meta": {"text types": ("domain", "genre", "editor")},
         "call": {
             "q": ['alemma,"rock"'],
@@ -30,6 +29,7 @@ call_examples = {
         },
     },
     "freqs-stone": {
+        "keep": "concsize",
         "meta": {"a tag": "that is added to previous ones"},
         "call": {
             "q": ['alemma,"stone"'],
