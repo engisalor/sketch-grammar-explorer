@@ -27,7 +27,7 @@ logger = logging.getLogger()
 
 
 class Call:
-    """Executes Sketch Engine API calls & saves data to sqlite database.
+    """Executes Sketch Engine API calls & saves data to desired output.
 
     Options
 
@@ -146,7 +146,6 @@ class Call:
     def _set_wait(self):
         """Sets wait time for SkE API usage."""
 
-        # TODO allow user to define wait values
         n = len(self.calls)
         if n == 1 or not self.wait_enabled:
             wait = 0
@@ -205,14 +204,8 @@ class Call:
 
         THREAD_POOL = self.threads
         session = requests.Session()
-        session.mount(
-            "https://",
-            requests.adapters.HTTPAdapter(
-                pool_maxsize=THREAD_POOL,
-                                        # max_retries=3,
-                pool_block=True,
-            ),
-        )
+        adapter = requests.adapters.HTTPAdapter(pool_maxsize=THREAD_POOL, pool_block=True)
+        session.mount("http://", adapter)
 
         def get(manifest_item):
             self.t0 = time.perf_counter()
@@ -237,6 +230,10 @@ class Call:
                 keep = packet["item"]["params"]["keep"]
                 if isinstance(keep, str):
                     keeps = [keep]
+                elif isinstance(keep, (list, tuple)):
+                    keeps = keep
+                else:
+                    raise TypeError(f'Bad type for "keep" {type(keep)}: use string, list, tuple')
                 kept = {
                     k: v for k, v in packet["response"].json().items() if k in keeps
                 }
@@ -479,6 +476,7 @@ class Call:
         
         # Wrap up
         if output.endswith(self.db_extensions):
+            self.c.execute("pragma optimize")
             self.c.close()
             self.conn.close()
 

@@ -38,7 +38,7 @@ Or manual install:
 
 Run `sgex.config.credentials()` to automate the creation of a `config.yml` file in the project directory. Follow the prompts to store an API key in plaintext or with the `keyring` package. The config file can also be created manually (see [config example](/config.yml)).
 
-Credentials consist of servers, usernames, and API keys. To add more servers, just modify `config.yml`. If a server doesn't require credentials, use any non-empty string, e.g., `'null'` for both `username` and `api_key`. If necessary, a keyring entry can be modified directly as shown below.
+Credentials consist of servers, usernames, and API keys. To add more servers, just modify `config.yml`. If a server doesn't require credentials, use a non-empty string, e.g., `'null'` for both `username` and `api_key`. If necessary, a keyring entry can be modified directly as shown below.
 
 ```python
 import keyring
@@ -187,7 +187,7 @@ Asynchronous calling is enabled when using a local server, which can increase pe
 
 **Discarding unwanted data with `keep`**
 
-SGEX saves the entire response for each API call by default. `keep` can be used to specify what JSON data to add. For example, if `keep="concsize"` is set for `freqs` calls, only the absolute frequency is kept and the rest of the response is discarded. Currently, `keep` works for top-level items only, not nested JSON data.
+SGEX saves the entire response for each API call by default. Instead, `keep` can be used to specify what JSON data to save. For example, if `keep="concsize"` is set for `freqs` calls, only the absolute frequency is kept and the rest of the response is discarded. `keep` only works for top-level items, not nested data.
 
 ### Notes
 
@@ -209,7 +209,7 @@ Before relying heavily on the API, it's a good idea to practice trying the same 
 
 **Saving and converting calls** 
 
-`Parse()` is used to read API calls, but it can also be used to save call dictionaries and convert them to/from JSON and YAML files. Use `dest="<filepath>"` to save an object to file, specifying the desired format.
+`Parse()` is used to read API calls, but it can save call dictionaries and convert them to/from JSON and YAML files. Use `dest="<filepath>"` to save an object to file with the desired format.
 
 ## About
 
