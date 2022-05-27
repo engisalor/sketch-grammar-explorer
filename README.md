@@ -80,7 +80,7 @@ job = sgex.Call("calls/examples.yml")
 
 `server` (`"https://api.sketchengine.eu/bonito/run.cgi"`)
 
-`wait` `None` bases policy on server type (`False` if localhost, otherwise `True`) - override with boolean
+`wait` `None` for default (`False` if localhost, otherwise `True`) - override with boolean
 
 `threads` for asynchronous calling (`None` for default, otherwise an integer)
 
@@ -184,11 +184,11 @@ If `skip=True`, a call won't be repeated when an identical call has already been
 
 **Asynchronous calling**
 
-When using a local server and with `wait=False`, SGEX enables asynchronous calling. This can increase performance substantially. `threads` is user adjustable, but by default already adjusts to the number of CPUs available (see `max_workers` for [concurrent.futures](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor)). In this mode, all calls in an input file must finish before responses are saved: if interrupted, the whole process needs to be restarted.
+Asynchronous calling is enabled when using a local server, which can increase performance substantially. By default the number of threads adjusts according to the number of CPUs available (see `max_workers` for [concurrent.futures](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor)). In this mode a job must finish before responses are saved.
 
 **Discarding unwanted data with `keep`**
 
-SGEX saves the entire response for each API call by default. `keep` can be used to specify what data to add to a sqlite database and what to discard. For example, if `keep="concsize"` is set for `freqs` calls, only the absolute frequency is kept and the rest of the response is discarded. Currently, `keep` works for top-level items only, not nested JSON data.
+SGEX saves the entire response for each API call by default. `keep` can be used to specify what JSON data to add. For example, if `keep="concsize"` is set for `freqs` calls, only the absolute frequency is kept and the rest of the response is discarded. Currently, `keep` works for top-level items only, not nested JSON data.
 
 ### Notes
 

@@ -43,7 +43,7 @@ class Call:
 
     `server` (`"https://api.sketchengine.eu/bonito/run.cgi"`)
 
-    `wait` `None` bases policy on server type (`False` if localhost, otherwise `True`) - override with boolean
+    `wait` `None` for default (`False` if localhost, otherwise `True`) - override with boolean
 
     `threads` for asynchronous calling (`None` for default, otherwise an integer)
 
@@ -201,9 +201,7 @@ class Call:
             time.sleep(self.wait)
 
     def _make_local_calls(self, manifest):
-        """Runs calls in manifest asynchronously.
-        
-        Enabled when using a local server & `wait=False`."""
+        """Runs calls in manifest asynchronously (when using a local server)."""
 
         THREAD_POOL = self.threads
         session = requests.Session()
