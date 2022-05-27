@@ -37,7 +37,7 @@ Or manual install:
 
 **API credentials**
 
-Run `sgex.config.credentials()` to automate the creation of a `config.yml` file in the project directory. Follow the prompts to store an API key in plaintext or with the `keyring` package. The config file can also be created manually (see[config example](/config.yml)).
+Run `sgex.config.credentials()` to automate the creation of a `config.yml` file in the project directory. Follow the prompts to store an API key in plaintext or with the `keyring` package. The config file can also be created manually (see [config example](/config.yml)).
 
 Credentials consist of servers, usernames, and API keys. To add more servers, just modify `config.yml`. If a server doesn't require credentials, use any non-empty string, e.g., `'null'` for both `username` and `api_key`. If necessary, a keyring entry can be modified directly as shown below.
 
@@ -180,7 +180,7 @@ call2:
 
 **Skipping repeats**
 
-If `skip=True`, a call won't be repeated when an identical call has already been made in a sqlite database. Repeats are identified using hashes of `call` dictionaries. If the contents of `"call"` change at all (even one character), they are considered unique calls. If `skip=False`, existing data is replaced when a new call has the same hash.
+If `skip=True`, a call won't be repeated when an identical call has already been made in a sqlite database. Repeats are identified using hashes of call dictionaries. If the contents of `"call"` change at all (even one character), they are considered unique calls. If `skip=False`, existing data is replaced when a new call has the same hash.
 
 **Asynchronous calling**
 
