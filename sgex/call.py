@@ -338,10 +338,7 @@ class Call:
             logging.info(f'{self.t1 - self.t0:0.2f} {manifest_item["id"]} {error}')
 
     def _pre_calls(self):
-        if self.dry_run:
-            for x in self.calls.values():
-                x["skip"] = True
-        elif self.clear and self.output.endswith(self.db_extensions):
+        if self.clear and self.output.endswith(self.db_extensions):
             logging.info(f"CLEAR {self.output}")
             self.c.execute("DROP TABLE calls")
             self._make_table()
@@ -430,7 +427,7 @@ class Call:
             raise ValueError(f'Bad wait value {self.wait}: must be None, True, False')
 
         # Logging
-        logging.info(f"START sgex.Call")        
+        logging.info(f"START sgex.Call {self.input}")        
         numeric_level = getattr(logging, loglevel.upper(), None)
 
         if not isinstance(numeric_level, int):
@@ -472,10 +469,11 @@ class Call:
         # Execute
         self._pre_calls()
         manifest = self._make_manifest(credentials)
-        logging.info(f"QUEUED {len(manifest)} / {len(self.calls)}")
+        self.queued = len(manifest)
+        logging.info(f"QUEUED {self.queued} / {len(self.calls)}")
 
-        if manifest:
-            if self.server.startswith(local_host) and not wait:
+        if manifest and not self.dry_run:
+            if self.server.startswith(local_host):
                 self.wait = 0
                 self._make_local_calls(manifest)
             else:
