@@ -7,7 +7,6 @@
     - [Input files](#input-files)
     - [Features](#features)
     - [Notes](#notes)
-  - [Tools](#tools)
   - [About](#about)
   - [Citation](#citation)
 
@@ -208,14 +207,9 @@ To learn more about the API, it's helpful to inspect network activity while maki
 
 Before relying heavily on the API, it's a good idea to practice trying the same queries both in a web browser and via API to make sure the results are identical.
 
-## Tools
+**Saving and converting calls** 
 
-SGEX will offer more features to automate repetitive tasks and procedures for certain methodologies. Feel free to suggest features.
-
-**`convert_grammar()`** converts a sketch grammar into SGEX-formatted queries (requires modifications depending on input)
-
-**`Parse()`** parses and returns a dict of API calls or saves to a JSON/YAML file
-- `dest="<filepath>"` saves an object to file (can be used to convert between file formats)
+`Parse()` is used to read API calls, but it can also be used to save call dictionaries and convert them to/from JSON and YAML files. Use `dest="<filepath>"` to save an object to file, specifying the desired format.
 
 ## About
 
