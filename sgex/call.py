@@ -98,21 +98,11 @@ class Call:
     def _hashes_compare(self):
         """Compares hashes with existing data, sets skip values."""
 
-        # No skip by default
         for x in self.calls.values():
-            x["skip"] = False
-
-        # Get existing calls
-        for x in self.calls.values():
-            # Get existing hashes
-            self.c.execute("select hash from calls")
-            output = self.c.fetchall()
-            hashes = set([x[0] for x in output])
-
-        # Compare hashes and set skip values
-        for x in self.calls.values():
-            if x["hash"] in hashes and self.skip:
+            self.c.execute("select hash from calls where hash=?",(x["hash"],))
+            if self.c.fetchone() and self.skip:
                 x["skip"] = True
+            else: x["skip"] = False
 
     def _reuse_parameters(self):
         """Reuses parameters unless defined explicitly.
