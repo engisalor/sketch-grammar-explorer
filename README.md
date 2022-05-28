@@ -4,9 +4,10 @@
   - [Introduction](#introduction)
   - [Setup](#setup)
   - [Making API calls](#making-api-calls)
+    - [Saving results](#saving-results)
     - [Input files](#input-files)
-    - [Features](#features)
-    - [Notes](#notes)
+  - [Features](#features)
+  - [Notes](#notes)
   - [About](#about)
   - [Citation](#citation)
 
@@ -22,11 +23,11 @@ Built with Python 3.10 and tested on 3.7.
 
 - get a [Sketch Engine API key](https://www.sketchengine.eu/documentation/api-documentation/) (if using their server)
 
-Install with pip:
+Install SGEX with pip:
 
 - `pip install sgex`
 
-Or manual install:
+Or manually:
 
 - clone this repo
 - install dependencies:
@@ -36,33 +37,29 @@ Or manual install:
 
 **API credentials**
 
-Run `sgex.config.credentials()` to automate the creation of a `config.yml` file in the project directory. Follow the prompts to store an API key in plaintext or with the `keyring` package. The config file can also be created manually (see [config example](/config.yml)).
-
-Credentials consist of servers, usernames, and API keys. To add more servers, just modify `config.yml`. If a server doesn't require credentials, use a non-empty string, e.g., `'null'` for both `username` and `api_key`. If necessary, a keyring entry can be modified directly as shown below.
+To configure SGEX, either run the code below or manually copy the example [config file](/config.yml) to your preferred directory.
 
 ```python
-import keyring
-
-# to add credentials
-keyring.set_password("<server>","<username>", "<api_key>")
-
-# to delete credentials later
-keyring.delete_password("<server>", "<username>")
+import sgex
+sgex.Call(sgex.call_examples)
 ```
+
+The config file contains API credentials and other settings for servers. Before making calls to a server, set up your credentials:
+
+- if a server requires credentials, add a username and API key
+- API keys can also be managed in the OS keyring with `sgex.config.keyring_add_key()` and `sgex.config.keyring_delete_key()` (in this case add a username in the config file and leave `api_key` as `null` or blank)
+
+The default config file includes two servers: for Sketch Engine and a local NoSketch Engine installation. Add more as needed.
 
 ## Making API calls
 
-To get started using example calls, run `sgex.config.examples()` to generate an input file in `calls/`. Then run `sgex.Call()` with a path to an input file. Retrieved API data is stored in sqlite databases in `data/`. The default database is `sgex.db`; new databases are created when other filenames are supplied.
-
-API responses can also be saved directly to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `output="csv"`, etc. This always overwrites prexisting data. 
-
-JSON is the universal format and the only one with error reporting. Supported formats generally depend on the shape of the data: e.g., `view` requires JSON and `freqs` accepts all file types. NoSketch Engine servers may not output XLSX.
+To get started using example calls, generate an example input file by running `sgex.Parse(sgex.call_examples, "examples.yml")`. To make calls, run `sgex.Call()` with `input="examples.yml"` or another input file. Use the options below to make dry runs, set the server, etc.
 
 ``` python
 import sgex
 
-sgex.config.examples()
-job = sgex.Call("calls/examples.yml")
+sgex.Parse(sgex.call_examples, "examples.yml")
+job = sgex.Call("examples.yml")
 ```
 
 **Options**
@@ -77,15 +74,21 @@ job = sgex.Call("calls/examples.yml")
 
 `clear` remove existing data before calls (sqlite table or `data/raw/`) (`False`)
 
-`server` (`"https://api.sketchengine.eu/bonito/run.cgi"`)
-
-`wait` `None` for default (`False` if localhost, otherwise `True`) - override with boolean
+`server` select a server from `config.yml` (`"ske"`)
 
 `threads` for asynchronous calling (`None` for default, otherwise an integer)
 
 `progress` show progress (`True`)
 
-`loglevel` (`"info"`) see `.sgex.log`
+`loglevel` (`"info"`) outputs to `.sgex.log`
+
+### Saving results
+
+Retrieved API data is stored in sqlite databases in `data/`. The default database is `sgex.db`; new databases are created when other filenames are supplied.
+
+API responses can also be saved directly to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `output="csv"`, etc. This will overwrite pre-existing data. JSON is the standard format for SkE and the only one with error reporting. 
+
+Support for other formats generally depends on the shape of the data: e.g., `view` requires JSON and `freqs` accepts all file types. Additionally, NoSketch Engine servers may not output XLSX and can't use some call types (e.g., word sketch).
 
 ### Input files
 
@@ -146,7 +149,7 @@ JSON requires consistent usage of double quotes and escape characters:
         "doc.editor 0"]}}}
 ```
 
-### Features
+## Features
 
 **Recycling parameters**
 
@@ -179,17 +182,30 @@ call2:
 
 **Skipping repeats**
 
-If `skip=True`, a call won't be repeated when an identical call has already been made in a sqlite database. Repeats are identified using hashes of call dictionaries. If the contents of `"call"` change at all (even one character), they are considered unique calls. If `skip=False`, existing data is replaced when a new call has the same hash.
+If `skip=True`, a call won't be repeated when an identical call has already been made for a sqlite database. Repeats are identified using hashes of call dictionaries. If the contents of `"call"` change at all (even one character), they are considered unique calls. If `skip=False`, existing data is replaced when a new call has the same hash. Metadata does not affect hashes or call skipping.
 
 **Asynchronous calling**
 
-Asynchronous calling is enabled when using a local server, which can increase performance substantially. By default the number of threads adjusts according to the number of CPUs available (see `max_workers` for [concurrent.futures](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor)). In this mode a job must finish before responses are saved.
+For local servers, asynchronous calling can increase performance substantially. Enable it by adding `asynchronous: True` to a server's details in `config.yml`. By default, the number of threads adjusts according to the number of CPUs available (see `max_workers` for [concurrent.futures](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor)). In this mode a job must finish before responses are saved.
 
 **Discarding unwanted data with `keep`**
 
 SGEX saves the entire response for each API call by default. Instead, `keep` can be used to specify what JSON data to save. For example, if `keep="concsize"` is set for `freqs` calls, only the absolute frequency is kept and the rest of the response is discarded. `keep` only works for top-level items, not nested data.
 
-### Notes
+**Server wait times**
+
+Servers may require waiting between calls. SGEX automatically manages waiting for the Sketch Engine server using their [Fair Use Policy](https://www.sketchengine.eu/fair-use-policy/) guidelines. If a custom server requires waiting, this can be enabled by adding a `wait` entry in the config file, like below:
+
+```yml
+ske:         # server name
+  wait:      # wait dictionary (measured in seconds)
+  0: 1       # wait = 0 for 1 call
+  2: 99      # wait = 2 for 2-99 calls
+  5: 899     # wait = 5 for 100-899 calls
+  45: null   # wait = 45 for 900 or more calls
+```
+
+## Notes
 
 **Working with different call types**
 
@@ -197,11 +213,11 @@ Each call type, `freqs` (frequencies), `view` (concordance), `wsketch` (word ske
 
 **Too many requests**
 
-Sketch Engine monitors API activity and will block excessive calls or other activity outside of their [Fair Use Policy](https://www.sketchengine.eu/fair-use-policy/). While learning the API, test calls selectively, slowly, and avoid repeated identical calls.
+Sketch Engine monitors API activity and will block excessive calls or other activity outside of their FUP. While learning the API, test calls selectively, slowly, and avoid repeated identical calls.
 
 **API usage**
 
-To learn more about the API, it's helpful to inspect network activity while making queries in Sketch Engine with a web browser (using Developer Tools). Importantly, Sketch Engine has internal API methods that only function in web browsers, so merely copy-pasting certain methods into SGEX won't necessarily work. Sketch Engine's API is also actively developed and syntax/functionalities may also change.
+To learn more about the API, it's helpful to inspect network activity while making queries in Sketch Engine with a web browser (using Developer Tools). Importantly, Sketch Engine has internal API methods that only function in web browsers, so merely copy-pasting certain methods into SGEX won't necessarily work. Sketch Engine's API is also actively developed and syntax/functionalities may change.
 
 **Double-checking accuracy**
 

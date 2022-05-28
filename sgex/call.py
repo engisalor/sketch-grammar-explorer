@@ -20,11 +20,11 @@ targets = logging.StreamHandler(sys.stdout), TimedRotatingFileHandler(
 )
 logging.basicConfig(
     encoding="utf-8",
-    level=logging.INFO, 
+    level=logging.INFO,
     format="%(asctime)s %(message)s",
     datefmt="%Y-%m-%d %I:%M:%S",
     handlers=targets,
-    )
+)
 logger = logging.getLogger()
 
 
@@ -43,52 +43,86 @@ class Call:
 
     `clear` remove existing data before calls (sqlite table or `data/raw/`) (`False`)
 
-    `server` (`"https://api.sketchengine.eu/bonito/run.cgi"`)
-
-    `wait` `None` for default (`False` if localhost, otherwise `True`) - override with boolean
+    `server` select a server from `config.yml` (`"ske"`)
 
     `threads` for asynchronous calling (`None` for default, otherwise an integer)
 
     `progress` print call progress (`True`)
-    
-    `loglevel` (`"info"`) see `.sgex.log`"""
 
-    def _credentials(self):
-        """Gets SkE API credentials from keyring/file.
+    `loglevel` (`"info"`) outputs to `.sgex.log`"""
 
-        - default file is "config.yml"
-        - ".config.yml" can be used as well (has priority over default file)
-        """
+    def _get_config(self):
+        """Gets servers and credentials config file.
 
-        credentials = None
-        path = pathlib.Path("")
-        files = list(path.glob("*config.yml"))
-        hidden_config = ".config.yml" in [x.name for x in files]
+        Hidden version has priority if both; generates a file if none."""
 
-        if hidden_config:
-            file = path / ".config.yml"
+        if pathlib.Path(self.config_file_default).exists():
+            self.config_file = self.config_file_default
+        elif pathlib.Path(self.config_file_default[1:]).exists():
+            self.config_file = self.config_file_default[1:]
+        if self.config_file:
+            logging.debug(f"CONFIG {self.config_file}")
+            with open(self.config_file, "r") as stream:
+                config = yaml.safe_load(stream)
         else:
-            file = path / "config.yml"
+            with open(self.config_file_default[1:], "w", encoding="utf-8") as f:
+                default = {
+                    "noske": {"server": "http://localhost:10070/bonito/run.cgi"},
+                    "ske": {
+                        "api_key": "key",
+                        "server": "https://api.sketchengine.eu/bonito/run.cgi",
+                        "username": "user",
+                        "wait": {0: 1, 2: 99, 5: 899, 45: None},
+                    },
+                }
+                yaml.dump(default, f, allow_unicode=True, indent=2)
+            raise FileNotFoundError(
+                """
+        No config file detected: generating 'config.yml' - add credentials, then try again."
 
-        # Open file
-        with open(file, "r") as stream:
-            credentials = yaml.safe_load(stream)
+        If a server requires credentials, add 'username' and 'api_key' to server info.
+        API keys can also be managed in the OS keyring using these commands:
 
-        credentials = {
-            k.strip(): v.strip() for k, v in credentials[self.server].items()
-        }
+            sgex.config.keyring_add_key()
+            sgex.config.keyring_delete_key()
 
-        # Try keyring
-        if not credentials["api_key"]:
-            import keyring
+        If using keyring to store an API key, leave 'api_key' empty or set as null.
 
-            credentials["api_key"] = keyring.get_password(
-                self.server, credentials["username"]
+        See documentation at https://github.com/engisalor/sketch-grammar-explorer"""
             )
-        if not credentials["api_key"] or not credentials["username"]:
-            raise ValueError("No API key/username found")
 
-        return credentials
+        return config
+
+    def _get_server_info(self, server, config):
+        """Gets API credentials and other settings for a SkE server."""
+
+        server_info = config.get(server)
+        if not server_info:
+            raise KeyError(f'No credentials for {server} in "{self.config_file}"')
+
+        # Manage username & API key
+        if not "username" in server_info:
+            logging.debug(f"CREDS anonymous")
+        elif "api_key" in server_info and not server_info.get("api_key"):
+            logging.debug("CREDS keyring")
+            if not server_info.get("username"):
+                raise ValueError("No username found for {server}")
+            else:
+                import keyring
+
+                api_key = keyring.get_password(
+                    server_info["server"], server_info["username"]
+                )
+            if not api_key:
+                raise ValueError(
+                    f'No API key found in keyring for user {server_info["username"]}'
+                )
+            else:
+                server_info["api_key"] = api_key
+        else:
+            logging.debug("CREDS plaintext")
+
+        return server_info
 
     def _hashes_add(self):
         """Adds hashes to calls."""
@@ -109,7 +143,7 @@ class Call:
 
     def _reuse_parameters(self):
         """Reuses parameters unless defined explicitly.
-        
+
         Parameters are reused for sequential calls of the same type. If `type`
         is specified, nothing is reused. Otherwise, when a parameter changes,
         it will be reused until redefined again in a later call.
@@ -144,27 +178,27 @@ class Call:
                 else:
                     _log_entry(self, curr, " skip:", k)
 
-
         ids = list(self.calls.keys())
         self.log_entry = {id: ["PARAMS  "] for id in ids}
         [_propagate(self, ids, k) for k in ["call", "meta", "keep", "type"]]
         [logging.debug(f'{" ".join(v)}    {k}') for k, v in self.log_entry.items()]
         self.calls = self.calls
 
-    def _set_wait(self):
-        """Sets wait time for SkE API usage."""
+    def _set_wait(self, credentials):
+        """Sets wait time for server usage (if wait provided in config file)."""
 
-        n = len(self.calls)
-        if n == 1 or not self.wait_enabled:
-            wait = 0
-        elif 2 <= n < 100:
-            wait = 2
-        elif 100 <= n < 900:
-            wait = 5
-        elif 900 <= n:
-            wait = 45
-
-        self.wait = wait
+        if not "wait" in credentials:
+            self.wait = 0
+        else:
+            n = len(self.calls)
+            waits = []
+            for k, v in credentials["wait"].items():
+                if v:
+                    if n <= v:
+                        waits.append(k)
+            if not waits:
+                waits.append(max([k for k in credentials["wait"].keys()]))
+            self.wait = min(waits)
 
     def _make_manifest(self, credentials):
         """Makes a call manifest with ids, params & request urls."""
@@ -185,8 +219,12 @@ class Call:
 
             if not v["skip"]:
                 manifest.append({"id": k, "params": v, "url": req.url})
-            
-            logging.debug(f'REQUEST {req.url.replace(credentials["api_key"],"REDACTED")}')
+            if credentials.get("api_key"):
+                logging.debug(
+                    f'REQUEST {req.url.replace(credentials["api_key"],"REDACTED")}'
+                )
+            else:
+                logging.debug(f"REQUEST {req.url}")
 
         return manifest
 
@@ -233,7 +271,7 @@ class Call:
         """Processes and saves call data."""
 
         packet["response"].raise_for_status()
-    
+
         if self.format == "json":
             # Keep data
             if "keep" in packet["item"]["params"]:
@@ -252,7 +290,7 @@ class Call:
                 self.data = kept
             else:
                 self.data = packet["response"].json()
-            # Scrub credentials            
+            # Scrub credentials
             if "request" in self.data:
                 for i in ["api_key", "username"]:
                     if i in self.data["request"]:
@@ -262,7 +300,7 @@ class Call:
             if "error" in packet["response"].json():
                 error = packet["response"].json()["error"]
                 self.errors.append(error)
-        
+
         # SQLite
         if self.output.endswith(self.db_extensions):
             # Add metadata
@@ -287,11 +325,11 @@ class Call:
                     error,
                     json.dumps(self.data),
                 ),
-                )
+            )
             self.conn.commit()
-        
+
         # Filesystem
-        else:                
+        else:
             # Save to specified format
             if not self.format == "json":
                 self.data = packet["response"]
@@ -394,8 +432,7 @@ class Call:
         dry_run=False,
         skip=True,
         clear=False,
-        server="https://api.sketchengine.eu/bonito/run.cgi",
-        wait=None,
+        server="ske",
         threads=None,
         progress=True,
         loglevel="info",
@@ -404,52 +441,44 @@ class Call:
         self.dry_run = dry_run
         self.skip = skip
         self.clear = clear
-        self.server = server.strip("/")
         self.threads = min(32, os.cpu_count() + 4)
         self.progress = progress
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.input = "dict" 
-        self.db_extensions = (".db")
+        self.input = "dict"
+        self.db_extensions = ".db"
         self.errors = []
         self.supported_formats = ["csv", "json", "txt", "xml", "xlsx"]
-        local_host = "http://localhost:"
+        self.config_file = None
+        self.config_file_default = ".config.yml"
         if isinstance(input, str):
             self.input = pathlib.Path(input).name
         if threads:
             self.threads = threads
 
-        # Enable wait
-        if wait is None:
-            if self.server.startswith(local_host):
-                self.wait_enabled = False
-            else:
-                self.wait_enabled = True
-        elif wait is False:
-            self.wait_enabled = False
-        elif wait is True:
-            self.wait_enabled = True
-        else:
-            raise ValueError(f'Bad wait value {self.wait}: must be None, True, False')
-
         # Logging
-        logging.info(f"START sgex.Call {self.input}")        
+        logging.info(f"START sgex.Call {self.input}")
         numeric_level = getattr(logging, loglevel.upper(), None)
 
         if not isinstance(numeric_level, int):
-            raise ValueError('Invalid log level: %s' % loglevel)
+            raise ValueError("Invalid log level: %s" % loglevel)
         logger.setLevel(numeric_level)
 
         if dry_run and loglevel != "debug":
             handlers = logger.handlers
             logger.removeHandler(handlers[-1])
-        
+
         # Prepare
         t0 = time.perf_counter()
         pathlib.Path.mkdir(pathlib.Path("data"), exist_ok=True)
-        credentials = self._credentials()
+        config = self._get_config()
+        server_info = self._get_server_info(server, config)
+        self.server = server_info.get("server").strip("/")
         self.calls = sgex.Parse(input).calls
-        self._set_wait()
         self._reuse_parameters()
+        self._set_wait(server_info)
+        credentials = {
+            k: v for k, v in server_info.items() if k in ["username", "api_key"]
+        }
 
         # SQLite
         if output.endswith(self.db_extensions):
@@ -469,29 +498,43 @@ class Call:
             for x in self.calls.values():
                 x["skip"] = False
         else:
-            raise ValueError(f'{output} not a recognized output, e.g.: "project.db" or "json"')
+            raise ValueError(
+                f'{output} not a recognized output, e.g.: "project.db" or "json"'
+            )
 
-        # Execute
+        # Queue calls
         self._pre_calls()
         manifest = self._make_manifest(credentials)
         self.queued = len(manifest)
         logging.info(f"QUEUED {self.queued} / {len(self.calls)}")
 
+        # Call mode
+        if server_info.get("asynchronous"):
+            self.mode = "asynchronous"
+        else:
+            self.mode = "sequential"
+        logging.info(f"SERVER {self.mode}")
+
+        # Execute
+        if manifest and not self.dry_run and self.mode == "asynchronous":
+            self._make_local_calls(manifest)
+        elif manifest and not self.dry_run:
+            self._make_calls(manifest)
+        else:
+            pass
+
         if manifest and not self.dry_run:
-            if self.server.startswith(local_host):
-                self.wait = 0
-                self._make_local_calls(manifest)
-            else:
-                self._make_calls(manifest)
-        
+            self.called = len(manifest)
+        else:
+            self.called = 0
+        t1 = time.perf_counter()
+        logging.info(f"CALLED {self.called} in {t1 - t0:0.2f} secs")
+
         # Wrap up
         if output.endswith(self.db_extensions):
             self.c.execute("pragma optimize")
             self.c.close()
             self.conn.close()
-
-        t1 = time.perf_counter()
-        logging.info(f"CALLED {len(manifest)} in {t1 - t0:0.2f} secs")
         if self.errors:
             logging.warning(f"ERRORS {len(self.errors)} {set(self.errors)}")
-        [logging.info(f"{k}{v}") for k,v in self.summary().items()]
+        [logging.info(f"{k}{v}") for k, v in self.summary().items()]
