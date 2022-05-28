@@ -20,7 +20,7 @@ call_examples = {
     },
     "freqs-rock": {
         "type": "freqs",
-        "meta": {"text types": ("domain", "genre", "editor")},
+        "meta": {"text types": ["domain", "genre", "editor"]},
         "call": {
             "q": ['alemma,"rock"'],
             "corpname": "preloaded/ecolexicon_en",
