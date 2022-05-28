@@ -15,12 +15,14 @@ import shutil
 
 import sgex
 
-targets = logging.StreamHandler(sys.stdout), TimedRotatingFileHandler('.sgex.log', backupCount=1)
+targets = logging.StreamHandler(sys.stdout), TimedRotatingFileHandler(
+    ".sgex.log", backupCount=1
+)
 logging.basicConfig(
-    encoding='utf-8', 
+    encoding="utf-8",
     level=logging.INFO, 
-    format='%(asctime)s %(message)s',
-    datefmt='%Y-%m-%d %I:%M:%S',
+    format="%(asctime)s %(message)s",
+    datefmt="%Y-%m-%d %I:%M:%S",
     handlers=targets,
     )
 logger = logging.getLogger()
@@ -99,10 +101,11 @@ class Call:
         """Compares hashes with existing data, sets skip values."""
 
         for x in self.calls.values():
-            self.c.execute("select hash from calls where hash=?",(x["hash"],))
+            self.c.execute("select hash from calls where hash=?", (x["hash"],))
             if self.c.fetchone() and self.skip:
                 x["skip"] = True
-            else: x["skip"] = False
+            else:
+                x["skip"] = False
 
     def _reuse_parameters(self):
         """Reuses parameters unless defined explicitly.
@@ -115,7 +118,7 @@ class Call:
         Otherwise, the item is replaced flatly."""
 
         def _log_entry(self, curr, action, k):
-            self.log_entry[curr].extend([action,k])
+            self.log_entry[curr].extend([action, k])
 
         def _propagate(self, ids, k):
             for x in range(len(ids)):
@@ -124,8 +127,13 @@ class Call:
 
                 if "type" in self.calls[curr] or x == 0:
                     _log_entry(self, curr, " skip:", k)
-                elif isinstance(self.calls[prev].get(k), dict) and isinstance(self.calls[curr].get(k), dict):
-                    self.calls[curr][k] = {**self.calls[prev].get(k),**self.calls[curr].get(k)}
+                elif isinstance(self.calls[prev].get(k), dict) and isinstance(
+                    self.calls[curr].get(k), dict
+                ):
+                    self.calls[curr][k] = {
+                        **self.calls[prev].get(k),
+                        **self.calls[curr].get(k),
+                    }
                     _log_entry(self, curr, " comb:", k)
                 elif self.calls[curr].get(k):
                     pass
@@ -140,7 +148,7 @@ class Call:
         ids = list(self.calls.keys())
         self.log_entry = {id: ["PARAMS  "] for id in ids}
         [_propagate(self, ids, k) for k in ["call", "meta", "keep", "type"]]
-        [logging.debug(f'{" ".join(v)}    {k}') for k,v in self.log_entry.items()]
+        [logging.debug(f'{" ".join(v)}    {k}') for k, v in self.log_entry.items()]
         self.calls = self.calls
 
     def _set_wait(self):
@@ -204,7 +212,9 @@ class Call:
 
         THREAD_POOL = self.threads
         session = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(pool_maxsize=THREAD_POOL, pool_block=True)
+        adapter = requests.adapters.HTTPAdapter(
+            pool_maxsize=THREAD_POOL, pool_block=True
+        )
         session.mount("http://", adapter)
 
         def get(manifest_item):
@@ -233,7 +243,9 @@ class Call:
                 elif isinstance(keep, (list, tuple)):
                     keeps = keep
                 else:
-                    raise TypeError(f'Bad type for "keep" {type(keep)}: use string, list, tuple')
+                    raise TypeError(
+                        f'Bad type for "keep" {type(keep)}: use string, list, tuple'
+                    )
                 kept = {
                     k: v for k, v in packet["response"].json().items() if k in keeps
                 }
@@ -256,12 +268,8 @@ class Call:
             # Add metadata
             meta = None
             if "meta" in packet["item"]["params"]:
-                if isinstance(
-                    packet["item"]["params"]["meta"], (dict, list, tuple)
-                ):
-                    meta = json.dumps(
-                        packet["item"]["params"]["meta"], sort_keys=True
-                    )
+                if isinstance(packet["item"]["params"]["meta"], (dict, list, tuple)):
+                    meta = json.dumps(packet["item"]["params"]["meta"], sort_keys=True)
                 else:
                     meta = packet["item"]["params"]["meta"]
 
@@ -307,6 +315,7 @@ class Call:
 
     def _save_xlsx(self):
         import pandas as pd
+
         xlsx = pd.read_excel(self.data.content, header=None)
         xlsx.to_excel(self.file, header=False, index=False)
 
