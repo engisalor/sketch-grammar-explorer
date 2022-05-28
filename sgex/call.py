@@ -67,7 +67,10 @@ class Call:
         else:
             with open(self.config_file_default[1:], "w", encoding="utf-8") as f:
                 default = {
-                    "noske": {"server": "http://localhost:10070/bonito/run.cgi"},
+                    "noske": {
+                        "server": "http://localhost:10070/bonito/run.cgi",
+                        "asynchronous": True,
+                        },
                     "ske": {
                         "api_key": "key",
                         "server": "https://api.sketchengine.eu/bonito/run.cgi",
@@ -78,10 +81,12 @@ class Call:
                 yaml.dump(default, f, allow_unicode=True, indent=2)
             raise FileNotFoundError(
                 """
+        Sketch Grammar Explorer
+
         No config file detected: generating 'config.yml' - add credentials, then try again."
 
         If a server requires credentials, add 'username' and 'api_key' to server info.
-        API keys can also be managed in the OS keyring using these commands:
+        API keys can also be managed in the OS keyring with these commands:
 
             sgex.config.keyring_add_key()
             sgex.config.keyring_delete_key()
@@ -184,20 +189,20 @@ class Call:
         [logging.debug(f'{" ".join(v)}    {k}') for k, v in self.log_entry.items()]
         self.calls = self.calls
 
-    def _set_wait(self, credentials):
+    def _set_wait(self, server_info):
         """Sets wait time for server usage (if wait provided in config file)."""
 
-        if not "wait" in credentials:
+        if not "wait" in server_info:
             self.wait = 0
         else:
             n = len(self.calls)
             waits = []
-            for k, v in credentials["wait"].items():
+            for k, v in server_info["wait"].items():
                 if v:
                     if n <= v:
                         waits.append(k)
             if not waits:
-                waits.append(max([k for k in credentials["wait"].keys()]))
+                waits.append(max([k for k in server_info["wait"].keys()]))
             self.wait = min(waits)
 
     def _make_manifest(self, credentials):
