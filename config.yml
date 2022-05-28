@@ -1,3 +1,12 @@
-https://api.sketchengine.eu/bonito/run.cgi:
-  username: ''
-  api_key: ''
+noske:
+  server: http://localhost:10070/bonito/run.cgi
+  asynchronous: True
+ske:
+  api_key: null
+  server: https://api.sketchengine.eu/bonito/run.cgi
+  username: username
+  wait: 
+    0: 1
+    2: 99
+    5: 899
+    45: null
