@@ -306,6 +306,7 @@ class Call:
             f.write(self.data.text)
 
     def _save_xlsx(self):
+        import pandas as pd
         xlsx = pd.read_excel(self.data.content, header=None)
         xlsx.to_excel(self.file, header=False, index=False)
 
