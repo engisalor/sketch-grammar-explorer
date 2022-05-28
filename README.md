@@ -31,8 +31,8 @@ Or manual install:
 - clone this repo
 - install dependencies:
   - current versions `pip install -r requirements.txt`
-  - required `pip install pandas requests pyyaml`
-  - optional `pip install keyring openpyxl lxml`
+  - required `pip install requests pyyaml`
+  - optional `pip install keyring pandas openpyxl lxml`
 
 **API credentials**
 

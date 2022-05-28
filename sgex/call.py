@@ -3,7 +3,7 @@ import json
 import requests
 import time
 import hashlib
-import pandas as pd
+import datetime
 import yaml
 import sqlite3 as sql
 from concurrent.futures import ThreadPoolExecutor
@@ -397,7 +397,7 @@ class Call:
         self.server = server.strip("/")
         self.threads = min(32, os.cpu_count() + 4)
         self.progress = progress
-        self.timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.input = "dict" 
         self.db_extensions = (".db")
         self.errors = []
