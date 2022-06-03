@@ -321,7 +321,7 @@ class Call:
                 "INSERT OR REPLACE INTO calls VALUES (?,?,?,?,?,?,?,?,?)",
                 (
                     self.input,
-                    packet["item"]["params"]["type"][:-1],
+                    packet["item"]["params"]["type"],
                     packet["item"]["id"],
                     packet["item"]["params"]["hash"],
                     self.timestamp,
