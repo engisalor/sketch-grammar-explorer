@@ -70,7 +70,7 @@ job = sgex.Call("examples.yml")
 
 `dry_run` (`False`)
 
-`skip` skip calls when a hash of the same call parameters exists in sqlite (`True`)
+`skip` skip calls when a hash of the same parameters already exists in sqlite (`True`)
 
 `clear` remove existing data before calls (sqlite table or `data/raw/`) (`False`)
 
@@ -78,13 +78,11 @@ job = sgex.Call("examples.yml")
 
 `threads` for asynchronous calling (`None` for default, otherwise an integer)
 
-`progress` show progress (`True`)
-
 `loglevel` (`"info"`) outputs to `.sgex.log`
 
 ### Saving results
 
-Retrieved API data is stored in sqlite databases in `data/`. The default database is `sgex.db`; new databases are created when other filenames are supplied.
+Retrieved API data is stored in sqlite databases in `data/`. The default database is `sgex.db`; new databases are created when other filenames are supplied (always use the `.db` extension).
 
 API responses can also be saved directly to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `output="csv"`, etc. This will overwrite pre-existing data. JSON is the standard format for SkE and the only one with error reporting. 
 
@@ -226,6 +224,20 @@ Before relying heavily on the API, it's a good idea to practice trying the same 
 **Saving and converting calls** 
 
 `Parse()` is used to read API calls, but it can save call dictionaries and convert them to/from JSON and YAML files. Use `dest="<filepath>"` to save an object to file with the desired format.
+
+**Logging and error handling**
+
+- a bad response stops jobs immediately
+- API errors are tracked when `output="json"` or a sqlite database
+- `summary()` fetches job details from `Call` objects
+
+Logging levels print the following information:
+
+- `critical` - nothing
+- `error` - TBD
+- `warning` - each API error with its call id
+- `info` - summary of a job and any API errors
+- `debug` - everything
 
 ## About
 

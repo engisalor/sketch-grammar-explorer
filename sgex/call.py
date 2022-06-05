@@ -15,18 +15,19 @@ import shutil
 
 import sgex
 
-targets = logging.StreamHandler(sys.stdout), TimedRotatingFileHandler(
-    ".sgex.log", backupCount=1
-)
-logging.basicConfig(
-    encoding="utf-8",
-    level=logging.INFO,
-    format="%(asctime)s %(message)s",
-    datefmt="%Y-%m-%d %I:%M:%S",
-    handlers=targets,
-)
-logger = logging.getLogger()
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+file_handler = TimedRotatingFileHandler(".sgex.log", backupCount=1)
+file_handler.setFormatter(formatter)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
 
 class Call:
     """Executes Sketch Engine API calls & saves data to desired output.
@@ -47,8 +48,6 @@ class Call:
 
     `threads` for asynchronous calling (`None` for default, otherwise an integer)
 
-    `progress` print call progress (`True`)
-
     `loglevel` (`"info"`) outputs to `.sgex.log`"""
 
     def _get_config(self):
@@ -61,7 +60,7 @@ class Call:
         elif pathlib.Path(self.config_file_default[1:]).exists():
             self.config_file = self.config_file_default[1:]
         if self.config_file:
-            logging.debug(f"CONFIG {self.config_file}")
+            logger.debug(f"CONFIG {self.config_file}")
             with open(self.config_file, "r") as stream:
                 config = yaml.safe_load(stream)
         else:
@@ -107,9 +106,9 @@ class Call:
 
         # Manage username & API key
         if not "username" in server_info:
-            logging.debug(f"CREDS anonymous")
+            logger.debug(f"CREDS anonymous")
         elif "api_key" in server_info and not server_info.get("api_key"):
-            logging.debug("CREDS keyring")
+            logger.debug("CREDS keyring")
             if not server_info.get("username"):
                 raise ValueError("No username found for {server}")
             else:
@@ -125,7 +124,7 @@ class Call:
             else:
                 server_info["api_key"] = api_key
         else:
-            logging.debug("CREDS plaintext")
+            logger.debug("CREDS plaintext")
 
         return server_info
 
@@ -186,7 +185,7 @@ class Call:
         ids = list(self.calls.keys())
         self.log_entry = {id: ["PARAMS  "] for id in ids}
         [_propagate(self, ids, k) for k in ["call", "meta", "keep", "type"]]
-        [logging.debug(f'{" ".join(v)}    {k}') for k, v in self.log_entry.items()]
+        [logger.debug(f'{" ".join(v)}    {k}') for k, v in self.log_entry.items()]
         self.calls = self.calls
 
     def _set_wait(self, server_info):
@@ -225,11 +224,11 @@ class Call:
             if not v["skip"]:
                 manifest.append({"id": k, "params": v, "url": req.url})
             if credentials.get("api_key"):
-                logging.debug(
+                logger.debug(
                     f'REQUEST {req.url.replace(credentials["api_key"],"REDACTED")}'
                 )
             else:
-                logging.debug(f"REQUEST {req.url}")
+                logger.debug(f"REQUEST {req.url}")
 
         return manifest
 
@@ -238,10 +237,7 @@ class Call:
 
         for manifest_item in manifest:
             # Run call
-            self.t0 = time.perf_counter()
             response = requests.get(manifest_item["url"])
-            self.t1 = time.perf_counter()
-            self._print_progress(response, manifest_item)
 
             # Process packet
             packet = {"item": manifest_item, "response": response}
@@ -261,10 +257,7 @@ class Call:
         session.mount("http://", adapter)
 
         def get(manifest_item):
-            self.t0 = time.perf_counter()
             response = session.get(manifest_item["url"])
-            self.t1 = time.perf_counter()
-            self._print_progress(response, manifest_item)
             return {"item": manifest_item, "response": response}
 
         with ThreadPoolExecutor(max_workers=THREAD_POOL) as executor:
@@ -276,6 +269,7 @@ class Call:
         """Processes and saves call data."""
 
         packet["response"].raise_for_status()
+        logger.debug(f'RESPONSE {packet["response"].status_code}: {packet["item"]["id"]}')
 
         if self.format == "json":
             # Keep data
@@ -300,11 +294,13 @@ class Call:
                 for i in ["api_key", "username"]:
                     if i in self.data["request"]:
                         del self.data["request"][i]
+            
             # API errors
             error = None
             if "error" in packet["response"].json():
                 error = packet["response"].json()["error"]
                 self.errors.append(error)
+                logger.warning(f'{packet["item"]["id"]} {error}')
 
         # SQLite
         if self.output.endswith(self.db_extensions):
@@ -377,24 +373,16 @@ class Call:
                 )
             )
 
-    def _print_progress(self, response, manifest_item):
-        if self.progress:
-            error = ""
-            if self.format == "json":
-                if "error" in response.json():
-                    error = response.json()["error"]
-            logging.info(f'{self.t1 - self.t0:0.2f} {manifest_item["id"]} {error}')
-
     def _pre_calls(self):
         if self.clear and self.output.endswith(self.db_extensions):
-            logging.info(f"CLEAR {self.output}")
+            logger.info(f"CLEAR {self.output}")
             self.c.execute("DROP TABLE calls")
             self._make_table()
             self.conn.commit()
             for x in self.calls.values():
                 x["skip"] = False
         elif self.clear and self.output == "data/raw":
-            logging.info(f"CLEAR {self.output}")
+            logger.info(f"CLEAR {self.output}")
             shutil.rmtree(self.output)
             pathlib.Path.mkdir(pathlib.Path(self.output), exist_ok=True)
 
@@ -419,12 +407,13 @@ class Call:
             "input      ": self.input,
             "output     ": self.output,
             "format     ": self.format,
+            "queued     ": self.queued,
             "skip       ": self.skip,
             "clear      ": self.clear,
             "server     ": self.server,
+            "mode       ": self.mode,
             "wait       ": self.wait,
             "threads    ": self.threads,
-            "progress   ": self.progress,
         }
 
     def __repr__(self):
@@ -439,15 +428,13 @@ class Call:
         clear=False,
         server="ske",
         threads=None,
-        progress=True,
-        loglevel="info",
+        loglevel="warning",
     ):
         # Settings
         self.dry_run = dry_run
         self.skip = skip
         self.clear = clear
         self.threads = min(32, os.cpu_count() + 4)
-        self.progress = progress
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.input = "dict"
         self.db_extensions = ".db"
@@ -461,19 +448,14 @@ class Call:
             self.threads = threads
 
         # Logging
-        logging.info(f"START sgex.Call {self.input}")
         numeric_level = getattr(logging, loglevel.upper(), None)
-
         if not isinstance(numeric_level, int):
             raise ValueError("Invalid log level: %s" % loglevel)
         logger.setLevel(numeric_level)
-
-        if dry_run and loglevel != "debug":
-            handlers = logger.handlers
-            logger.removeHandler(handlers[-1])
+        logger.info(f"CALLING {self.input}")
+        t0 = time.perf_counter()
 
         # Prepare
-        t0 = time.perf_counter()
         pathlib.Path.mkdir(pathlib.Path("data"), exist_ok=True)
         config = self._get_config()
         server_info = self._get_server_info(server, config)
@@ -511,14 +493,14 @@ class Call:
         self._pre_calls()
         manifest = self._make_manifest(credentials)
         self.queued = len(manifest)
-        logging.info(f"QUEUED {self.queued} / {len(self.calls)}")
+        logger.info(f"QUEUED {self.queued} / {len(self.calls)}")
 
         # Call mode
         if server_info.get("asynchronous"):
             self.mode = "asynchronous"
         else:
             self.mode = "sequential"
-        logging.info(f"SERVER {self.mode}")
+        logger.info(f"MODE {self.mode}")
 
         # Execute
         if manifest and not self.dry_run and self.mode == "asynchronous":
@@ -532,14 +514,19 @@ class Call:
             self.called = len(manifest)
         else:
             self.called = 0
-        t1 = time.perf_counter()
-        logging.info(f"CALLED {self.called} in {t1 - t0:0.2f} secs")
 
         # Wrap up
         if output.endswith(self.db_extensions):
             self.c.execute("pragma optimize")
             self.c.close()
             self.conn.close()
+
         if self.errors:
-            logging.warning(f"ERRORS {len(self.errors)} {set(self.errors)}")
-        [logging.info(f"{k}{v}") for k, v in self.summary().items()]
+            logger.warning(f"{len(self.errors)} API error(s): {set(self.errors)}")
+        
+        t1 = time.perf_counter()
+        logger.info(f"CALLED {self.called} in {t1 - t0:0.2f} secs")
+
+        if self.dry_run:
+            print("\n\nDRY RUN")
+            [print(f"{k}{v}") for k, v in self.summary().items()]
