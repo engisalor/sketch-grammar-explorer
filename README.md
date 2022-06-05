@@ -76,9 +76,9 @@ job = sgex.Call("examples.yml")
 
 `server` select a server from `config.yml` (`"ske"`)
 
-`threads` for asynchronous calling (`None` for default, otherwise an integer)
+`threads` for asynchronous calling (`None` for default, otherwise an integer <= 32)
 
-`loglevel` (`"info"`) outputs to `.sgex.log`
+`loglevel` (`"warning"`) outputs to `.sgex.log`
 
 ### Saving results
 
