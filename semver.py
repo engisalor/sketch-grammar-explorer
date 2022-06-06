@@ -228,6 +228,7 @@ class New_semver:
         jobs1 = [
             ["CITATION.cff", "version: ", ""],
             ["setup.cfg", "version = ", ""],
+            ["sgex/_version.py", "__version__ = \"", "\""],
         ]
         for job in jobs1:
             self.replace_old_details(file=job[0], prefix=job[1], suffix=job[2])
