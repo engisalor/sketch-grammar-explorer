@@ -48,7 +48,7 @@ The config file contains API credentials and other settings for servers. Before 
 
 - if a server requires credentials, add a username and API key
 - API keys can also be managed with the `keyring` package
-  - to add an entry: `keyring.set_password("server","username","api_key")`
+  - to add an entry: `keyring.set_password("<server>","<username>","<api_key>")`
   - in the config file, include the username but set the API key to `null`
 
 The default config file includes two servers: for Sketch Engine and a local NoSketch Engine installation. Add more as needed.
@@ -88,7 +88,7 @@ SGEX parses calls from the input file, makes requests to the server, and stores 
 
 Retrieved API data is stored in sqlite databases in `data/`. The default database is `sgex.db`; new databases are created when other filenames are supplied (always use the `.db` extension).
 
-API responses can also be saved to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `output="csv"`, etc. This will overwrite pre-existing data. Note that JSON is the standard format for SkE and the only one with error reporting. 
+API responses can also be saved to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `output="csv"`, etc. This will overwrite pre-existing data. Note that JSON is the standard format and the only one with error reporting. 
 
 Support for other formats generally depends on the shape of the data: e.g., `view` requires JSON and `freqs` accepts all file types. Additionally, NoSketch Engine servers may not output XLSX and can't use some call types (e.g., word sketch - see [this comparison](https://www.sketchengine.eu/nosketch-engine/)).
 
