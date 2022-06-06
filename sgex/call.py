@@ -42,7 +42,7 @@ class Call:
 
     `skip` skip calls when a hash of the same parameters already exists in sqlite (`True`)
 
-    `clear` remove existing data before calls (sqlite table or `data/raw/`) (`False`)
+    `clear` remove existing data before calls (sqlite or `data/raw/`) (`False`)
 
     `server` select a server from `config.yml` (`"ske"`)
 
@@ -83,14 +83,13 @@ class Call:
         Sketch Grammar Explorer
 
         No config file detected: generating 'config.yml' - add credentials, then try again."
-
         If a server requires credentials, add 'username' and 'api_key' to server info.
-        API keys can also be managed in the OS keyring with these commands:
+        API keys can also be managed with the `keyring` package using the format below:
 
-            sgex.config.keyring_add_key()
-            sgex.config.keyring_delete_key()
+            import keyring
+            keyring.set_password("server","username","api_key")
 
-        If using keyring to store an API key, leave 'api_key' empty or set as null.
+        In this case, include `username` in the config file and leave `api_key` as `null`.
 
         See documentation at https://github.com/engisalor/sketch-grammar-explorer"""
             )
@@ -416,6 +415,7 @@ class Call:
             "input      ": self.input,
             "output     ": self.output,
             "format     ": self.format,
+            "length     ": self.length,
             "queued     ": self.queued,
             "skip       ": self.skip,
             "clear      ": self.clear,
@@ -502,7 +502,8 @@ class Call:
         self._pre_calls()
         manifest = self._make_manifest(credentials)
         self.queued = len(manifest)
-        logger.info(f"QUEUED {self.queued} / {len(self.calls)}")
+        self.length = len(self.calls)
+        logger.info(f"QUEUED {self.queued} / {self.length}")
 
         # Call mode
         if server_info.get("asynchronous"):
@@ -531,7 +532,7 @@ class Call:
             self.conn.close()
 
         if self.errors:
-            logger.warning(f"{len(self.errors)} API error(s): {set(self.errors)}")
+            logger.info(f"{len(self.errors)} API error(s): {set(self.errors)}")
         
         t1 = time.perf_counter()
         logger.info(f"CALLED {self.called} in {t1 - t0:0.2f} secs")
