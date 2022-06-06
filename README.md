@@ -47,13 +47,15 @@ sgex.Call(sgex.call_examples)
 The config file contains API credentials and other settings for servers. Before making calls to a server, set up your credentials:
 
 - if a server requires credentials, add a username and API key
-- API keys can also be managed in the OS keyring with `sgex.config.keyring_add_key()` and `sgex.config.keyring_delete_key()` (in this case add a username in the config file and leave `api_key` as `null` or blank)
+- API keys can also be managed with the `keyring` package
+  - to add an entry: `keyring.set_password("server","username","api_key")`
+  - in the config file, include the username but set the API key to `null`
 
 The default config file includes two servers: for Sketch Engine and a local NoSketch Engine installation. Add more as needed.
 
 ## Making API calls
 
-To get started using example calls, generate an example input file by running `sgex.Parse(sgex.call_examples, "examples.yml")`. To make calls, run `sgex.Call()` with `input="examples.yml"` or another input file. Use the options below to make dry runs, set the server, etc.
+To get started making calls, generate an example input file and execute the job: 
 
 ``` python
 import sgex
@@ -61,6 +63,8 @@ import sgex
 sgex.Parse(sgex.call_examples, "examples.yml")
 job = sgex.Call("examples.yml")
 ```
+
+SGEX parses calls from the input file, makes requests to the server, and stores results in `data/sgex.db`. Next, make your own input files and experiment with other features.
 
 **Options**
 
@@ -72,7 +76,7 @@ job = sgex.Call("examples.yml")
 
 `skip` skip calls when a hash of the same parameters already exists in sqlite (`True`)
 
-`clear` remove existing data before calls (sqlite table or `data/raw/`) (`False`)
+`clear` remove existing data before calls (sqlite or `data/raw/`) (`False`)
 
 `server` select a server from `config.yml` (`"ske"`)
 
@@ -84,9 +88,9 @@ job = sgex.Call("examples.yml")
 
 Retrieved API data is stored in sqlite databases in `data/`. The default database is `sgex.db`; new databases are created when other filenames are supplied (always use the `.db` extension).
 
-API responses can also be saved directly to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `output="csv"`, etc. This will overwrite pre-existing data. JSON is the standard format for SkE and the only one with error reporting. 
+API responses can also be saved to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `output="csv"`, etc. This will overwrite pre-existing data. Note that JSON is the standard format for SkE and the only one with error reporting. 
 
-Support for other formats generally depends on the shape of the data: e.g., `view` requires JSON and `freqs` accepts all file types. Additionally, NoSketch Engine servers may not output XLSX and can't use some call types (e.g., word sketch).
+Support for other formats generally depends on the shape of the data: e.g., `view` requires JSON and `freqs` accepts all file types. Additionally, NoSketch Engine servers may not output XLSX and can't use some call types (e.g., word sketch - see [this comparison](https://www.sketchengine.eu/nosketch-engine/)).
 
 ### Input files
 
@@ -97,7 +101,7 @@ One or more calls can be executed by creating an input file readable by SGEX tha
 - the key of each call serves as an id (`"call0"`)
 - call types (frequency, concordance, etc.) are defined with `"type"`
 - each call has a dictionary of API parameters in `"call"`
-- calls can optionally contain metadata in `"meta"`
+- calls can optionally contain custom metadata in `"meta"`
 - `"keep"` can be used to save only a portion of response data (JSON only)
 
 The call below queries the lemma "rock" in the [EcoLexicon English Corpus](https://www.sketchengine.eu/ecolexicon-corpus/) and retrieves frequencies by several text types.
@@ -180,13 +184,13 @@ call2:
 
 **Skipping repeats**
 
-If `skip=True`, a call won't be repeated when an identical call has already been made for a sqlite database. Repeats are identified using hashes of call dictionaries. If the contents of `"call"` change at all (even one character), they are considered unique calls. If `skip=False`, existing data is replaced when a new call has the same hash. Metadata does not affect hashes or call skipping.
+If `skip=True`, a call won't be repeated when an identical call has already been made for a sqlite database. Repeats are identified using hashes of call dictionaries. If the contents of `"call"` change at all (even one character), they are considered unique calls. Being Python dictionaries, the order of call parameters doesn't matter. If `skip=False`, existing data is replaced when a new call has the same hash. Metadata does not affect hashes or call skipping.
 
 **Asynchronous calling**
 
 For local servers, asynchronous calling can increase performance substantially. Enable it by adding `asynchronous: True` to a server's details in `config.yml`. By default, the number of threads adjusts according to the number of CPUs available (see `max_workers` for [concurrent.futures](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor)). In this mode a job must finish before responses are saved.
 
-**Discarding unwanted data with `keep`**
+**Discarding unwanted JSON data with `keep`**
 
 SGEX saves the entire response for each API call by default. Instead, `keep` can be used to specify what JSON data to save. For example, if `keep="concsize"` is set for `freqs` calls, only the absolute frequency is kept and the rest of the response is discarded. `keep` only works for top-level items, not nested data.
 
