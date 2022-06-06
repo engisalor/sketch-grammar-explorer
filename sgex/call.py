@@ -272,6 +272,7 @@ class Call:
         logger.debug(f'RESPONSE {packet["response"].status_code}: {packet["item"]["id"]}')
 
         if self.format == "json":
+            response_json = packet["response"].json()
             # Keep data
             if "keep" in packet["item"]["params"]:
                 keep = packet["item"]["params"]["keep"]
@@ -284,11 +285,11 @@ class Call:
                         f'Bad type for "keep" {type(keep)}: use string, list, tuple'
                     )
                 kept = {
-                    k: v for k, v in packet["response"].json().items() if k in keeps
+                    k: v for k, v in response_json.items() if k in keeps
                 }
                 self.data = kept
             else:
-                self.data = packet["response"].json()
+                self.data = response_json
             # Scrub credentials
             if "request" in self.data:
                 for i in ["api_key", "username"]:
@@ -297,8 +298,8 @@ class Call:
             
             # API errors
             error = None
-            if "error" in packet["response"].json():
-                error = packet["response"].json()["error"]
+            if "error" in response_json:
+                error = response_json["error"]
                 self.errors.append(error)
                 logger.warning(f'{packet["item"]["id"]} {error}')
 
@@ -312,15 +313,22 @@ class Call:
                 else:
                     meta = packet["item"]["params"]["meta"]
 
+            versions = {
+               "api_version": response_json.get("api_version"),
+               "manatee_version": response_json.get("manatee_version"),
+               "sgex_version": sgex.__version__,
+            }
+
             # Write to db
             self.c.execute(
-                "INSERT OR REPLACE INTO calls VALUES (?,?,?,?,?,?,?,?,?)",
+                "INSERT OR REPLACE INTO calls VALUES (?,?,?,?,?,?,?,?,?,?)",
                 (
                     self.input,
                     packet["item"]["params"]["type"],
                     packet["item"]["id"],
                     packet["item"]["params"]["hash"],
                     self.timestamp,
+                    json.dumps(versions, sort_keys=True),
                     json.dumps(packet["item"]["params"]["call"], sort_keys=True),
                     meta,
                     error,
@@ -389,11 +397,12 @@ class Call:
     def _make_table(self):
         self.c.execute(
             """CREATE TABLE IF NOT EXISTS calls (
-            input,
+            input text,
             type text,
             id text,
             hash text PRIMARY KEY,
             timestamp text,
+            version text,
             call text,
             meta text,
             error text,
