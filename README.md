@@ -188,7 +188,7 @@ If `skip=True`, a call won't be repeated when an identical call has already been
 
 **Asynchronous calling**
 
-For local servers, asynchronous calling can increase performance substantially. Enable it by adding `asynchronous: True` to a server's details in `config.yml`. By default, the number of threads adjusts according to the number of CPUs available (see `max_workers` for [concurrent.futures](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor)). In this mode a job must finish before responses are saved.
+For local servers, asynchronous calling can increase performance substantially. Enable it by adding `asynchronous: True` to a server's details in `config.yml`. By default, the number of threads adjusts according to the number of CPUs available (see `max_workers` for [concurrent.futures](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor)).
 
 **Discarding unwanted JSON data with `keep`**
 
@@ -240,7 +240,7 @@ Logging levels print the following information:
 - `critical` - nothing
 - `error` - TBD
 - `warning` - each API error with its call id
-- `info` - summary of a job and any API errors
+- `info` - progress and job summary
 - `debug` - everything
 
 ## About
