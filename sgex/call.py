@@ -240,6 +240,7 @@ class Call:
 
             # Process packet
             packet = {"item": manifest_item, "response": response}
+            logger.info(f'RESPONSE {packet["response"].status_code}: {packet["item"]["id"]}')
             self._post_call(packet)
 
             # Wait
@@ -262,16 +263,16 @@ class Call:
         for x in range(0, len(manifest), self.batch_size):
             logger.info(f'BATCH {manifest[x]["id"]}')
 
-        with ThreadPoolExecutor(max_workers=THREAD_POOL) as executor:
+            with ThreadPoolExecutor(max_workers=THREAD_POOL) as executor:
                 for packet in list(executor.map(get, manifest[x:x+self.batch_size])):
-                # Process packets
-                self._post_call(packet)
+                    # Process packets
+                    logger.debug(f'RESPONSE {packet["response"].status_code}: {packet["item"]["id"]}')
+                    self._post_call(packet)
 
     def _post_call(self, packet):
         """Processes and saves call data."""
 
         packet["response"].raise_for_status()
-        logger.debug(f'RESPONSE {packet["response"].status_code}: {packet["item"]["id"]}')
 
         if self.format == "json":
             response_json = packet["response"].json()
