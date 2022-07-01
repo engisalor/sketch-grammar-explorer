@@ -343,7 +343,7 @@ class Call:
                 self.data = packet["response"]
             dir = pathlib.Path(self.output)
             name = pathlib.Path(packet["item"]["id"]).with_suffix(self.extension)
-            self.file = dir / name
+            self.file = dir / str(name)
             save_method = "".join(["_save_", self.format])
             getattr(Call, save_method)(self)
 
