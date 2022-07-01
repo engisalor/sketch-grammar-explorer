@@ -259,8 +259,11 @@ class Call:
             response = session.get(manifest_item["url"])
             return {"item": manifest_item, "response": response}
 
+        for x in range(0, len(manifest), self.batch_size):
+            logger.info(f'BATCH {manifest[x]["id"]}')
+
         with ThreadPoolExecutor(max_workers=THREAD_POOL) as executor:
-            for packet in list(executor.map(get, manifest)):
+                for packet in list(executor.map(get, manifest[x:x+self.batch_size])):
                 # Process packets
                 self._post_call(packet)
 
@@ -444,6 +447,7 @@ class Call:
         self.skip = skip
         self.clear = clear
         self.threads = min(32, os.cpu_count() + 4)
+        self.batch_size = 100
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.input = "dict"
         self.db_extensions = ".db"
