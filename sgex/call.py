@@ -28,6 +28,7 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 
+
 class Call:
     """Executes Sketch Engine API calls & saves data to desired output.
 
@@ -70,7 +71,7 @@ class Call:
                     "noske": {
                         "server": "http://localhost:10070/bonito/run.cgi",
                         "asynchronous": True,
-                        },
+                    },
                     "ske": {
                         "api_key": "key",
                         "server": "https://api.sketchengine.eu/bonito/run.cgi",
@@ -241,7 +242,9 @@ class Call:
 
             # Process packet
             packet = {"item": manifest_item, "response": response}
-            logger.info(f'RESPONSE {packet["response"].status_code}: {packet["item"]["id"]}')
+            logger.info(
+                f'RESPONSE {packet["response"].status_code}: {packet["item"]["id"]}'
+            )
             self._post_call(packet)
 
             # Wait
@@ -265,9 +268,13 @@ class Call:
             logger.info(f'BATCH {manifest[x]["id"]}')
 
             with ThreadPoolExecutor(max_workers=THREAD_POOL) as executor:
-                for packet in list(executor.map(get, manifest[x:x+self.batch_size])):
+                for packet in list(
+                    executor.map(get, manifest[x : x + self.batch_size])
+                ):
                     # Process packets
-                    logger.debug(f'RESPONSE {packet["response"].status_code}: {packet["item"]["id"]}')
+                    logger.debug(
+                        f'RESPONSE {packet["response"].status_code}: {packet["item"]["id"]}'
+                    )
                     self._post_call(packet)
 
     def _post_call(self, packet):
@@ -279,8 +286,10 @@ class Call:
         if self.format == "json":
             if packet["response"].status_code >= 400:
                 response_json = {
-                    "error": ": ".join([str(packet["response"].status_code), packet["response"].reason])
-                    }
+                    "error": ": ".join(
+                        [str(packet["response"].status_code), packet["response"].reason]
+                    )
+                }
             else:
                 response_json = packet["response"].json()
             # Keep data
@@ -294,9 +303,7 @@ class Call:
                     raise TypeError(
                         f'Bad type for "keep" {type(keep)}: use string, list, tuple'
                     )
-                kept = {
-                    k: v for k, v in response_json.items() if k in keeps
-                }
+                kept = {k: v for k, v in response_json.items() if k in keeps}
                 self.data = kept
             else:
                 self.data = response_json
@@ -305,7 +312,7 @@ class Call:
                 for i in ["api_key", "username"]:
                     if i in self.data["request"]:
                         del self.data["request"][i]
-            
+
             # API errors
             error = None
             if "error" in response_json:
@@ -324,9 +331,9 @@ class Call:
                     meta = packet["item"]["params"]["meta"]
 
             versions = {
-               "api_version": response_json.get("api_version"),
-               "manatee_version": response_json.get("manatee_version"),
-               "sgex_version": sgex.__version__,
+                "api_version": response_json.get("api_version"),
+                "manatee_version": response_json.get("manatee_version"),
+                "sgex_version": sgex.__version__,
             }
 
             # Write to db
@@ -547,7 +554,7 @@ class Call:
 
         if self.errors:
             logger.info(f"{len(self.errors)} error(s): {set(self.errors)}")
-        
+
         t1 = time.perf_counter()
         logger.info(f"CALLED {self.called} in {t1 - t0:0.2f} secs")
 

@@ -27,7 +27,9 @@ def parse(input, dest=None):
             else:
                 raise ValueError("Unknown format (use .json .yml .yaml)")
     else:
-        raise ValueError("Unknown format (use dict or str w/ extension .json .yml .yaml)")
+        raise ValueError(
+            "Unknown format (use dict or str w/ extension .json .yml .yaml)"
+        )
 
     # Save
     if dest:
@@ -37,9 +39,7 @@ def parse(input, dest=None):
                 json.dump(calls, f, ensure_ascii=False, indent=2)
         elif output_file.suffix in [".yml", ".yaml"]:
             with open(output_file, "w", encoding="utf-8") as f:
-                yaml.dump(
-                    calls, f, allow_unicode=True, sort_keys=False, indent=2
-                )
+                yaml.dump(calls, f, allow_unicode=True, sort_keys=False, indent=2)
         else:
             raise ValueError("Unknown output format: use .json .yml .yaml")
     # Return

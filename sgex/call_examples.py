@@ -38,24 +38,17 @@ call_examples = {
     "freqml-whole_KWIC": {
         "type": "freqml",
         "call": {
-            "q": [
-                "atag, \"VVN\" \"N.*\""
-            ],
+            "q": ['atag, "VVN" "N.*"'],
             "corpname": "preloaded/ecolexicon_en",
             "fmaxitems": 50,
             "freq_sort": "freq",
             "flimit": 0,
             "ml1ctx": "0~0>0",
-            "ml1attr": "word"
-        }
+            "ml1attr": "word",
+        },
     },
     "freqml-numbered-collocation": {
-        "call": {
-            "q": [
-                "atag, 2:\"N.*\" 1:[word=\"improved\"] "
-            ],
-            "ml1ctx": "0>2"
-        }
+        "call": {"q": ['atag, 2:"N.*" 1:[word="improved"] '], "ml1ctx": "0>2"}
     },
     "view": {
         "type": "view",
