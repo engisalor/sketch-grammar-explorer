@@ -47,6 +47,8 @@ class Call:
 
     `threads` for asynchronous calling (`None` for default, otherwise an integer <= 32)
 
+    `halt` (`True`) abort calls on HTTP response error
+
     `loglevel` (`"warning"`) outputs to `.sgex.log`"""
 
     def _get_config(self):
@@ -271,17 +273,23 @@ class Call:
     def _post_call(self, packet):
         """Processes and saves call data."""
 
-        packet["response"].raise_for_status()
+        if self.halt:
+            packet["response"].raise_for_status()
 
         if self.format == "json":
-            response_json = packet["response"].json()
+            if packet["response"].status_code >= 400:
+                response_json = {
+                    "error": ": ".join([str(packet["response"].status_code), packet["response"].reason])
+                    }
+            else:
+                response_json = packet["response"].json()
             # Keep data
             if "keep" in packet["item"]["params"]:
                 keep = packet["item"]["params"]["keep"]
                 if isinstance(keep, str):
-                    keeps = [keep]
+                    keeps = [keep, "error"]
                 elif isinstance(keep, (list, tuple)):
-                    keeps = keep
+                    keeps = tuple(keep) + tuple(["error"])
                 else:
                     raise TypeError(
                         f'Bad type for "keep" {type(keep)}: use string, list, tuple'
@@ -440,6 +448,7 @@ class Call:
         clear=False,
         server="ske",
         threads=None,
+        halt=True,
         loglevel="warning",
     ):
         # Settings
@@ -455,6 +464,7 @@ class Call:
         self.supported_formats = ["csv", "json", "txt", "xml", "xlsx"]
         self.config_file = None
         self.config_file_default = ".config.yml"
+        self.halt = halt
         if isinstance(input, str):
             self.input = pathlib.Path(input).name
         if threads:
@@ -536,7 +546,7 @@ class Call:
             self.conn.close()
 
         if self.errors:
-            logger.info(f"{len(self.errors)} API error(s): {set(self.errors)}")
+            logger.info(f"{len(self.errors)} error(s): {set(self.errors)}")
         
         t1 = time.perf_counter()
         logger.info(f"CALLED {self.called} in {t1 - t0:0.2f} secs")
