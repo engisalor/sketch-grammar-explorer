@@ -473,7 +473,7 @@ class Call:
         config = self._get_config()
         server_info = self._get_server_info(server, config)
         self.server = server_info.get("server").strip("/")
-        self.calls = sgex.Parse(input).calls
+        self.calls = sgex.parse(input)
         self._reuse_parameters()
         self._set_wait(server_info)
         credentials = {
