@@ -22,7 +22,7 @@ Sketch Grammar Explorer (SGEX) is a Python package for using the [Sketch Engine]
 
 ## Setup
 
-Built with Python 3.10 and tested on 3.7.
+Built with Python 3.10. (Compatibility with 3.7 is no longer being tested.)
 
 **Installation**
 
@@ -42,7 +42,7 @@ Or manually:
 
 **API credentials**
 
-To configure SGEX, either run the code below or manually copy the example [config file](/config.yml) to your preferred directory.
+To configure SGEX, either run the code below or manually copy the example [config file](https://github.com/engisalor/sketch-grammar-explorer/blob/dev/config.yml) to your project directory.
 
 ```python
 import sgex
@@ -66,7 +66,7 @@ To get started making calls, generate an example input file and execute the job:
 import sgex
 
 sgex.parse(sgex.call_examples, "examples.yml")
-job = sgex.Call("examples.yml")
+sgex.Call("examples.yml", loglevel="info")
 ```
 
 SGEX parses calls from the input file, makes requests to the server, and stores results in `data/sgex.db`. Next, make your own input files and experiment with other features.
@@ -115,7 +115,7 @@ The call below queries the lemma "rock" in the [EcoLexicon English Corpus](https
 
 **YAML**
 
-Queries can be copied directly from YAML files into Sketch Engine's browser application without adding/removing escape characters.
+YAML files preserve CQL formatting and don't require extra character escaping:
 
 ```yml
 call0:
@@ -164,10 +164,9 @@ JSON requires consistent usage of double quotes and escape characters:
 
 Parameters are reused unless defined explicitly in every call. For example, the job below contains three similar calls. Instead of writing out every parameter for each, only the first call is complete. The proceeding calls only contain new parameters to define.
 
-Parameters can be passed sequentially through calls of the same type. If `type` appears in a new call, nothing is reused. When parameters are part of a dictionary, its items are passed individually, whereas strings, lists, and other data types are replaced.
+Parameters are passed sequentially through calls of the same type. If `type` appears in a new call, nothing is reused. When parameters are part of a dictionary, its items get passed individually. Strings and other data types are just replaced.
 
 ```yml
-
 call0:
   type: freqs
   call:
@@ -222,19 +221,19 @@ Each call type, `freqs` (frequencies), `view` (concordance), `wsketch` (word ske
 
 **Too many requests**
 
-Sketch Engine monitors API activity and will block excessive calls or other activity outside of their FUP. While learning the API, test calls selectively, slowly, and avoid repeated identical calls.
+Sketch Engine will block API use outside of their FUP. While learning the API, test calls selectively, slowly, and avoid repeated identical calls.
 
 **API usage**
 
-To learn more about the API, it's helpful to inspect network activity while using the Sketch Engine interface. Importantly, Sketch Engine has internal API methods that are unusable for external API calls, so copy-pasting certain methods won't always work. The API is also actively developed and syntax/functionalities may change.
+To learn more about the API, it's helpful to inspect network activity while using the Sketch Engine interface. Importantly, Sketch Engine has some internal API methods that won't work if copy-pasted into SGEX calls.
 
 **Double-checking accuracy**
 
 Before relying heavily on the API, it's a good idea to practice trying the same queries both in a web browser and via API to make sure the results are identical.
 
-**Saving and converting calls** 
+**Saving and converting input files** 
 
-`parse()` is used to read API calls, but it can save call dictionaries and convert them to/from JSON and YAML files. Use `dest="<filepath>"` to save an object to file with the desired format.
+`parse()` reads input files, but it can also save call dictionaries and convert them to/from JSON/YAML formats using `dest="<filepath>"`.
 
 **Logging and error handling**
 
