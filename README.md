@@ -54,7 +54,7 @@ The config file contains API credentials and other settings for servers. Before 
 - if a server requires credentials, add a username and API key
 - API keys can also be managed with the `keyring` package
   - to add an entry: `keyring.set_password("<server>","<username>","<api_key>")`
-  - in the config file, include the username but set the API key to `null`
+  - in the config file, include the username but leave the API key as `null`
 
 The default config file includes two servers: for Sketch Engine and a local NoSketch Engine installation. Add more as needed.
 
@@ -65,7 +65,7 @@ To get started making calls, generate an example input file and execute the job:
 ``` python
 import sgex
 
-sgex.Parse(sgex.call_examples, "examples.yml")
+sgex.parse(sgex.call_examples, "examples.yml")
 job = sgex.Call("examples.yml")
 ```
 
@@ -87,15 +87,17 @@ SGEX parses calls from the input file, makes requests to the server, and stores 
 
 `threads` for asynchronous calling (`None` for default, otherwise an integer <= 32)
 
+`halt` (`True`) abort calls on HTTP response error
+
 `loglevel` (`"warning"`) outputs to `.sgex.log`
 
 ### Saving results
 
 Retrieved API data is stored in sqlite databases in `data/`. The default database is `sgex.db`; new databases are created when other filenames are supplied (always use the `.db` extension).
 
-API responses can also be saved to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `output="csv"`, etc. This will overwrite pre-existing data. Note that JSON is the standard format and the only one with error reporting. 
+API responses can also be saved to `data/raw/` in supported file types (JSON, CSV, XLSX, TXT, XML) using `output="csv"`, etc. This will overwrite pre-existing data.
 
-Support for other formats generally depends on the shape of the data: e.g., `view` requires JSON and `freqs` accepts all file types. Additionally, NoSketch Engine servers may not output XLSX and can't use some call types (e.g., word sketch - see [this comparison](https://www.sketchengine.eu/nosketch-engine/)).
+Support for output formats depends on the call type: e.g., `view` requires JSON and `freqs` accepts all file types. JSON is the only format that works for all call types. NoSketch Engine servers may not be compatible with some formats and call types (see [this comparison](https://www.sketchengine.eu/nosketch-engine/)).
 
 ### Input files
 
@@ -162,7 +164,7 @@ JSON requires consistent usage of double quotes and escape characters:
 
 Parameters are reused unless defined explicitly in every call. For example, the job below contains three similar calls. Instead of writing out every parameter for each, only the first call is complete. The proceeding calls only contain new parameters to define.
 
-Parameters can be passed through sequential calls of the same type. If `type` appears in a new call, nothing is reused. When parameters are part of a dictionary, its items are passed individually, whereas strings, lists, and other data types are replaced.
+Parameters can be passed sequentially through calls of the same type. If `type` appears in a new call, nothing is reused. When parameters are part of a dictionary, its items are passed individually, whereas strings, lists, and other data types are replaced.
 
 ```yml
 
@@ -201,7 +203,7 @@ SGEX saves the entire response for each API call by default. Instead, `keep` can
 
 **Server wait times**
 
-Servers may require waiting between calls. SGEX automatically manages waiting for the Sketch Engine server using their [Fair Use Policy](https://www.sketchengine.eu/fair-use-policy/) guidelines. If a custom server requires waiting, this can be enabled by adding a `wait` entry in the config file, like below:
+Servers may require waiting between calls. SGEX manages waiting for the Sketch Engine server using their [Fair Use Policy](https://www.sketchengine.eu/fair-use-policy/) guidelines. If a custom server requires waiting, this can be enabled by adding a `wait` entry in the config file, like below:
 
 ```yml
 ske:         # server name
@@ -224,7 +226,7 @@ Sketch Engine monitors API activity and will block excessive calls or other acti
 
 **API usage**
 
-To learn more about the API, it's helpful to inspect network activity while making queries in Sketch Engine with a web browser (using Developer Tools). Importantly, Sketch Engine has internal API methods that only function in web browsers, so merely copy-pasting certain methods into SGEX won't necessarily work. Sketch Engine's API is also actively developed and syntax/functionalities may change.
+To learn more about the API, it's helpful to inspect network activity while using the Sketch Engine interface. Importantly, Sketch Engine has internal API methods that are unusable for external API calls, so copy-pasting certain methods won't always work. The API is also actively developed and syntax/functionalities may change.
 
 **Double-checking accuracy**
 
@@ -232,27 +234,27 @@ Before relying heavily on the API, it's a good idea to practice trying the same 
 
 **Saving and converting calls** 
 
-`Parse()` is used to read API calls, but it can save call dictionaries and convert them to/from JSON and YAML files. Use `dest="<filepath>"` to save an object to file with the desired format.
+`parse()` is used to read API calls, but it can save call dictionaries and convert them to/from JSON and YAML files. Use `dest="<filepath>"` to save an object to file with the desired format.
 
 **Logging and error handling**
 
-- a bad response stops jobs immediately
-- API errors are tracked when `output="json"` or a sqlite database
+- a bad response stops jobs immediately if `halt=True`
+- error information is saved when using sqlite
 - `summary()` fetches job details from `Call` objects
 
 Logging levels print the following information:
 
 - `critical` - nothing
 - `error` - TBD
-- `warning` - each API error with its call id
+- `warning` - each API/response error with its call id
 - `info` - progress and job summary
 - `debug` - everything
 
 ## About
 
-SGEX has been developed to meet research needs at the University of Granada (Spain) Translation and Interpreting Department, in part to support the computational linguistics techniques that feed the [EcoLexicon](https://lexicon.ugr.es/) terminological knowledge base (see the articles [here](https://aclanthology.org/W16-4709/) and [here](https://arxiv.org/pdf/1804.05294.pdf) for an introduction).
+SGEX has been developed to meet research needs at the University of Granada (Spain) Translation and Interpreting Department. See the [LexiCon research group](http://lexicon.ugr.es/) for related projects.
 
-The name refers to sketch grammars, which are series of generalized corpus queries in Sketch Engine that are useful for studying terminology and other lexical items (see their [bibliography](https://www.sketchengine.eu/bibliography-of-sketch-engine/)).
+The name refers to sketch grammars, which are series of generalized corpus queries in Sketch Engine (see their [bibliography](https://www.sketchengine.eu/bibliography-of-sketch-engine/)).
 
 Questions, suggestions, and support are welcome.
 
