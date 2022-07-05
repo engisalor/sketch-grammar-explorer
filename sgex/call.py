@@ -10,7 +10,6 @@ from concurrent.futures import ThreadPoolExecutor
 import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
-import sys
 import shutil
 
 import sgex
