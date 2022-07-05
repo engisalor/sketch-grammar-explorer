@@ -1,5 +1,10 @@
 # Sketch Grammar Explorer
 
+[![PyPI Latest Release](https://img.shields.io/pypi/v/sgex.svg)](https://pypi.org/project/sgex/)
+[![Package Status](https://img.shields.io/pypi/status/sgex.svg)](https://pypi.org/project/sgex/)
+[![License](https://img.shields.io/pypi/l/sgex.svg)](https://github.com/pandas-dev/sgex/blob/main/LICENSE)
+[![Downloads](https://pepy.tech/badge/sgex)](https://pepy.tech/project/sgex)
+
 - [Sketch Grammar Explorer](#sketch-grammar-explorer)
   - [Introduction](#introduction)
   - [Setup](#setup)
