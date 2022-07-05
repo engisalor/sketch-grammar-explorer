@@ -345,8 +345,8 @@ class Call:
             if not self.format == "json":
                 self.data = packet["response"]
             dir = pathlib.Path(self.output)
-            name = pathlib.Path(packet["item"]["id"]).with_suffix(self.extension)
-            self.file = dir / str(name)
+            name = pathlib.Path(str(packet["item"]["id"])).with_suffix(self.extension)
+            self.file = dir / name
             save_method = "".join(["_save_", self.format])
             getattr(Call, save_method)(self)
 
