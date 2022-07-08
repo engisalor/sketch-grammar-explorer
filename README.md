@@ -221,7 +221,7 @@ Each call type, `freqs` (frequencies), `view` (concordance), `wsketch` (word ske
 
 **Too many requests**
 
-Sketch Engine will block API use outside of their FUP. While learning the API, test calls selectively, slowly, and avoid repeated identical calls.
+Sketch Engine will block API activity outside of their FUP. While learning the API, test calls selectively, slowly, and avoid repeated identical calls.
 
 **API usage**
 
