@@ -1,6 +1,7 @@
 # Sketch Grammar Explorer
 
 [![PyPI Latest Release](https://img.shields.io/pypi/v/sgex.svg)](https://pypi.org/project/sgex/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6812334.svg)](https://doi.org/10.5281/zenodo.6812334)
 [![Package Status](https://img.shields.io/pypi/status/sgex.svg)](https://pypi.org/project/sgex/)
 [![License](https://img.shields.io/pypi/l/sgex.svg)](https://github.com/pandas-dev/sgex/blob/main/LICENSE)
 [![Downloads](https://pepy.tech/badge/sgex)](https://pepy.tech/project/sgex)
@@ -259,4 +260,4 @@ Questions, suggestions, and support are welcome.
 
 ## Citation
 
-If you use SGEX, please [cite it](CITATION.cff).
+If you use SGEX, please [cite it](https://zenodo.org/record/6812334).
