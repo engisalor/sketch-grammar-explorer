@@ -246,10 +246,10 @@ class New_semver:
 
         # Commit version/date updates
         if do_commit == "y":
-            subprocess.call(["git", "add", "CITATION.cff", "setup.cfg"])
+            subprocess.call(["git", "add", "CITATION.cff", "setup.cfg", "sgex/_version.py"])
             subprocess.call(["git", "commit", "-m", "docs: update"])
 
-        do_tag = input("\nCreate new release tag? y/n")
+        do_tag = input("\nCreate new release tag? y/n ")
 
         # Make release
         if do_tag == "y":
@@ -259,6 +259,8 @@ class New_semver:
 
             # Finish
             print("\nDONE: to view changes, run   git show", self.version_new)
+        else:
+            print("Commit cancelled: rerun semver.py when ready")
 
     def __repr__(self) -> str:
         return ""
