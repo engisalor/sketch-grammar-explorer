@@ -4,7 +4,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6812334.svg)](https://doi.org/10.5281/zenodo.6812334)
 [![Package Status](https://img.shields.io/pypi/status/sgex.svg)](https://pypi.org/project/sgex/)
 [![License](https://img.shields.io/pypi/l/sgex.svg)](https://github.com/pandas-dev/sgex/blob/main/LICENSE)
-[![Downloads](https://pepy.tech/badge/sgex)](https://pepy.tech/project/sgex)
+[![Downloads](https://pepy.tech/badge/sgex/month)](https://pepy.tech/project/sgex)
 
 - [Sketch Grammar Explorer](#sketch-grammar-explorer)
   - [Introduction](#introduction)
@@ -35,7 +35,7 @@ Install SGEX with pip:
 
 Or manually:
 
-- clone this repo
+- clone the GitHub repo
 - install dependencies:
   - current versions `pip install -r requirements.txt`
   - required `pip install requests pyyaml`
@@ -47,7 +47,7 @@ To configure SGEX, either run the code below or manually copy the example [confi
 
 ```python
 import sgex
-sgex.Call(sgex.call_examples)
+sgex.Call(sgex.call_examples) # SGEX generates a config file if none found
 ```
 
 The config file contains API credentials and other settings for servers. Before making calls to a server, set up your credentials:
@@ -63,10 +63,10 @@ The default config file includes two servers: for Sketch Engine and a local NoSk
 
 To get started making calls, generate an example input file and execute the job: 
 
-``` python
+```python
 import sgex
 
-sgex.parse(sgex.call_examples, "examples.yml")
+sgex.parse(sgex.call_examples, "examples.yml") # modify examples.yml as desired
 sgex.Call("examples.yml", loglevel="info")
 ```
 
@@ -76,13 +76,13 @@ SGEX parses calls from the input file, makes requests to the server, and stores 
 
 `input` a dictionary or path to a YAML/JSON file containing API calls
 
-`output` save to sqlite (default `sgex.db`) or files: `json`, `csv`, `xlsx`, `xml`, `txt`
+`output` save to sqlite (default `sgex.db`) or individual files: `json`, `csv`, `xlsx`, `xml`, `txt`
 
 `dry_run` (`False`)
 
 `skip` skip calls when a hash of the same parameters already exists in sqlite (`True`)
 
-`clear` remove existing data before calls (sqlite or `data/raw/`) (`False`)
+`clear` remove preexisting data (`False`)
 
 `server` select a server from `config.yml` (`"ske"`)
 
@@ -104,19 +104,19 @@ Support for output formats depends on the call type: e.g., `view` requires JSON 
 
 **SGEX call structure**
 
-One or more calls can be executed by creating an input file readable by SGEX that contains API calls in the form dictionaries of parameters.
+One or more calls can be executed by supplying a YAML or JSON input file that contains API calls in the form dictionaries of parameters.
 
 - the key of each call serves as an id (`"call0"`)
 - call types (frequency, concordance, etc.) are defined with `"type"`
 - each call has a dictionary of API parameters in `"call"`
 - calls can optionally contain custom metadata in `"meta"`
-- `"keep"` can be used to save only a portion of response data (JSON only)
+- `"keep"` can be used to save only a portion of response data (when `output="<filename>.db" or "json"`)
 
 The call below queries the lemma "rock" in the [EcoLexicon English Corpus](https://www.sketchengine.eu/ecolexicon-corpus/) and retrieves frequencies by several text types.
 
 **YAML**
 
-YAML files preserve CQL formatting and don't require extra character escaping:
+YAML preserves CQL formatting and doesn't require extra character escaping:
 
 ```yml
 call0:
@@ -159,6 +159,10 @@ JSON requires consistent usage of double quotes and escape characters:
         "doc.editor 0"]}}}
 ```
 
+**Dictionary**
+
+Rather than making an input file, calls can be supplied directly as a dictionary. This is convenient when generating or modifying calls programmatically.
+
 ## Features
 
 **Recycling parameters**
@@ -197,7 +201,7 @@ If `skip=True`, a call won't be repeated when an identical call has already been
 
 For local servers, asynchronous calling can increase performance substantially. Enable it by adding `asynchronous: True` to a server's details in `config.yml`. By default, the number of threads adjusts according to the number of CPUs available (see `max_workers` for [concurrent.futures](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor)).
 
-**Discarding unwanted JSON data with `keep`**
+**Discarding unwanted JSON data**
 
 SGEX saves the entire response for each API call by default. Instead, `keep` can be used to specify what JSON data to save. For example, if `keep="concsize"` is set for `freqs` calls, only the absolute frequency is kept and the rest of the response is discarded. `keep` only works for top-level items, not nested data.
 
@@ -207,7 +211,7 @@ Servers may require waiting between calls. SGEX manages waiting for the Sketch E
 
 ```yml
 ske:         # server name
-  wait:      # wait dictionary (measured in seconds)
+  wait:      # wait dictionary (in seconds)
   0: 1       # wait = 0 for 1 call
   2: 99      # wait = 2 for 2-99 calls
   5: 899     # wait = 5 for 100-899 calls

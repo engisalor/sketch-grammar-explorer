@@ -36,13 +36,13 @@ class Call:
 
     `input` a dictionary or path to a YAML/JSON file containing API calls
 
-    `output` save to sqlite (default `sgex.db`) or files: `json`, `csv`, `xlsx`, `xml`, `txt`
+    `output` save to sqlite (default `sgex.db`) or individual files: `json`, `csv`, `xlsx`, `xml`, `txt`
 
     `dry_run` (`False`)
 
     `skip` skip calls when a hash of the same parameters already exists in sqlite (`True`)
 
-    `clear` remove existing data before calls (sqlite or `data/raw/`) (`False`)
+    `clear` remove preexisting data (`False`)
 
     `server` select a server from `config.yml` (`"ske"`)
 
@@ -82,14 +82,15 @@ class Call:
                 yaml.dump(default, f, allow_unicode=True, indent=2)
             raise FileNotFoundError(
                 """
+        
         Sketch Grammar Explorer
 
-        No config file detected: generating 'config.yml' - add credentials, then try again."
-        If a server requires credentials, add 'username' and 'api_key' to server info.
+        No config file detected: generating `config.yml` - add credentials, then try again.
+        If a server requires credentials, add `username` and `api_key` to server info.
         API keys can also be managed with the `keyring` package using the format below:
 
             import keyring
-            keyring.set_password("server","username","api_key")
+            keyring.set_password("<server>","<username>","<api_key>")
 
         In this case, include `username` in the config file and leave `api_key` as `null`.
 
@@ -440,6 +441,7 @@ class Call:
             "server     ": self.server,
             "mode       ": self.mode,
             "wait       ": self.wait,
+            "halt       ": self.halt,
             "threads    ": self.threads,
         }
 
