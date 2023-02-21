@@ -2,8 +2,6 @@ import json
 import os
 import pathlib
 
-import keyring
-
 from sgex import io
 
 default = {
@@ -57,6 +55,8 @@ def load(source: str, keyring: bool = False, **kwargs) -> dict:
 def read_keyring(  # nosec
     conf, server: str, id_key: str = "username", password_key: str = "api_key"
 ) -> dict:
+    import keyring
+
     p = keyring.get_password(conf[server]["host"], conf[server][id_key])
     conf[server][password_key] = p
     return conf
