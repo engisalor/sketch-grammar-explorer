@@ -7,6 +7,7 @@
 
 - [Sketch Grammar Explorer](#sketch-grammar-explorer)
   - [Introduction](#introduction)
+  - [Setup](#setup)
   - [About](#about)
   - [Citation](#citation)
 
@@ -16,7 +17,17 @@ Sketch Grammar Explorer (SGEX) is a Python package for using the [Sketch Engine]
 
 **NOTE**
 
-SGEX is being redesigned and its previous structure will be deprecated in future versions. Version `0.5.5` still functions, but its documentation has been [moved](/README_deprecated.md).
+SGEX is being redesigned and its previous structure will be deprecated in future versions. Version `0.5.5` still functions, but its documentation has been [moved](/README_deprecated.md). The current README will be updated progressively.
+
+## Setup
+
+Install SGEX with `pip install sgex`
+
+Dependencies:
+- required: `requests requests-cache pyyaml`
+- optional: `keyring openpyxl defusedxml`
+
+Developers also need `pre-commit`
 
 ## About
 
