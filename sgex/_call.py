@@ -10,6 +10,10 @@ from urllib.parse import parse_qs, urlparse
 from sgex import config, wait
 
 
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(module)s.%(funcName)s - %(message)s", level=logging.DEBUG
+)
+
 formats = ["json", "xml", "xls", "csv", "tsv", "txt"]
 ignored_parameters = ['api_key', "username"]
 types = [
@@ -110,7 +114,8 @@ class View(Call):
 class Package:
     def send_requests(self) -> None:
         timeout = wait.timeout(len(self.calls), self.conf[self.server])
-        self.session.hooks['response'].append(wait.make_hook(timeout / 2))
+        # NOTE response hook fires twice per request, thus 'timeout / 2'
+        self.session.hooks['response'].append(wait.make_hook(timeout / 2)) 
         t0 = perf_counter()
         for x in range(len((self.calls))):
             response = self.session.get(
