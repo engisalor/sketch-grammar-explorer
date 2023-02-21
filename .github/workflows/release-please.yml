@@ -13,4 +13,7 @@ jobs:
           release-type: python
           package-name: release-please-action
           bump-minor-pre-major: true
-          extra-files: sgex/_version.py CITATION.cff setup.cfg
+          extra-files: |
+            sgex/_version.py
+            CITATION.cff
+            setup.cfg
