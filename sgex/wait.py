@@ -1,5 +1,6 @@
 import time
 
+
 def timeout(n_calls: int, server_info: dict) -> int:
     if not server_info.get("wait"):
         return 0
@@ -13,9 +14,11 @@ def timeout(n_calls: int, server_info: dict) -> int:
             waits.append(max([int(k) for k in server_info["wait"].keys()]))
         return min(waits)
 
-def make_hook(timeout: float =1.0):
+
+def make_hook(timeout: float = 1.0):
     def hook(response, *args, **kwargs):
-        if not getattr(response, 'from_cache', False):
+        if not getattr(response, "from_cache", False):
             time.sleep(timeout)
         return response
+
     return hook

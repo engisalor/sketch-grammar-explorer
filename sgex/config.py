@@ -1,10 +1,10 @@
-import keyring
-import pathlib
 import json
 import os
+import pathlib
+
+import keyring
 
 from sgex import io
-
 
 default = {
     "noske": {
@@ -31,18 +31,18 @@ def from_file(file: str) -> dict:
     return dt
 
 
-def from_str(s:str) -> dict:
+def from_str(s: str) -> dict:
     return json.loads(s)
 
 
-def from_env(var:str ="SGEX_CONFIG_JSON") -> dict:
+def from_env(var: str = "SGEX_CONFIG_JSON") -> dict:
     s = os.environ.get(var)
     return from_str(s)
 
 
-def load(source: str, keyring: bool =False, **kwargs) -> dict:
+def load(source: str, keyring: bool = False, **kwargs) -> dict:
     if isinstance(source, dict):
-        conf = source 
+        conf = source
     elif source.endswith((".yml", ".yaml", ".json")):
         conf = from_file(source)
     elif source.isupper():
@@ -50,11 +50,13 @@ def load(source: str, keyring: bool =False, **kwargs) -> dict:
     else:
         conf = from_str(source)
     if keyring:
-        conf = read_keyring(conf, **kwargs)        
+        conf = read_keyring(conf, **kwargs)
     return conf
 
 
-def read_keyring(conf, server: str, id_key: str="username", password_key: str = "api_key") -> dict:
+def read_keyring(  # nosec
+    conf, server: str, id_key: str = "username", password_key: str = "api_key"
+) -> dict:
     p = keyring.get_password(conf[server]["host"], conf[server][id_key])
     conf[server][password_key] = p
     return conf

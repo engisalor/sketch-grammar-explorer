@@ -1,6 +1,7 @@
-import yaml
 import json
 import pathlib
+
+import yaml
 from requests import Response
 
 
@@ -10,13 +11,13 @@ def read_yaml(file: str) -> dict:
     return dt
 
 
-def read_json(file:str) -> dict:
+def read_json(file: str) -> dict:
     with open(file) as f:
         dt = json.load(f)
     return dt
 
 
-def overwrite(file:str, replace:bool=True, prompt:bool=False) -> bool:
+def overwrite(file: str, replace: bool = True, prompt: bool = False) -> bool:
     if pathlib.Path(file).exists() and prompt:
         m = f"Overwrite {file}? (y/N): "
         if input(m).lower() != "y":
@@ -28,14 +29,19 @@ def overwrite(file:str, replace:bool=True, prompt:bool=False) -> bool:
     return replace
 
 
-def write_yaml(file: str, dt:dict, replace=True, prompt:bool =True) -> None:
+def write_yaml(file: str, dt: dict, replace=True, prompt: bool = True) -> None:
     replace = overwrite(file, replace=replace, prompt=prompt)
     if replace:
         with open(file, "w", encoding="utf-8") as f:
-            yaml.dump(dt, f, allow_unicode=True, indent=2,)
+            yaml.dump(
+                dt,
+                f,
+                allow_unicode=True,
+                indent=2,
+            )
 
 
-def write_json(file: str, dt:dict, prompt:bool =True) -> None:
+def write_json(file: str, dt: dict, prompt: bool = True) -> None:
     replace = overwrite(file, replace=overwrite, prompt=prompt)
     if replace:
         with open(file, "w", encoding="utf-8") as f:
@@ -65,7 +71,7 @@ def data_to_xlsx(file: str, response: Response):
 
 
 def data_to_xml(file: str, response: Response):
-    from lxml import etree
+    from defusedxml import ElementTree as etree
 
     xml = etree.fromstring(response.content)
     with open(file, "wb") as f:
