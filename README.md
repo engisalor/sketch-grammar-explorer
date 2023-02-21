@@ -4,7 +4,6 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6812334.svg)](https://doi.org/10.5281/zenodo.6812334)
 [![Package Status](https://img.shields.io/pypi/status/sgex.svg)](https://pypi.org/project/sgex/)
 [![License](https://img.shields.io/pypi/l/sgex.svg)](https://github.com/pandas-dev/sgex/blob/main/LICENSE)
-[![Downloads](https://pepy.tech/badge/sgex/month)](https://pepy.tech/project/sgex)
 
 - [Sketch Grammar Explorer](#sketch-grammar-explorer)
   - [Introduction](#introduction)
@@ -20,6 +19,10 @@
 ## Introduction
 
 Sketch Grammar Explorer (SGEX) is a Python package for using the [Sketch Engine](https://www.sketchengine.eu/) API. The goal is to develop a flexible scaffold for any kind of programmatic work with Sketch Engine and [NoSketch Engine](https://nlp.fi.muni.cz/trac/noske).
+
+**NOTE**
+
+SGEX is being redesigned and the below functionalities will be deprecated in upcoming versions. See the new `_call` module for current development.
 
 ## Setup
 
