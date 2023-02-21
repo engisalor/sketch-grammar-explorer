@@ -10,3 +10,6 @@ dist/
 
 !.gitignore
 !requirements.txt
+!.flake8
+!.pre-commit-config.yaml
+!.github
