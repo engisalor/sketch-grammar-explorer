@@ -1,19 +1,19 @@
-import pathlib
-import json
-import requests
-import time
-import hashlib
 import datetime
-import yaml
-import sqlite3 as sql
-from concurrent.futures import ThreadPoolExecutor
-import os
+import hashlib
+import json
 import logging
-from logging.handlers import TimedRotatingFileHandler
+import os
+import pathlib
 import shutil
+import sqlite3 as sql
+import time
+from concurrent.futures import ThreadPoolExecutor
+from logging.handlers import TimedRotatingFileHandler
+
+import requests
+import yaml
 
 import sgex
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -36,17 +36,20 @@ class Call:
 
     `input` a dictionary or path to a YAML/JSON file containing API calls
 
-    `output` save to sqlite (default `sgex.db`) or individual files: `json`, `csv`, `xlsx`, `xml`, `txt`
+    `output` save to sqlite (default `sgex.db`) or individual files:
+        `json`, `csv`, `xlsx`, `xml`, `txt`
 
     `dry_run` (`False`)
 
-    `skip` skip calls when a hash of the same parameters already exists in sqlite (`True`)
+    `skip` skip calls when a hash of the same parameters already exists
+        in sqlite (`True`)
 
     `clear` remove preexisting data (`False`)
 
     `server` select a server from `config.yml` (`"ske"`)
 
-    `threads` for asynchronous calling (`None` for default, otherwise an integer <= 32)
+    `threads` for asynchronous calling (`None` for default, otherwise an
+        integer <= 32)
 
     `halt` (`True`) abort calls on HTTP response error
 
@@ -82,17 +85,18 @@ class Call:
                 yaml.dump(default, f, allow_unicode=True, indent=2)
             raise FileNotFoundError(
                 """
-        
+
         Sketch Grammar Explorer
 
-        No config file detected: generating `config.yml` - add credentials, then try again.
+        No config file detected: generating `config.yml` - add credentials first.
         If a server requires credentials, add `username` and `api_key` to server info.
         API keys can also be managed with the `keyring` package using the format below:
 
             import keyring
             keyring.set_password("<server>","<username>","<api_key>")
 
-        In this case, include `username` in the config file and leave `api_key` as `null`.
+        In this case, include `username` in the config file
+        and leave `api_key` as `null`.
 
         See documentation at https://github.com/engisalor/sketch-grammar-explorer"""
             )
@@ -107,8 +111,8 @@ class Call:
             raise KeyError(f'No credentials for {server} in "{self.config_file}"')
 
         # Manage username & API key
-        if not "username" in server_info:
-            logger.debug(f"CREDS anonymous")
+        if "username" not in server_info:
+            logger.debug("CREDS anonymous")
         elif "api_key" in server_info and not server_info.get("api_key"):
             logger.debug("CREDS keyring")
             if not server_info.get("username"):
@@ -193,7 +197,7 @@ class Call:
     def _set_wait(self, server_info):
         """Sets wait time for server usage (if wait provided in config file)."""
 
-        if not "wait" in server_info:
+        if "wait" not in server_info:
             self.wait = 0
         else:
             n = len(self.calls)
@@ -273,9 +277,8 @@ class Call:
                     executor.map(get, manifest[x : x + self.batch_size])
                 ):
                     # Process packets
-                    logger.debug(
-                        f'RESPONSE {packet["response"].status_code}: {packet["item"]["id"]}'
-                    )
+                    m = f'R. {packet["response"].status_code}: {packet["item"]["id"]}'
+                    logger.debug(m)
                     self._post_call(packet)
 
     def _post_call(self, packet):
@@ -385,7 +388,7 @@ class Call:
         xlsx.to_excel(self.file, header=False, index=False)
 
     def _save_xml(self):
-        from lxml import etree
+        from defusedxml import ElementTree as etree
 
         xml = etree.fromstring(self.data.content)
 
