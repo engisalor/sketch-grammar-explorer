@@ -1,6 +1,8 @@
+"""Read/write functions."""
 import json
 import pathlib
 
+import pandas as pd
 import yaml
 from requests import Response
 
@@ -18,6 +20,7 @@ def read_json(file: str) -> dict:
 
 
 def overwrite(file: str, replace: bool = True, prompt: bool = False) -> bool:
+    """Manages overwriting of preexisting files with replace/prompt args."""
     if pathlib.Path(file).exists() and prompt:
         m = f"Overwrite {file}? (y/N): "
         if input(m).lower() != "y":
@@ -64,8 +67,6 @@ def data_to_txt(file: str, response: Response):
 
 
 def data_to_xlsx(file: str, response: Response):
-    import pandas as pd
-
     xlsx = pd.read_excel(response.content, header=None)
     xlsx.to_excel(file, header=False, index=False)
 
