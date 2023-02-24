@@ -1,21 +1,29 @@
+"""For creating and executing API calls."""
+import json
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from hashlib import blake2b
 from time import perf_counter
 from urllib.parse import parse_qs, urlparse
 
-from requests import Request, Response
-from requests_cache import CachedSession, cache_keys
+from requests import PreparedRequest, Request, Response
+from requests_cache import CachedSession
 
-from sgex import config, wait
+from sgex import config, hook
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(module)s.%(funcName)s - %(message)s",
     level=logging.DEBUG,
 )
 
+# accepted return formats (SkE default is "json")
 formats = ["json", "xml", "xls", "csv", "tsv", "txt"]
+
+# parameters to exclude from requests_cache functions
 ignored_parameters = ["api_key", "username"]
+
+# types of API calls
 types = [
     "attr_vals",
     "collx",
@@ -34,7 +42,10 @@ types = [
 
 
 class Call:
+    """Base class for API calls with a generic method for call validation."""
+
     def validate(self):
+        """Checks whether a call meets basic API parameter/formatting requirements."""
         if self.params.get("format"):
             if self.params["format"] not in formats:
                 raise ValueError(f"format must be one of {formats}: {self.dt}")
@@ -43,9 +54,9 @@ class Call:
                 raise ValueError(f"{p} missing: {self.dt}")
 
     def __repr__(self) -> str:
-        return f"{self.type.upper()}: {self.params}"
+        return f"{self.type.upper()}({self.key[:8]}*) {self.params}"
 
-    def __init__(self, type, params, required=["corpname"]):
+    def __init__(self, type: str, params: dict, required: list = ["corpname"]):
         self.type = type
         self.params = params
         self.required = set(required)
@@ -56,78 +67,81 @@ class Call:
             raise TypeError("params must be a dict")
 
 
-class Attr_vals(Call):
-    def __init__(self, params):
+class AttrVals(Call):
+    def __init__(self, params: dict):
         super().__init__("attr_vals", params, ["corpname", "avattr"])
 
 
 class Collx(Call):
-    def __init__(self, params):
+    def __init__(self, params: dict):
         super().__init__("collx", params, ["corpname", "q"])
 
 
-class Corp_info(Call):
-    def __init__(self, params):
+class CorpInfo(Call):
+    def __init__(self, params: dict):
         super().__init__("corp_info", params, ["corpname"])
 
 
-class extract_keywords(Call):
-    def __init__(self, params):
+class ExtractKeywords(Call):
+    def __init__(self, params: dict):
         super().__init__("extract_keywords", params, ["corpname"])
 
 
 class Freqs(Call):
-    def __init__(self, params):
+    def __init__(self, params: dict):
         super().__init__("freqs", params, ["corpname", "q", "fcrit"])
 
 
 class Freqml(Call):
-    def __init__(self, params):
+    def __init__(self, params: dict):
         super().__init__("freqml", params, ["corpname", "q", "fcrit"])
 
 
 class Freqtt(Call):
-    def __init__(self, params):
+    def __init__(self, params: dict):
         super().__init__("freqtt", params, ["corpname", "q", "fcrit"])
 
 
 class Subcorp(Call):
-    def __init__(self, params):
+    def __init__(self, params: dict):
         super().__init__("subcorp", params, ["corpname"])
 
 
 class Thes(Call):
-    def __init__(self, params):
+    def __init__(self, params: dict):
         super().__init__("thes", params, ["corpname", "lemma"])
 
 
 class Wordlist(Call):
-    def __init__(self, params):
+    def __init__(self, params: dict):
         super().__init__("wordlist", params, ["corpname", "wltype", "wlattr"])
 
 
 class Wsdiff(Call):
-    def __init__(self, params):
+    def __init__(self, params: dict):
         super().__init__("wsdiff", params, ["corpname", "lemma", "lemma2"])
 
 
 class Wsketch(Call):
-    def __init__(self, params):
+    def __init__(self, params: dict):
         super().__init__("wsketch", params, ["corpname", "lemma"])
 
 
 class View(Call):
-    def __init__(self, params):
+    def __init__(self, params: dict):
         if not params.get("asyn"):
             params["asyn"] = 0
         super().__init__("view", params, ["corpname", "q"])
 
 
 class Package:
+    """Class for organizing and executing API calls."""
+
     def send_requests(self) -> None:
-        timeout = wait.timeout(len(self.calls), self.conf[self.server])
-        # NOTE response hook fires twice per request, thus 'timeout / 2'
-        self.session.hooks["response"].append(wait.make_hook(timeout / 2))
+        """Executes Calls sequentially with a wait period if uncached & required."""
+        wait = hook.wait(len(self.calls), self.conf[self.server])
+        # NOTE response hook fires twice per request, thus 'wait / 2'
+        self.session.hooks["response"].append(hook.wait_hook(wait / 2))
         t0 = perf_counter()
         for x in range(len((self.calls))):
             response = self.session.get(
@@ -138,6 +152,7 @@ class Package:
         logging.debug(f"{len(self.calls)} - {t1-t0:.3f}s - {len(self.errors)} errors")
 
     def send_async_requests(self, **kwargs) -> None:
+        """Executes Calls asynchronously (if allowed for a server)."""
         if not self.conf[self.server].get("asynchronous"):
             raise ValueError(f"async calling not enabled for {self.server} server")
         t0 = perf_counter()
@@ -163,6 +178,7 @@ class Package:
             self.responses.append(response)
 
     def _handle_errors(self, response: Response) -> None:
+        error = None
         response.raise_for_status()
         if response.status_code >= 400:
             error = ": ".join([str(response.status_code), response.reason])
@@ -178,6 +194,8 @@ class Package:
             raise Warning(f"requests halted with error: {error}")
 
     def __init__(self, calls: list[Call], server: str, **kwargs):
+        if isinstance(calls, Call):
+            calls = [calls]
         self.calls = calls
         self.server = server
         self.halt = True
@@ -191,6 +209,7 @@ class Package:
             backend="filesystem",
             ignored_parameters=ignored_parameters,
             allowable_codes=[200, 400, 500],
+            key_fn=create_key_from_params,
         )
         self.conf_params = dict(source=".config.yml")
         # use kwargs
@@ -199,10 +218,12 @@ class Package:
         # run
         self.conf = config.load(**self.conf_params)
         self.session = CachedSession(**self.session_params)
+        self.session.hooks["response"].append(hook.redact_hook())
         prepare(self.calls, self.server, self.conf)
 
 
 def prepare(calls: list[Call], server: str, conf: dict, **kwargs) -> None:
+    """Prepares a list of Calls to send (propagates params, creates Request object)."""
     creds = {k: v for k, v in conf[server].items() if k in ignored_parameters}
     propagate(calls)
     for call in calls:
@@ -213,6 +234,7 @@ def prepare(calls: list[Call], server: str, conf: dict, **kwargs) -> None:
 
 
 def propagate_key(calls: list[Call], key: str) -> None:
+    """Propagates parameters for one key in a list of Calls."""
     for x in range(1, len(calls)):
         # ignore if type changes
         if calls[x].type != calls[x - 1].type:
@@ -236,6 +258,7 @@ def propagate_key(calls: list[Call], key: str) -> None:
 
 
 def propagate(calls: list[Call]) -> None:
+    """Propagates (recycles) parameters for all keys in a list of Calls."""
     keys = set([k for call in calls for k in call.params.keys()])
     for k in keys:
         propagate_key(calls, k)
@@ -243,11 +266,13 @@ def propagate(calls: list[Call]) -> None:
 
 
 def add_creds(calls: list[Call], creds: dict) -> None:
+    """Adds credentials to parameters for a list of Calls."""
     for x in range(len(calls)):
         calls[x].params = {**creds, **calls[x].params}
 
 
 def add_request(calls: list[Call], server: str, conf, **kwargs) -> None:
+    """Generates Request objects for a list of calls."""
     for x in range(len(calls)):
         calls[x].request = Request(
             "GET",
@@ -257,10 +282,45 @@ def add_request(calls: list[Call], server: str, conf, **kwargs) -> None:
         )
 
 
+def normalize_dt(dt: dict):
+    """Normalizes a dictionary of parameters."""
+    return {k.strip(): normalize_values(v) for k, v in dt.items()}
+
+
+def normalize_values(value: any) -> any:
+    """Normalizes values for a dictionary of parameters."""
+    if isinstance(value, str):
+        value = value.strip()
+    elif isinstance(value, list):
+        value = [normalize_values(x) for x in value]
+        value.sort()
+    elif isinstance(value, dict):
+        value = normalize_dt(value)
+    else:
+        pass
+    return value
+
+
+def create_key_from_params(
+    request: PreparedRequest,
+    ignored_parameters: list = [],
+    **kwargs,
+) -> str:
+    """Generates a custom key for requests-cache based solely on request parameters."""
+    params = parse_qs(urlparse(request.url).query)
+    params_redacted = {k: v for k, v in params.items() if k not in ignored_parameters}
+    params_normalized = normalize_dt(params_redacted)
+    params_json = json.dumps(params_normalized, sort_keys=True)
+    key = blake2b(digest_size=8)
+    key.update(params_json.encode())
+    return key.hexdigest()
+
+
 def add_key(calls: list[Call], **kwargs) -> None:
+    """Generates keys for a list of Calls."""
     for x in range(len(calls)):
-        calls[x].key = cache_keys.create_key(
-            calls[x].request,
+        calls[x].key = create_key_from_params(
+            calls[x].request.prepare(),
             ignored_parameters=ignored_parameters,
             **kwargs,
         )
