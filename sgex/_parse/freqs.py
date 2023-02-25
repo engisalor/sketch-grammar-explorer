@@ -27,7 +27,7 @@ def clean_heads(heads) -> list:
         return None
 
 
-def make_df(response: Response) -> pd.DataFrame:
+def freqs_json(response: Response) -> pd.DataFrame:
     """Converts a single-/multi-block freqs JSON response to a DataFrame."""
     json = response.json()
     # extract data from response

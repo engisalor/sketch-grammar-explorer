@@ -2,7 +2,7 @@ import pandas as pd
 from requests import Response
 
 
-def ttype_analysis(response: Response) -> pd.DataFrame:
+def ttype_analysis_json(response: Response) -> pd.DataFrame:
     """Returns a DataFrame with attribute frequencies, e.g., to analyze text types."""
     json = response.json()
     df = pd.DataFrame.from_records(json.get("Items"))

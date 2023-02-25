@@ -2,7 +2,7 @@ import pandas as pd
 from requests import Response
 
 
-def structures(
+def structures_json(
     response: Response, drop: list = ["attributes", "label", "dynamic", "fromattr"]
 ) -> pd.DataFrame:
     """Returns a DataFrame describing corpus structures and their attributes."""
@@ -19,7 +19,7 @@ def structures(
     return df
 
 
-def sizes(response: Response) -> pd.DataFrame:
+def sizes_json(response: Response) -> pd.DataFrame:
     """Returns a DataFrame of corpus structure sizes (overall token/word counts)."""
     return pd.DataFrame(
         {
