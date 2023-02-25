@@ -18,7 +18,7 @@ logging.basicConfig(
 )
 
 # accepted return formats (SkE default is "json")
-formats = ["json", "xml", "xls", "csv", "tsv", "txt"]
+formats = ["json", "xml", "xls", "csv", "txt"]
 
 # parameters to exclude from requests_cache functions
 ignored_parameters = ["api_key", "username"]
