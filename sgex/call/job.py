@@ -1,8 +1,9 @@
-"""Module with classes to execute specific API jobs."""
+"""Classes to execute specific API jobs."""
 import pandas as pd
 
-from sgex import _call, assemble
-from sgex._parse.json import corp_info, freqs, wordlist
+from sgex.call.package import Package
+from sgex.call.type import CorpInfo, Freqs, Wordlist
+from sgex.parse import corp_info, freqs, wordlist
 
 
 class TTypeAnalysis:
@@ -10,10 +11,12 @@ class TTypeAnalysis:
 
     def get_corp_info(self):
         """Makes an initial corp_info call to retrieve corpus structures."""
-        self.corpinfo_call = _call.CorpInfo(self.corp_info_params)
-        self.corpinfo_package = _call.Package(self.corpinfo_call, self.server)
+        self.corpinfo_call = CorpInfo(self.corp_info_params)
+        self.corpinfo_package = Package(self.corpinfo_call, self.server)
         self.corpinfo_package.send_requests()
-        self.structures_df = corp_info.structures(self.corpinfo_package.responses[0])
+        self.structures_df = corp_info.structures_json(
+            self.corpinfo_package.responses[0]
+        )
         self.attributes = (
             self.structures_df["structure"] + "." + self.structures_df["attribute"]
         )
@@ -23,15 +26,15 @@ class TTypeAnalysis:
         self.ttype_calls = []
         for attr in self.attributes:
             params = {**self.wordlist_params, "wlattr": attr}
-            self.ttype_calls.append(_call.Wordlist(params))
-        self.ttype_package = _call.Package(self.ttype_calls, "noske")
+            self.ttype_calls.append(Wordlist(params))
+        self.ttype_package = Package(self.ttype_calls, "noske")
         self.ttype_package.send_requests()
 
     def make_df(self):
         """Generates a DataFrame with combined text type data."""
         self.df = pd.DataFrame()
         for response in self.ttype_package.responses:
-            temp = wordlist.ttype_analysis(response)
+            temp = wordlist.ttype_analysis_json(response)
             self.df = pd.concat([self.df, temp])
         self.df.reset_index(drop=True, inplace=True)
 
@@ -71,10 +74,12 @@ class SimpleFreqsQuery:
 
     def get_corp_info(self):
         """Makes an initial corp_info call to retrieve corpus structures."""
-        self.corpinfo_call = _call.CorpInfo(self.corp_info_params)
-        self.corpinfo_package = _call.Package(self.corpinfo_call, self.server)
+        self.corpinfo_call = CorpInfo(self.corp_info_params)
+        self.corpinfo_package = Package(self.corpinfo_call, self.server)
         self.corpinfo_package.send_requests()
-        self.structures_df = corp_info.structures(self.corpinfo_package.responses[0])
+        self.structures_df = corp_info.structures_json(
+            self.corpinfo_package.responses[0]
+        )
         self.attributes = (
             self.structures_df["structure"] + "." + self.structures_df["attribute"]
         )
@@ -89,7 +94,7 @@ class SimpleFreqsQuery:
 
     def get_freqs(self):
         """Makes a freqs call."""
-        self.package = _call.Package(self.call, self.server)
+        self.package = Package(self.call, self.server)
         self.package.send_requests()
 
     def run(self):
@@ -97,7 +102,7 @@ class SimpleFreqsQuery:
         if not self.freqs_params.get("fcrit"):
             self.set_fcrit()
         self.get_freqs()
-        self.df = freqs.make_df(self.package.responses[0])
+        self.df = freqs.freqs_json(self.package.responses[0])
 
     def __init__(
         self, query: str, corpname: str, server: str, fcrit=None, fcrit_limit: int = 0
@@ -110,7 +115,7 @@ class SimpleFreqsQuery:
             "struct_attr_stats": 1,
         }
         self.freqs_params = {
-            "q": assemble.simple_query(query),
+            "q": query.simple_query(query),
             "corpname": corpname,
             "fcrit": fcrit,
             "freq_sort": "freq",
@@ -121,4 +126,4 @@ class SimpleFreqsQuery:
             "showreltt": 1,
             "showrel": 1,
         }
-        self.call = _call.Freqs(self.freqs_params)
+        self.call = Freqs(self.freqs_params)
