@@ -1,3 +1,4 @@
+"""For loading configuration data."""
 import json
 import os
 import pathlib
@@ -19,6 +20,7 @@ default = {
 
 
 def from_file(file: str) -> dict:
+    """Loads configuration from a YAML or JSON file."""
     file = pathlib.Path(file)
     if file.suffix in [".yml", ".yaml"]:
         dt = io.read_yaml(file)
@@ -30,33 +32,44 @@ def from_file(file: str) -> dict:
 
 
 def from_str(s: str) -> dict:
+    """Loads configuration from a JSON-formatted string."""
     return json.loads(s)
 
 
 def from_env(var: str = "SGEX_CONFIG_JSON") -> dict:
+    """Loads configuration from an environment variable (a JSON-formatted string)."""
     s = os.environ.get(var)
     return from_str(s)
 
 
-def load(source: str, keyring: bool = False, **kwargs) -> dict:
+def load(source: str) -> dict:
+    """Loads configuration from any available source.
+
+    Args:
+        source: Can be any of the following:
+            a dictionary (see ``sgex.config.default`` for an example);
+            a filepath to a JSON/YAML configuration file (``config.yml``);
+            the name of a JSON-formatted environment variable (``SGEX_CONFIG_JSON``);
+            a JSON-formatted string (``"{<JSON content>}"``).
+
+    Notes:
+        If multiple source types exist, priority is given in this order:
+            dict, env, filepath, str.
+    """
     if isinstance(source, dict):
-        conf = source
-    elif source.endswith((".yml", ".yaml", ".json")):
-        conf = from_file(source)
+        return source
     elif source.isupper():
-        conf = from_env(source)
+        return from_env(source)
+    elif source.endswith((".yml", ".yaml", ".json")):
+        return from_file(source)
     else:
-        conf = from_str(source)
-    if keyring:
-        conf = read_keyring(conf, **kwargs)
-    return conf
+        return from_str(source)
 
 
-def read_keyring(  # nosec
-    conf, server: str, id_key: str = "username", password_key: str = "api_key"
-) -> dict:
+def read_keyring(conf: dict, server: str) -> dict:
+    """Adds a server's API key from the keyring to a configuration dict."""
     import keyring
 
-    p = keyring.get_password(conf[server]["host"], conf[server][id_key])
-    conf[server][password_key] = p
+    p = keyring.get_password(conf[server]["host"], conf[server]["username"])
+    conf[server]["api_key"] = p
     return conf
