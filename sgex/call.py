@@ -29,6 +29,50 @@ logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 
 
+def parse(input, dest=None):
+    """Parses and returns/saves a JSON/YAML file or dict of API calls.
+
+    `dest="<filepath.extension>"` saves object to file (.json, .yml, .yaml)
+    - (can be used to convert between file formats)
+    """
+
+    # Load calls
+    if isinstance(input, dict):
+        calls = input
+    elif isinstance(input, str):
+        input = pathlib.Path(input)
+        if not input.exists():
+            raise FileNotFoundError
+        else:
+            if input.suffix in [".yml", ".yaml"]:
+                with open(input, "r") as stream:
+                    calls = yaml.safe_load(stream)
+            elif input.suffix == ".json":
+                with open(input, "r") as f:
+                    calls = json.load(f)
+            else:
+                raise ValueError("Unknown format (use .json .yml .yaml)")
+    else:
+        raise ValueError(
+            "Unknown format (use dict or str w/ extension .json .yml .yaml)"
+        )
+
+    # Save
+    if dest:
+        output_file = pathlib.Path(dest)
+        if output_file.suffix == ".json":
+            with open(output_file, "w", encoding="utf-8") as f:
+                json.dump(calls, f, ensure_ascii=False, indent=2)
+        elif output_file.suffix in [".yml", ".yaml"]:
+            with open(output_file, "w", encoding="utf-8") as f:
+                yaml.dump(calls, f, allow_unicode=True, sort_keys=False, indent=2)
+        else:
+            raise ValueError("Unknown output format: use .json .yml .yaml")
+    # Return
+    else:
+        return calls
+
+
 class Call:
     """Executes Sketch Engine API calls & saves data to desired output.
 
@@ -72,12 +116,12 @@ class Call:
             with open(self.config_file_default[1:], "w", encoding="utf-8") as f:
                 default = {
                     "noske": {
-                        "server": "http://localhost:10070/bonito/run.cgi",
+                        "host": "http://localhost:10070/bonito/run.cgi",
                         "asynchronous": True,
                     },
                     "ske": {
                         "api_key": "key",
-                        "server": "https://api.sketchengine.eu/bonito/run.cgi",
+                        "host": "https://api.sketchengine.eu/bonito/run.cgi",
                         "username": "user",
                         "wait": {0: 1, 2: 99, 5: 899, 45: None},
                     },
@@ -121,7 +165,7 @@ class Call:
                 import keyring
 
                 api_key = keyring.get_password(
-                    server_info["server"], server_info["username"]
+                    server_info["host"], server_info["username"]
                 )
             if not api_key:
                 raise ValueError(
@@ -494,8 +538,8 @@ class Call:
         pathlib.Path.mkdir(pathlib.Path("data"), exist_ok=True)
         config = self._get_config()
         server_info = self._get_server_info(server, config)
-        self.server = server_info.get("server").strip("/")
-        self.calls = sgex.parse(input)
+        self.server = server_info.get("host").strip("/")
+        self.calls = parse(input)
         self._reuse_parameters()
         self._set_wait(server_info)
         credentials = {
