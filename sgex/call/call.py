@@ -6,12 +6,7 @@ from urllib.parse import parse_qs, urlparse
 from requests import PreparedRequest, Request
 
 from sgex.call.type import Call
-
-# accepted return formats (SkE default is "json")
-formats = ["json", "xml", "xls", "csv", "txt"]
-
-# parameters to exclude from requests_cache functions
-ignored_parameters = ["api_key", "username"]
+from sgex.config import ignored_parameters
 
 
 def prepare(calls: list[Call], server: str, conf: dict, **kwargs) -> None:

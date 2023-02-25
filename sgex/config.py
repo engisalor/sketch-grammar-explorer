@@ -1,4 +1,4 @@
-"""For loading configuration data."""
+"""Default settings and functions to load configuration data."""
 import json
 import os
 import pathlib
@@ -17,6 +17,12 @@ default = {
         "wait": {"0": 1, "2": 99, "5": 899, "45": None},
     },
 }
+
+# accepted return formats (SkE default is "json")
+formats = ["json", "xml", "xls", "csv", "txt"]
+
+# parameters to exclude from requests_cache functions
+ignored_parameters = ["api_key", "username"]
 
 
 def from_file(file: str) -> dict:

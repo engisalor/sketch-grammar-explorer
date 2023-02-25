@@ -11,6 +11,7 @@ from requests_cache import CachedSession
 from sgex import config
 from sgex.call import call, hook
 from sgex.call.type import Call
+from sgex.config import ignored_parameters
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(module)s.%(funcName)s - %(message)s",
@@ -70,7 +71,7 @@ class Package:
             error = response.json().get("error", None)
         if error:
             query = parse_qs(urlparse(response.url).query)
-            dt = {k: v for k, v in query.items() if k not in call.ignored_parameters}
+            dt = {k: v for k, v in query.items() if k not in ignored_parameters}
             host = response.url.split("?")[0]
             self.errors.add((error, host, str(dt)))
             logging.warning(f"{error} - {host} - {dt}")
@@ -91,7 +92,7 @@ class Package:
             cache_name="data/file_cache",
             serializer="json",
             backend="filesystem",
-            ignored_parameters=call.ignored_parameters,
+            ignored_parameters=ignored_parameters,
             allowable_codes=[200, 400, 500],
             key_fn=call.create_key_from_params,
         )

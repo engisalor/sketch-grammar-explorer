@@ -1,5 +1,5 @@
 """Types of API calls and their classes."""
-from sgex.call.call import formats
+from sgex.config import formats
 
 types = [
     "attr_vals",
