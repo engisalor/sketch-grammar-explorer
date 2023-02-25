@@ -1,5 +1,11 @@
 # Sketch Grammar Explorer
 
+***DEPRECATION NOTICE***
+
+This is the documentation for SGEX `0.5.5`, the content of which will eventually be deprecated. This version may still be more suitable to some tasks, especially if you're already familiar with SGEX.
+
+Note that import paths have changed: `sgex.Call` is now `sgex._call.Call`.
+
 [![PyPI Latest Release](https://img.shields.io/pypi/v/sgex.svg)](https://pypi.org/project/sgex/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6812334.svg)](https://doi.org/10.5281/zenodo.6812334)
 [![Package Status](https://img.shields.io/pypi/status/sgex.svg)](https://pypi.org/project/sgex/)
@@ -19,10 +25,6 @@
 ## Introduction
 
 Sketch Grammar Explorer (SGEX) is a Python package for using the [Sketch Engine](https://www.sketchengine.eu/) API. The goal is to develop a flexible scaffold for any kind of programmatic work with Sketch Engine and [NoSketch Engine](https://nlp.fi.muni.cz/trac/noske).
-
-**NOTE**
-
-SGEX is being redesigned and the below functionalities will be deprecated in upcoming versions. See the new `_call` module for current development.
 
 ## Setup
 
@@ -49,8 +51,8 @@ Or manually:
 To configure SGEX, either run the code below or manually copy the example [config file](https://github.com/engisalor/sketch-grammar-explorer/blob/dev/config.yml) to your project directory.
 
 ```python
-import sgex
-sgex.Call(sgex.call_examples) # SGEX generates a config file if none found
+from sgex._call import Call, call_examples
+Call(call_examples) # SGEX generates a config file if none found
 ```
 
 The config file contains API credentials and other settings for servers. Before making calls to a server, set up your credentials:
@@ -67,10 +69,10 @@ The default config file includes two servers: for Sketch Engine and a local NoSk
 To get started making calls, generate an example input file and execute the job:
 
 ```python
-import sgex
+from sgex._call import Call, call_examples, parse
 
-sgex.parse(sgex.call_examples, "examples.yml") # modify examples.yml as desired
-sgex.Call("examples.yml", loglevel="info")
+parse(call_examples, "examples.yml") # modify examples.yml as desired
+Call("examples.yml", loglevel="info")
 ```
 
 SGEX parses calls from the input file, makes requests to the server, and stores results in `data/sgex.db`. Next, make your own input files and experiment with other features.
