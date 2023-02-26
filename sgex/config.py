@@ -7,12 +7,12 @@ from sgex import io
 
 default = {
     "noske": {
-        "server": "http://localhost:10070/bonito/run.cgi",
+        "host": "http://localhost:10070/bonito/run.cgi",
         "asynchronous": True,
     },
     "ske": {
         "api_key": "<key>",
-        "server": "https://api.sketchengine.eu/bonito/run.cgi",
+        "host": "https://api.sketchengine.eu/bonito/run.cgi",
         "username": "<user>",
         "wait": {"0": 1, "2": 99, "5": 899, "45": None},
     },
