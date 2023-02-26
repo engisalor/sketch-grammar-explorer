@@ -8,10 +8,10 @@ from urllib.parse import parse_qs, urlparse
 from requests import Response
 from requests_cache import CachedSession
 
-from sgex import config
 from sgex.call import call, hook
 from sgex.call.type import Call
 from sgex.config import ignored_parameters
+from sgex.config import load as load_config
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(module)s.%(funcName)s - %(message)s",
@@ -24,7 +24,7 @@ class Package:
 
     def send_requests(self) -> None:
         """Executes Calls sequentially with a wait period if uncached & required."""
-        wait = hook.wait(len(self.calls), self.conf[self.server])
+        wait = hook.wait(len(self.calls), self.config[self.server])
         # NOTE response hook fires twice per request, thus 'wait / 2'
         self.session.hooks["response"].append(hook.wait_hook(wait / 2))
         t0 = perf_counter()
@@ -38,10 +38,10 @@ class Package:
 
     def send_async_requests(self, **kwargs) -> None:
         """Executes Calls asynchronously (if allowed for a server)."""
-        if not self.conf[self.server].get("asynchronous"):
+        if not self.config[self.server].get("asynchronous"):
             raise ValueError(f"async calling not enabled for {self.server} server")
         t0 = perf_counter()
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+        with ThreadPoolExecutor(max_workers=self.max_workers, **kwargs) as executor:
             future_to_url = {
                 executor.submit(
                     self.session.get, c.request.url, params=c.request.params
@@ -78,7 +78,7 @@ class Package:
         if error and self.halt:
             raise Warning(f"requests halted with error: {error}")
 
-    def __init__(self, calls: list[Call], server: str, **kwargs):
+    def __init__(self, calls: list[Call], server: str, config, **kwargs):
         if isinstance(calls, Call):
             calls = [calls]
         self.calls = calls
@@ -93,15 +93,13 @@ class Package:
             serializer="json",
             backend="filesystem",
             ignored_parameters=ignored_parameters,
-            allowable_codes=[200, 400, 500],
             key_fn=call.create_key_from_params,
         )
-        self.conf_params = dict(source=".config.yml")
+        self.config = load_config(config)
         # use kwargs
         for key, value in kwargs.items():
             setattr(self, key, value)
         # run
-        self.conf = config.load(**self.conf_params)
         self.session = CachedSession(**self.session_params)
         self.session.hooks["response"].append(hook.redact_hook())
-        call.prepare(self.calls, self.server, self.conf)
+        call.prepare(self.calls, self.server, self.config)
