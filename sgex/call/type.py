@@ -31,12 +31,17 @@ class Call:
                 raise ValueError(f"{p} missing: {self.dt}")
 
     def __repr__(self) -> str:
-        return f"{self.type.upper()}({self.key[:8]}*) {self.params}"
+        if not self.key:
+            key = "*"
+        else:
+            key = self.key[:8]
+        return f"{self.type.upper()}({key}) {self.params}"
 
     def __init__(self, type: str, params: dict, required: list = ["corpname"]):
         self.type = type
         self.params = params
         self.required = set(required)
+        self.key = None
         self.dt = {"type": self.type, **self.params}
         if self.type not in types:
             raise ValueError(f"type must be one of {types}")
