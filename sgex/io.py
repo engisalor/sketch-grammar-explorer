@@ -104,7 +104,7 @@ def export_content(response: Response, filename: str = "content"):
         Try making the same API call with ``"format": "json"``.
     """
     query = parse_qs(urlparse(response.url).query)
-    _format = query.get("format", "json")[0]
+    _format = query.get("format", ["json"])[0]
     if _format == "json":
         to_json(response, filename)
     elif _format == "xml":
