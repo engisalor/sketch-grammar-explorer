@@ -2,9 +2,7 @@
 
 ***DEPRECATION NOTICE***
 
-This is the documentation for SGEX `0.5.5`, the content of which will eventually be deprecated. This version may still be more suitable to some tasks, especially if you're already familiar with SGEX.
-
-Note that import paths have changed: `sgex.Call` is now `sgex._call.Call`.
+This is the documentation for SGEX `0.5.5`, much of which may be deprecated. In the short term, this version may still be more suitable for some tasks, so it's currently available with new import paths: `sgex.Call` is now `sgex._call.Call`.
 
 [![PyPI Latest Release](https://img.shields.io/pypi/v/sgex.svg)](https://pypi.org/project/sgex/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6812334.svg)](https://doi.org/10.5281/zenodo.6812334)
