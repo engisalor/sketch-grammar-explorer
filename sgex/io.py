@@ -53,30 +53,35 @@ def write_json(file: str, dt: dict, prompt: bool = True) -> None:
 
 
 def to_csv(response: Response, filename: str = "content"):
-    with open(f"{filename}.csv", "w", encoding="utf-8") as f:
+    filename = pathlib.Path(filename).with_suffix(".csv")
+    with open(filename, "w", encoding="utf-8") as f:
         f.write(response.text)
 
 
 def to_json(response: Response, filename: str = "content"):
-    with open(f"{filename}.json", "w", encoding="utf-8") as f:
+    filename = pathlib.Path(filename).with_suffix(".json")
+    with open(filename, "w", encoding="utf-8") as f:
         json.dump(response.json(), f, ensure_ascii=False, indent=1)
 
 
 def to_txt(response: Response, filename: str = "content"):
-    with open(f"{filename}.txt", "w", encoding="utf-8") as f:
+    filename = pathlib.Path(filename).with_suffix(".txt")
+    with open(filename, "w", encoding="utf-8") as f:
         f.write(response.text)
 
 
 def to_xlsx(response: Response, filename: str = "content"):
+    filename = pathlib.Path(filename).with_suffix(".xlsx")
     xlsx = pd.read_excel(response.content, header=None)
-    xlsx.to_excel(f"{filename}.xlsx", header=False, index=False)
+    xlsx.to_excel(filename, header=False, index=False)
 
 
 def to_xml(response: Response, filename: str = "content"):
+    filename = pathlib.Path(filename).with_suffix(".xml")
     from defusedxml import ElementTree as etree
 
     xml = etree.fromstring(response.content)
-    with open(f"{filename}.xml", "wb") as f:
+    with open(filename, "wb") as f:
         f.write(
             etree.tostring(
                 xml,
