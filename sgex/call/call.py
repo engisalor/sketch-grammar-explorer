@@ -1,17 +1,17 @@
 """Functions for preparing lists of Calls prior to making requests."""
 import json
+import re
 from hashlib import blake2b
 from urllib.parse import parse_qs, urlparse
 
 from requests import PreparedRequest, Request
 
-from sgex.call.type import Call
-from sgex.config import ignored_parameters
+from sgex.config import credential_parameters
 
 
-def prepare(calls: list[Call], server: str, conf: dict, **kwargs) -> None:
+def prepare(calls: list, server: str, conf: dict, **kwargs) -> None:
     """Prepares a list of Calls to send (propagates params, creates Request object)."""
-    creds = {k: v for k, v in conf[server].items() if k in ignored_parameters}
+    creds = {k: v for k, v in conf[server].items() if k in credential_parameters}
     propagate(calls)
     for call in calls:
         call.validate()
@@ -20,7 +20,7 @@ def prepare(calls: list[Call], server: str, conf: dict, **kwargs) -> None:
     add_key(calls)
 
 
-def propagate_key(calls: list[Call], key: str) -> None:
+def propagate_key(calls: list, key: str) -> None:
     """Propagates parameters for one key in a list of Calls."""
     for x in range(1, len(calls)):
         # ignore if type changes
@@ -44,7 +44,7 @@ def propagate_key(calls: list[Call], key: str) -> None:
             pass
 
 
-def propagate(calls: list[Call]) -> None:
+def propagate(calls: list) -> None:
     """Propagates (recycles) parameters for all keys in a list of Calls."""
     keys = set([k for call in calls for k in call.params.keys()])
     for k in keys:
@@ -52,13 +52,13 @@ def propagate(calls: list[Call]) -> None:
     return calls
 
 
-def add_creds(calls: list[Call], creds: dict) -> None:
+def add_creds(calls: list, creds: dict) -> None:
     """Adds credentials to parameters for a list of Calls."""
     for x in range(len(calls)):
         calls[x].params = {**creds, **calls[x].params}
 
 
-def add_request(calls: list[Call], server: str, conf, **kwargs) -> None:
+def add_request(calls: list, server: str, conf, **kwargs) -> None:
     """Generates Request objects for a list of calls."""
     for x in range(len(calls)):
         calls[x].request = Request(
@@ -88,26 +88,29 @@ def normalize_values(value: any) -> any:
     return value
 
 
-def create_key_from_params(
+def create_custom_key(
     request: PreparedRequest,
-    ignored_parameters: list = [],
+    ignored_parameters: list = credential_parameters,
     **kwargs,
 ) -> str:
-    """Generates a custom key for requests-cache based solely on request parameters."""
+    """Generates a custom key for requests-cache based request type and parameters."""
+    # TODO improve standardization of CQL rule strings e.g. extra spaces within content
     params = parse_qs(urlparse(request.url).query)
     params_redacted = {k: v for k, v in params.items() if k not in ignored_parameters}
     params_normalized = normalize_dt(params_redacted)
-    params_json = json.dumps(params_normalized, sort_keys=True)
+    type = {"type": re.search(r"run.cgi/(.*)\?", request.url).group(1)}
+    params_with_type = {**type, **params_normalized}
+    params_json = json.dumps(params_with_type, sort_keys=True)
     key = blake2b(digest_size=8)
     key.update(params_json.encode())
     return key.hexdigest()
 
 
-def add_key(calls: list[Call], **kwargs) -> None:
+def add_key(calls: list, **kwargs) -> None:
     """Generates keys for a list of Calls."""
     for x in range(len(calls)):
-        calls[x].key = create_key_from_params(
+        calls[x].key = create_custom_key(
             calls[x].request.prepare(),
-            ignored_parameters=ignored_parameters,
+            ignored_parameters=credential_parameters,
             **kwargs,
         )
