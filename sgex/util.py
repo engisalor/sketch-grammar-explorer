@@ -2,7 +2,7 @@
 import pandas as pd
 
 
-def list_of_dict(ls: list) -> dict:
+def flatten_ls_of_dt(ls: list) -> dict:
     """Recursively converts a list of dicts to a dict of lists.
 
     Notes:
