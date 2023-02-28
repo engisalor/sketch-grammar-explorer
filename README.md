@@ -498,6 +498,10 @@ def freqs_json(response: Response) -> pd.DataFrame:
 
 ## API usage notes
 
+**Sketch Engine vs NoSketch Engine**
+
+These versions of the software [behave differently](https://www.sketchengine.eu/nosketch-engine/), so make sure data are comparable if using both for an analysis. A convenient way to implement NoSketch Engine is with this [NoSketch Engine Docker project](https://github.com/ELTE-DH/NoSketch-Engine-Docker).
+
 **Available formats**
 
 API responses have JSON content by default. Other formats can be downloaded by adding `"format": "<format>"` to `Call` parameters (`["json", "xml", "xlsx", "csv", "txt"]`). Call types (`freqs`, `view`, etc.) are only compatible with certain formats, depending on the shape of the data. Only JSON is universally available.
