@@ -13,11 +13,6 @@ from sgex.call.type import Call
 from sgex.config import credential_parameters
 from sgex.config import load as load_config
 
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(module)s.%(funcName)s - %(message)s",
-    level=logging.DEBUG,
-)
-
 
 class Package:
     """Class for organizing and executing API calls."""
@@ -34,7 +29,7 @@ class Package:
             )
             self._manage_response(response, t0)
         t1 = perf_counter()
-        logging.debug(f"{len(self.calls)} - {t1-t0:.3f}s - {len(self.errors)} errors")
+        logging.info(f"{len(self.calls)} - {t1-t0:.3f}s - {len(self.errors)} errors")
 
     def send_async_requests(self, **kwargs) -> None:
         """Executes Calls asynchronously (if allowed for a server)."""
@@ -52,7 +47,7 @@ class Package:
                 response = future.result()
                 self._manage_response(response, t0)
         t1 = perf_counter()
-        logging.debug(f"{len(self.calls)} - {t1-t0:.3f}s - {len(self.errors)} errors")
+        logging.info(f"{len(self.calls)} - {t1-t0:.3f}s - {len(self.errors)} errors")
 
     def _manage_response(self, response: Response, t0: float) -> None:
         self._add_response_to_instance(response)
@@ -86,6 +81,7 @@ class Package:
         self.server = server
         self.halt = True
         self.errors = set()
+        self.loglevel = "warning"
         self.max_workers = min(32, os.cpu_count() + 4)
         self.responses = []
         self.max_responses = 100
@@ -100,6 +96,17 @@ class Package:
         # use kwargs
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+        # logging
+        numeric_level = getattr(logging, self.loglevel.upper(), None)
+        if not isinstance(numeric_level, int):
+            raise ValueError(f"Invalid log level: {self.loglevel}")
+        m = "%(asctime)s - %(levelname)s - %(module)s.%(funcName)s - %(message)s"
+        logging.basicConfig(
+            format=m,
+            level=numeric_level,
+        )
+
         # run
         self.session = CachedSession(**self.session_params)
         self.session.hooks["response"].append(hook.redact_hook())
