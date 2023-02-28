@@ -3,5 +3,3 @@
 ## Testing with a local NoSketch Engine server
 
 Integration tests require a local NoSketch Engine server running in a Docker container. Use the same configuration as shown in `sgex.config.default["noske"]`.
-
-Such tests are skipped if no Docker container is running: this is confirmed with `sgex.test.util.noske_running`.
