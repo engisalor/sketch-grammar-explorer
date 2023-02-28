@@ -8,10 +8,35 @@ from sgex.parse import corp_info, freqs, wordlist
 
 
 class TTypeAnalysis:
-    """Collects frequency data about a corpus's text types (attributes)."""
+    """Collects frequency data about a corpus's text types (attributes).
+
+    Args:
+        corpname: Corpus.
+        server: Server.
+        config: Configuration.
+
+    Methods:
+        get_corp_info: Makes a preliminary corp_info call.
+        get_ttypes: Runs Wordlist calls for each attribute.
+        make_df: Makes a DataFrame of results.
+        run: Executes job.
+
+    Notes:
+        Default gets up to 500 attributes: ``"wlmaxitems": 500``
+
+    Example:
+        >>> j = job.TTypeAnalysis("susanne", "noske", default)
+        >>> j.run()
+        >>> j.df
+                   str  frq  relfreq      attribute
+        0         ital  263  1748.37      font.type
+        1         bold   38   252.62      font.type
+        2          maj  182  1209.90      head.type
+        ...
+    """
 
     def get_corp_info(self):
-        """Makes an initial corp_info call to retrieve corpus structures."""
+        """Makes a corp_info call to retrieve corpus structures as part of a job."""
         self.corpinfo_call = CorpInfo(self.corp_info_params)
         self.corpinfo_package = Package(self.corpinfo_call, self.server, self.config)
         self.corpinfo_package.send_requests()
@@ -72,10 +97,38 @@ class TTypeAnalysis:
 
 
 class SimpleFreqsQuery:
-    """Collects data for a freqs query using simple query syntax."""
+    """Collects data for a freqs query using simple query syntax.
+
+    Args:
+        corpname: Corpus.
+        server: Server.
+        config: Configuration.
+        fcrit: Attributes to query.
+        fcrit_limit: Limit attributes to those with fewer than N values.
+
+    Methods:
+        get_corp_info: Makes a preliminary corp_info call.
+        set_fcrit: Determines which attributes to include in ``fcrit``.
+        get_freqs: Runs the freqs API call.
+        run: Executes the job and makes a DataFrame ``df`` attribute.
+
+    Notes:
+        Default gets up to 500 values per attribute: ``"wlmaxitems": 500``
+
+    Example:
+        This example gets frequency data for any word starting with "sun".
+
+        >>> j = job.SimpleFreqsQuery("sun*", "susanne", "noske", default)
+        >>> j.run()
+        >>> j.df.iloc[0]
+        frq           64
+        rel    148.11175
+        reltt      640.0
+        ...
+    """
 
     def get_corp_info(self):
-        """Makes an initial corp_info call to retrieve corpus structures."""
+        """Makes a corp_info call to retrieve corpus structures as part of a job."""
         self.corpinfo_call = CorpInfo(self.corp_info_params)
         self.corpinfo_package = Package(self.corpinfo_call, self.server, self.config)
         self.corpinfo_package.send_requests()
