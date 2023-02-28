@@ -524,7 +524,7 @@ Some considerations for using SGEX.
 
 ### API credentials
 
-Response data can include credentials in several locations and should be removed before storing or sharing. SGEX mitigates the exposure of credentials with by 1) instructing `requests-cache` to strip credentials from URLs and 2) executing a custom hook to redact JSON response data before it gets cached.
+Response data can include credentials in several locations and should be removed before storing or sharing. SGEX mitigates the exposure of credentials by 1) instructing `requests-cache` to strip credentials from URLs and 2) executing a custom hook to redact JSON response data before it gets cached.
 
 ### Data storage
 
