@@ -5,7 +5,24 @@ from requests import Response
 def structures_json(
     response: Response, drop: list = ["attributes", "label", "dynamic", "fromattr"]
 ) -> pd.DataFrame:
-    """Returns a DataFrame describing corpus structures and their attributes."""
+    """Returns a DataFrame of corpus structures and their attributes.
+
+    Args:
+        response: Response object.
+        drop: Unwanted columns.
+
+    Example:
+        >>> call= CorpInfo({"corpname": "susanne", "struct_attr_stats": 1})
+        >>> p = Package(call, "noske", default)
+        >>> p.send_requests()
+        >>> corp_info.structures_json(p.responses[0])
+            structure  attribute  size
+        0      font       type     2
+        0      head       type     2
+        0       doc       file    64
+        1       doc          n    12
+        2       doc  wordcount     1
+    """
     df = pd.DataFrame()
     for s in response.json().get("structures"):
         temp = pd.DataFrame.from_records(s)
@@ -20,7 +37,23 @@ def structures_json(
 
 
 def sizes_json(response: Response) -> pd.DataFrame:
-    """Returns a DataFrame of corpus structure sizes (overall token/word counts)."""
+    """Returns a DataFrame of corpus structure sizes (token/word counts).
+
+    Args:
+        response: Response object.
+
+    Example:
+        >>> call = CorpInfo({"corpname": "susanne", "struct_attr_stats": 1})
+        >>> p = Package(call, "noske", default)
+        >>> p.send_requests()
+        >>> corp_info.sizes_json(p.responses[0])
+            structure    size
+        0     token  150426
+        1      word  128998
+        2       doc     149
+        3       par    1923
+        4      sent       0
+    """
     return pd.DataFrame(
         {
             "structure": [
