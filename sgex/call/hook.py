@@ -15,23 +15,23 @@ def wait(n_calls: int, server_info: dict) -> int:
         for k, v in server_info["wait"].items():
             if v:
                 if n_calls <= v:
-                    waits.append(int(k))
+                    waits.append(float(k))
         if not waits:
-            waits.append(max([int(k) for k in server_info["wait"].keys()]))
+            waits.append(max([float(k) for k in server_info["wait"].keys()]))
         return min(waits)
 
 
 def wait_hook(timeout: float = 1.0):
     """Hook to control wait periods between non-cached calls."""
 
-    def hook(response, *args, **kwargs):
+    def _wait(response, *args, **kwargs):
         if not getattr(response, "from_cache", False):
             if timeout:
-                logging.debug(f"...waiting {timeout}")
+                logging.info(f"...waiting {timeout}")
             time.sleep(timeout)
         return response
 
-    return hook
+    return _wait
 
 
 def redact_json(response: Response) -> Response:
@@ -47,9 +47,9 @@ def redact_json(response: Response) -> Response:
 def redact_hook():
     """Hook for redacting Response content."""
 
-    def hook(response, *args, **kwargs):
+    def _redact(response, *args, **kwargs):
         if not getattr(response, "from_cache", False):
             if "application/json" in response.headers.get("Content-Type"):
                 return redact_json(response)
 
-    return hook
+    return _redact
