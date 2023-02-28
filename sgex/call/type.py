@@ -40,77 +40,103 @@ class Call:
     def __init__(self, type: str, params: dict, required: list = ["corpname"]):
         self.type = type
         self.params = params
-        self.required = set(required)
-        self.key = None
-        self.dt = {"type": self.type, **self.params}
         if self.type not in types:
             raise ValueError(f"type must be one of {types}")
         if not isinstance(self.params, dict):
             raise TypeError("params must be a dict")
+        self.required = set(required)
+        self.key = None
+        self.dt = {"type": self.type, **self.params}
 
 
 class AttrVals(Call):
+    """Gets an attribute's values."""
+
     def __init__(self, params: dict):
         super().__init__("attr_vals", params, ["corpname", "avattr"])
 
 
 class Collx(Call):
+    """Gets a query's collocations."""
+
     def __init__(self, params: dict):
         super().__init__("collx", params, ["corpname", "q"])
 
 
 class CorpInfo(Call):
+    """Gets information about a corpus."""
+
     def __init__(self, params: dict):
         super().__init__("corp_info", params, ["corpname"])
 
 
 class ExtractKeywords(Call):
+    """Gets corpus keywords in comparison to a reference corpus."""
+
     def __init__(self, params: dict):
-        super().__init__("extract_keywords", params, ["corpname"])
+        super().__init__("extract_keywords", params, ["corpname", "ref_corpname"])
 
 
 class Freqs(Call):
+    """Gets frequencies for a query (standard)."""
+
     def __init__(self, params: dict):
         super().__init__("freqs", params, ["corpname", "q", "fcrit"])
 
 
 class Freqml(Call):
+    """Gets frequencies for a query (ml)."""
+
     def __init__(self, params: dict):
         super().__init__("freqml", params, ["corpname", "q", "fcrit"])
 
 
 class Freqtt(Call):
+    """Gets frequencies for a query (tt). TODO not tested"""
+
     def __init__(self, params: dict):
         super().__init__("freqtt", params, ["corpname", "q", "fcrit"])
 
 
 class Subcorp(Call):
+    """Gets information about a corpus's subcorpora."""
+
     def __init__(self, params: dict):
         super().__init__("subcorp", params, ["corpname"])
 
 
 class Thes(Call):
+    """Gets thesaurus information (full Sketch Engine only)."""
+
     def __init__(self, params: dict):
         super().__init__("thes", params, ["corpname", "lemma"])
 
 
+class View(Call):
+    """Gets concordances for a query (defaults to ``asyn=0``)."""
+
+    def __init__(self, params: dict):
+        if not params.get("asyn"):
+            params["asyn"] = 0
+        super().__init__("view", params, ["corpname", "q"])
+
+
 class Wordlist(Call):
+    """Get a list of words by frequency."""
+
     def __init__(self, params: dict):
         super().__init__("wordlist", params, ["corpname", "wltype", "wlattr"])
 
 
 class Wsdiff(Call):
+    """Gets a comparison between two word sketches (full Sketch Engine only)."""
+
     def __init__(self, params: dict):
         super().__init__("wsdiff", params, ["corpname", "lemma", "lemma2"])
 
 
 class Wsketch(Call):
+    """Gets a word sketch (full Sketch Engine only)."""
+
     def __init__(self, params: dict):
         super().__init__("wsketch", params, ["corpname", "lemma"])
-
-
-class View(Call):
-    def __init__(self, params: dict):
-        if not params.get("asyn"):
-            params["asyn"] = 0
-        super().__init__("view", params, ["corpname", "q"])
