@@ -5,6 +5,7 @@ import pathlib
 
 from sgex import io
 
+# default server configuration
 default = {
     "noske": {
         "host": "http://localhost:10070/bonito/run.cgi",
@@ -19,10 +20,10 @@ default = {
 }
 
 # accepted return formats (SkE default is "json")
-formats = ["json", "xml", "xls", "csv", "txt"]
+formats = ["json", "xml", "xlsx", "csv", "txt"]
 
 # parameters to exclude from requests_cache functions
-ignored_parameters = ["api_key", "username"]
+credential_parameters = ["api_key", "username"]
 
 
 def from_file(file: str) -> dict:
