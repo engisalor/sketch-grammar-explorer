@@ -10,7 +10,7 @@ from requests_cache import CachedSession
 
 from sgex.call import call, hook
 from sgex.call.type import Call
-from sgex.config import ignored_parameters
+from sgex.config import credential_parameters
 from sgex.config import load as load_config
 
 logging.basicConfig(
@@ -64,21 +64,22 @@ class Package:
 
     def _handle_errors(self, response: Response) -> None:
         error = None
+        # HTTP errors
         response.raise_for_status()
-        if response.status_code >= 400:
-            error = ": ".join([str(response.status_code), response.reason])
-        elif "application/json" in response.headers.get("content-type"):
+        # Sketch Engine errors
+        # TODO include other formats (CSV, etc.)
+        if "application/json" in response.headers.get("content-type"):
             error = response.json().get("error", None)
         if error:
             query = parse_qs(urlparse(response.url).query)
-            dt = {k: v for k, v in query.items() if k not in ignored_parameters}
+            dt = {k: v for k, v in query.items() if k not in credential_parameters}
             host = response.url.split("?")[0]
             self.errors.add((error, host, str(dt)))
             logging.warning(f"{error} - {host} - {dt}")
         if error and self.halt:
             raise Warning(f"requests halted with error: {error}")
 
-    def __init__(self, calls: list[Call], server: str, config, **kwargs):
+    def __init__(self, calls: list, server: str, config, **kwargs):
         if isinstance(calls, Call):
             calls = [calls]
         self.calls = calls
@@ -92,8 +93,8 @@ class Package:
             cache_name="data/file_cache",
             serializer="json",
             backend="filesystem",
-            ignored_parameters=ignored_parameters,
-            key_fn=call.create_key_from_params,
+            ignored_parameters=credential_parameters,
+            key_fn=call.create_custom_key,
         )
         self.config = load_config(config)
         # use kwargs
