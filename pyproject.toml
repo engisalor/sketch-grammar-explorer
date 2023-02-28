@@ -1,9 +1,53 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
-]
+requires = ["setuptools>=62.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "sgex"
+version = "0.5.5"  # x-release-please-version
+requires-python = ">=3.8"
+authors = [{name="Loryn Isaacs", email="50170623+engisalor@users.noreply.github.com"}]
+description = "Sketch Grammar Explorer (Sketch Engine API wrapper)"
+keywords = [
+    "sketch engine",
+    "api wrapper",
+    "corpus linguistics",
+    "text analysis",
+    "natural language processing",
+]
+readme = "README.md"
+license = {file = "LICENSE"}
+classifiers =[
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+    "pandas",
+    "pyyaml",
+    "requests",
+    "requests-cache",
+]
+
+[project.optional-dependencies]
+security = ["keyring"]
+export = [
+    "openpyxl ",
+    "defusedxml",
+]
+
+[project.urls]
+repository = "https://github.com/engisalor/sketch-grammar-explorer.git"
 
 [tool.isort]
 profile = "black"
+
+[tool.setuptools]
+packages = ["sgex"]

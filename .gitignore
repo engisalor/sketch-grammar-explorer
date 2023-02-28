@@ -7,6 +7,7 @@ data/
 build/
 *.egg-info
 dist/
+tmp/
 
 !.gitignore
 !requirements.txt
