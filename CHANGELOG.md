@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.2](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.6.1...v0.6.2) (2023-03-01)
+
+This release excludes testing files from package distribution.
+
+### Bug Fixes
+
+* add imports for intellisense ([32589be](https://github.com/engisalor/sketch-grammar-explorer/commit/32589be4fccde146a7f5db4c76a337f705ed4ead))
+
 ## [0.6.1](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.6.0...v0.6.1) (2023-03-01)
 
 This release fixes an issue where setuptools ignored subpackages.
@@ -12,6 +20,8 @@ This release fixes an issue where setuptools ignored subpackages.
 
 ### ⚠ BREAKING CHANGES
 
+**NOTE** this release was yanked to resolve an issue with package distribution settings
+
 This release is a complete rebuild of the package; it improves and simplifies API call management in a number of ways. 
 
 - More modules, more customization, more logical workflows
@@ -19,4 +29,4 @@ This release is a complete rebuild of the package; it improves and simplifies AP
 - Methods from `0.5.5` are intact still but may later be deprecated. Import paths have also moved. 
 - Unit testing has also been implemented; logging has been reduced to a minimum.
 
-See current documentation for changes.
+See documentation for changes.
