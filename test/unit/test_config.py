@@ -14,9 +14,9 @@ class TestGetConfig(unittest.TestCase):
     def setUpClass(cls):
         cls.dt = {"key": "value"}
         cls.str = '{"key": "value"}'
-        cls.tmp_yml = "sgex/test/tmp/tmp-ckdj27d9.yml"
-        cls.tmp_json = "sgex/test/tmp/tmp-ckdj27d9.json"
-        pathlib.Path("sgex/test/tmp").mkdir(exist_ok=True)
+        cls.tmp_yml = "test/tmp/tmp-ckdj27d9.yml"
+        cls.tmp_json = "test/tmp/tmp-ckdj27d9.json"
+        pathlib.Path("test/tmp").mkdir(exist_ok=True)
         with open(cls.tmp_yml, "w", encoding="utf-8") as f:
             yaml.dump(cls.dt, f)
         with open(cls.tmp_json, "w", encoding="utf-8") as f:
@@ -47,7 +47,7 @@ class TestGetConfig(unittest.TestCase):
 
     def test_from_file_bad_format(self):
         with self.assertRaises(ValueError):
-            config.from_file("sgex/test/__init__.py")
+            config.from_file("test/__init__.py")
 
     @unittest.skip("manually test keyring integration")
     def test_read_keyring(self):

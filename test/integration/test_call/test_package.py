@@ -19,7 +19,7 @@ lemma2 = {"lemma2": "night"}
 wordlist = {"wlattr": "word", "wltype": "simple"}
 
 session_params = dict(
-    cache_name="sgex/test/tmp/file_cache",
+    cache_name="test/tmp/file_cache",
     serializer="json",
     backend="filesystem",
     ignored_parameters=credential_parameters,
@@ -92,7 +92,7 @@ class test__handle_errors(unittest.TestCase):
 class TestPackageNOSKE(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        pathlib.Path("sgex/test/tmp/file_cache").mkdir(exist_ok=True, parents=True)
+        pathlib.Path("test/tmp/file_cache").mkdir(exist_ok=True, parents=True)
         cls.calls = [
             t.AttrVals({**corpname, **avattr}),
             t.Collx({**corpname, **q}),
@@ -225,7 +225,7 @@ class TestPackageNOSKE(unittest.TestCase):
 class TestPackageSKE(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        pathlib.Path("sgex/test/tmp/file_cache").mkdir(exist_ok=True, parents=True)
+        pathlib.Path("test/tmp/file_cache").mkdir(exist_ok=True, parents=True)
         ske_corpname = {"corpname": "preloaded/susanne"}
         ske_ref_corpname = {"ref_corpname": "preloaded/susanne"}
         ske_thes_lemma = {"lemma": "be"}

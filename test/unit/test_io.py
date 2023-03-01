@@ -22,10 +22,10 @@ class TestReadWrite(unittest.TestCase):
     def setUpClass(cls):
         cls.dt = {"key": "value"}
         cls.str = '{"key": "value"}'
-        cls.tmp_yml = pathlib.Path("sgex/test/tmp/tmp-1xmsjw73.yml")
-        cls.tmp_json = pathlib.Path("sgex/test/tmp/tmp-1xmsjw73.json")
-        cls.tmp_missing = pathlib.Path("sgex/test/tmp/tmp-zxmsjau2")
-        pathlib.Path("sgex/test/tmp").mkdir(exist_ok=True)
+        cls.tmp_yml = pathlib.Path("test/tmp/tmp-1xmsjw73.yml")
+        cls.tmp_json = pathlib.Path("test/tmp/tmp-1xmsjw73.json")
+        cls.tmp_missing = pathlib.Path("test/tmp/tmp-zxmsjau2")
+        pathlib.Path("test/tmp").mkdir(exist_ok=True)
         with open(cls.tmp_yml, "w", encoding="utf-8") as f:
             yaml.dump(cls.dt, f)
         with open(cls.tmp_json, "w", encoding="utf-8") as f:
@@ -84,9 +84,9 @@ class TestReadWrite(unittest.TestCase):
 class TestExport(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.tmp_export = pathlib.Path("sgex/test/tmp/tmp-clqodie8")
+        cls.tmp_export = pathlib.Path("test/tmp/tmp-clqodie8")
         cls.url_no_format = "http://localhost:10070/bonito/run.cgi/freqs?format="
-        pathlib.Path("sgex/test/tmp").mkdir(exist_ok=True)
+        pathlib.Path("test/tmp").mkdir(exist_ok=True)
 
     def test_export_content_json(self):
         r = MockResponse(
@@ -122,7 +122,7 @@ class TestExport(unittest.TestCase):
         self.assertTrue(self.tmp_export.with_suffix(".txt").exists())
         self.tmp_export.with_suffix(".txt").unlink()
 
-    # see sgex/test/integration/test_io.py for testing XLSX export
+    # see test/integration/test_io.py for testing XLSX export
 
 
 if __name__ == "__main__":
