@@ -17,10 +17,10 @@
   - [Package structure](#package-structure)
     - [Configuration: `sgex.config`](#configuration-sgexconfig)
     - [Exporting content: `sgex.io`](#exporting-content-sgexio)
-    - [Creating call objects: `sgex.call.type`](#creating-call-objects-sgexcalltype)
-    - [Assembling CQL rules: `sgex.call.query`](#assembling-cql-rules-sgexcallquery)
-    - [Managing calls: `sgex.call.call`](#managing-calls-sgexcallcall)
-    - [Packaging and sending calls: `sgex.call.package`](#packaging-and-sending-calls-sgexcallpackage)
+    - [Creating call objects: `sgex.<CallType>`](#creating-call-objects-sgexcalltype)
+    - [Assembling CQL rules: `sgex.simple_query`](#assembling-cql-rules-sgexsimple_query)
+    - [Managing calls: `sgex.call`](#managing-calls-sgexcall)
+    - [Packaging and sending calls: `sgex.Package`](#packaging-and-sending-calls-sgexpackage)
     - [Workflow examples](#workflow-examples)
       - [Running complex tasks: `sgex.call.job`](#running-complex-tasks-sgexcalljob)
       - [Parsing data: `sgex.parse`](#parsing-data-sgexparse)
@@ -37,7 +37,7 @@ Sketch Grammar Explorer (SGEX) is a Python package for using the [Sketch Engine]
 
 **NOTE**
 
-SGEX `0.6.0` is a complete redesign of the package and its previous functions may become deprecated. `0.5.5` is the last version before the switch. Its documentation has [moved](https://github.com/engisalor/sketch-grammar-explorer/blob/main/README_deprecated.md) and import paths have changed.
+SGEX `0.6.0+` is a complete redesign of the package and its previous functions may become deprecated. `0.5.5` is the last version before the switch. Its documentation has [moved](https://github.com/engisalor/sketch-grammar-explorer/blob/main/README_deprecated.md) and import paths have changed.
 
 ## Setup
 
@@ -52,27 +52,25 @@ Dependencies:
 An abbreviated example of SGEX usage.
 
 ```python
-from sgex.config import default
-from sgex.call.type import Freqs
-from sgex.call.package import Package
+import sgex
 
 # add API credentials to the server configuration
-config = {"ske": {**default["ske"], **{"username": "J. Doe", "api_key": "1234"}}}
+config = {"ske": {**sgex.config.default["ske"], **{"username": "J. Doe", "api_key": "1234"}}}
 
 # define API calls
 calls = [
     # the first freqs call is complete (has all the needed parameters)
-    Freqs({
+    sgex.Freqs({
         "format": "csv",
         "q": 'alemma,"eat"',
         "corpname": "preloaded/susanne",
         "fcrit": "doc.file 0",
         }),
     # successive freqs calls will reuse previous parameters
-    Freqs({"q": 'alemma,"sleep"'})]
+    sgex.Freqs({"q": 'alemma,"sleep"'})]
 
 # package calls
-package = Package(calls, "ske", config)
+package = sgex.Package(calls, "ske", config)
 
 # send requests
 package.send_requests()
@@ -107,10 +105,10 @@ After trying out this basic example, see other sections on more advanced usage.
 There are several ways to supply configuration settings to SGEX. This example modifies the default settings to show what each element means.
 
 ```python
-from sgex.config import default
+import sgex
 
 # print default configuration settings
-print(default)
+print(sgex.config.default)
 # this dictionary contains server information
 {
   # a local NoSketch Engine server
@@ -134,8 +132,9 @@ print(default)
       '45': None}}} # wait 45 seconds for 900+ calls
 
 # add your API credentials for making calls to the "ske" server
-default["ske"]["username"] = "J. Doe"
-default["ske"]["api_key"] = "1234"
+config = sgex.config.default
+config["ske"]["username"] = "J. Doe"
+config["ske"]["api_key"] = "1234"
 ```
 
 ### 2. Making a `corp_info` API call
@@ -147,21 +146,20 @@ Calls are added to a `Package` class, which prepares requests and manages their 
 API data gets cached locally after successful requests. Running the same request again retrieves data from the cache instead of making an API call. Cache `session` settings are customizable: see the [requests-cache](https://requests-cache.readthedocs.io/) package for details.
 
 ```python
-from sgex.call.type import CorpInfo
-from sgex.call.package import Package
+import sgex
 
 # indicate which server to use
 server = "ske"
 
 # define a call
-call = CorpInfo({"corpname": "preloaded/susanne"})
+call = sgex.CorpInfo({"corpname": "preloaded/susanne"})
 
 # package the call
-package = Package(call, server, default)
+package = sgex.Package(call, server, config)
 
 # inspect the package details
 print(package.calls)
-[CORP_INFO(723a010e) {'api_key': '1234', 'username': 'J. Doe', 'corpname': 'preloaded/susanne'}]
+[CORP_INFO(2a8c0b24) {'api_key': '1234', 'username': 'J. Doe', 'corpname': 'preloaded/susanne'}]
 
 print(package.calls[0].request)
 <Request [GET]>
@@ -177,7 +175,7 @@ The `sgex.parse` subpackage has modules for processing results based on call typ
 The example below takes `corp_info` JSON content and converts it into a DataFrame.
 
 ```python
-from sgex.parse.corp_info import sizes_json
+import sgex
 
 # get the call response
 response = package.responses[0]
@@ -190,10 +188,7 @@ print(response.json())
 {'wposlist': [['adjective', 'JJ.*'], ['adverb', 'RR.*'], ['conjuction', 'CC.*'], ['determiner', 'AT.*'], ... }
 
 # parse the response
-df = sizes_json(response)
-
-# print the DataFrame
-print(df)
+sgex.parse.corp_info.sizes_json(response)
   structure    size
 0     token  150426
 1      word  128998
@@ -230,7 +225,7 @@ print(load("SGEX_CONFIG_JSON"))
 
 ### Exporting content: `sgex.io`
 
-This module contains functions to load and save data. The easiest way to export data from `Response` objects is to use the `sgex.io.export_content` function. If an error is raised when trying to export data, check ``response.content`` for any internal SkE errors and try making the same API call with ``"format": "json"``.
+These are functions to load and save data. The easiest way to export data from `Response` objects is to use the `sgex.io.export_content` function. If an error is raised when trying to export data, check ``response.content`` for any internal SkE errors and try making the same API call with ``"format": "json"``.
 
 ```python
 from sgex.io import export_content
@@ -242,22 +237,22 @@ response = package.responses[0]
 export_content(response, "my-filename")
 ```
 
-### Creating call objects: `sgex.call.type`
+### Creating call objects: `sgex.<CallType>`
 
-This module contains the classes for API call types. `Call` is the base class inherited by others. `Call` contains a basic validation function to make sure improperly created calls are identified before requests get sent.
+Each API call type has its own class, which is a child of the `Call` base class. `Call` contains a basic validation function to make sure improperly created calls are identified before requests get sent.
 
 Each call type consists of `type`, `parameters`, and `required parameters`. The example below shows the required parameters for several call types.
 
 ```python
-from sgex.call import type as t
+import sgex
 
-print(t.Freqs({}).required)
+print(sgex.Freqs({}).required)
 {'fcrit', 'q', 'corpname'}
 
-print(t.Wordlist({}).required)
+print(sgex.Wordlist({}).required)
 {'wltype', 'wlattr', 'corpname'}
 
-print(t.View({}).required)
+print(sgex.View({}).required)
 {'q', 'corpname'}
 ```
 
@@ -266,14 +261,14 @@ print(t.View({}).required)
 Call classes can be used to generate many calls. The example below makes several `freqs` calls using list iteration. While this is convenient, to help reduce network traffic be watchful for when multiple calls could be combined.
 
 ```python
-from sgex.call.type import Freqs
+import sgex
 
 # define queries
 queries = ["apple", "banana", "peach", "strawberry", "blueberry"]
 
 # make call list using iteration
 calls = [
-  Freqs({
+  sgex.Freqs({
     "q": f'alemma,"{q}"',
     "corpname": "<my corpus>",
     "fcrit": "doc.id 0",
@@ -288,31 +283,29 @@ FREQS(*) {'q': 'alemma,"banana"', 'corpname': '<my corpus>', 'fcrit': 'doc.id 0'
 # the missing key in FREQS(<key>) isn't computed until calls get packaged
 ```
 
-### Assembling CQL rules: `sgex.call.query`
+### Assembling CQL rules: `sgex.simple_query`
 
-This module has functions for simplifying the generation of [Corpus Query Language](https://www.sketchengine.eu/documentation/corpus-querying/) rules.
-
-`simple_query()` simulates the "Simple" feature in Sketch Engine: words or phrases can be supplied and their CQL representation is returned. This function includes a few wildcards to make rules more flexible, although its behavior may not always match Sketch Engine's user interface.
+Some functions are included for simplifying the generation of [Corpus Query Language](https://www.sketchengine.eu/documentation/corpus-querying/) rules. `simple_query()` simulates the "Simple" feature in Sketch Engine: words or phrases can be supplied and their CQL representation is returned. A few wildcards also make rules more flexible, although behavior may not always match Sketch Engine's user interface.
 
 - Question marks `?` for any single character
 - Asterisks `*` for any token or string of characters
 - Double hyphens `--` for flexible hyphenation (w/ hyphen, w/o hyphen, a single word)
 
 ```python
-from sgex.call.query import simple_query
+import sgex
 
 # example with hyphen
-print(simple_query("flour-based recipe"))
+print(sgex.simple_query("flour-based recipe"))
 'q( [lc="flour-based" | lemma_lc="flour-based"] | [lc="flour" | lemma_lc="flour"] [lc="-" | lemma_lc="-"] [lc="based" | lemma_lc="based"] )[lc="recipe" | lemma_lc="recipe"]'
 
 # example with double hyphen and asterisk token
-print(simple_query("flour--based *"))
+print(sgex.simple_query("flour--based *"))
 'q( [lc="flourbased" | lemma_lc="flourbased"] | [lc="flour" | lemma_lc="flour"] [lc="based" | lemma_lc="based"] | [lc="flour-based" | lemma_lc="flour-based"] | [lc="flour" | lemma_lc="flour"] [lc="-" | lemma_lc="-"] [lc="based" | lemma_lc="based"] )[lc=".*" | lemma_lc=".*"]'
 ```
 
-### Managing calls: `sgex.call.call`
+### Managing calls: `sgex.call`
 
-This module has functions for preparing lists of `Call` objects. In general, accessing it directly isn't necessary, since `Package` initialization handles the below features.
+`sgex.call` has everything needed for managing calls, although accessing it isn't generally necessary, since `Package` initialization handles the below features.
 
 **Recycling parameters**
 
@@ -321,18 +314,18 @@ This module has functions for preparing lists of `Call` objects. In general, acc
 ```python
 calls = [
     # the first call in a list always needs to be complete
-    Freqs({
+    sgex.Freqs({
         "format": "csv",
         "q": 'alemma,"rock"',
         "corpname": "preloaded/susanne",
         "fcrit": "doc.file 0",
         }),
     # the next two freqs calls will recycle previous parameters
-    Freqs({"q": 'alemma,"stone"'}),
-    Freqs({"q": 'alemma,"pebble"'}),
-    Wordlist({"corpname": "preloaded/susanne"}),
+    sgex.Freqs({"q": 'alemma,"stone"'}),
+    sgex.Freqs({"q": 'alemma,"pebble"'}),
+    sgex.Wordlist({"corpname": "preloaded/susanne"}),
     # this freqs call will be incomplete!
-    Freqs({"q": 'alemma,"sand"'})]
+    sgex.Freqs({"q": 'alemma,"sand"'})]
 ```
 
 **Normalizing Call dictionaries**
@@ -361,16 +354,16 @@ print(package.calls[0].key)
 '79f8510cc16b10bb'
 ```
 
-### Packaging and sending calls: `sgex.call.package`
+### Packaging and sending calls: `sgex.Package`
 
-This module has the `Package` class, which manages the different aspects of making and executing API calls.
+`Package` is how making and executing API calls is managed.
 
 **Methods for sending calls**
 
 - `Package.send_requests()` executes a list of calls sequentially, following throttling instructions in `config["<server>"]["<wait>"]` if provided
 - `Package.send_async_requests()` executes a list of calls asynchronously if `config["<server>"]["asynchronous"] = True`
 
-Both of these methods have some error handling to prevent repeating calls if something is misconfigured, but still test large jobs beforehand to avoid issues.
+Both methods have some error handling to prevent repeating calls if something is misconfigured, but still test large jobs beforehand to avoid issues.
 
 **Server wait times**
 
@@ -399,6 +392,7 @@ Package.calls: list  # list of calls
 Package.server: str  # server to call
 Package.halt: bool   # whether to stop a job on error
 Package.errors: set  # errors encountered
+Package.loglevel: str  # logging level
 Package.max_workers: int  # threads for asynchronous calls
 Package.responses: list  # call responses
 Package.max_responses: int  # max items to store in `Package.responses` (for large jobs)
@@ -415,20 +409,24 @@ Package.session: requests_cache.CachedSession  # session object
 
 Settings can be changed by adding additional `kwargs` during instantiation. Print `package.__dict__` before making calls to see all options at once.
 
+**Clearing the cache**
+
+The `session` attribute for a `Package` can be used to perform any tasks on the cache, e.g., clearing the cache: `Package.session.cache.clear()`. This may be more convenient than importing a session independently via `requests-cache`.
+
 ### Workflow examples
 
-The modules described so far offer the building blocks for all sorts of linguistic analyses with Sketch Engine. In contrast, the following `parse` and `job` examples are for reference purposes. They may inform your workflow and be useful for specific needs, but they aren't a one-size-fits-all solution. **Modules here may change without warning**.
+The features described so far offer the building blocks for all sorts of linguistic analyses with Sketch Engine. In contrast, these examples are for reference purposes. They may inform your workflow and be useful for specific needs, but they aren't a one-size-fits-all solution. **Modules here may change without warning**.
 
 #### Running complex tasks: `sgex.call.job`
 
-This module has classes that combine multiple API calls, parsing methods, etc., to execute larger jobs.
+These classes combine multiple API calls, parsing methods, etc., to execute larger jobs with a single command.
 
 **Text type analysis**
 
-`job.TTypeAnalysis` automates the steps for generating a DataFrame describing the corpus's composition.
+`TTypeAnalysis` automates the steps for generating a DataFrame describing the corpus's composition.
 
 ```python
-from sgex.call.job import TTypeAnalysis
+from sgex.call import TTypeAnalysis
 
 # prepare the job
 ttypes = TTypeAnalysis("susanne", <server>, <config>)
@@ -446,10 +444,10 @@ print(ttypes.df.head(3))
 
 **Simple frequency query**
 
-`job.SimpleFreqsQuery` automates making a `freqs` call with Simple Query syntax and processing JSON data into a DataFrame.
+`SimpleFreqsQuery` automates making a `freqs` call with Simple Query syntax and processing JSON data into a DataFrame.
 
 ```python
-from sgex.call.job import SimpleFreqsQuery
+from sgex.call import SimpleFreqsQuery
 
 # prepare the job
 query = SimpleFreqsQuery("sleep", "susanne", "noske", ".config.yml")
@@ -469,7 +467,7 @@ print(query.df.head(3))
 
 #### Parsing data: `sgex.parse`
 
-This subpackage has modules for parsing each API call type. `sgex.parse.freqs`, for example, has functions for working with `freqs` data. These functions generally apply to JSON responses, as this format offers the most detailed content to build data sets with. Since many types of queries are possible in Sketch Engine, `parse` just includes a few use cases.
+`parse` contains techniques for parsing each API call type. These functions generally apply to JSON responses, as this format offers the most detailed content to build data sets with. Since many types of queries are possible in Sketch Engine, `parse` just includes a few use cases.
 
 ```python
 # docstring for a parsing function
@@ -494,7 +492,6 @@ def freqs_json(response: Response) -> pd.DataFrame:
         reltt         3286.770748
         ...
 ```
-
 
 ## API usage notes
 
@@ -524,7 +521,7 @@ Some considerations for using SGEX.
 
 ### API credentials
 
-Response data can include credentials in several locations and should be removed before storing or sharing. SGEX mitigates the exposure of credentials by 1) instructing `requests-cache` to strip credentials from URLs and 2) executing a custom hook to redact JSON response data before it gets cached.
+Response data can include credentials in several locations and should be removed before storing or sharing. SGEX mitigates the exposure of credentials in saved data by 1) instructing `requests-cache` to strip credentials from URLs and 2) executing a custom hook to redact JSON response data before it gets cached.
 
 ### Data storage
 
