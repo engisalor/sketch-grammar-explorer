@@ -49,5 +49,5 @@ repository = "https://github.com/engisalor/sketch-grammar-explorer.git"
 [tool.isort]
 profile = "black"
 
-[tool.setuptools]
-packages = ["sgex"]
+[tool.setuptools.packages.find]
+include = ["sgex*"]
