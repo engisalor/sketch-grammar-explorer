@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.6.1...v0.6.2) (2023-03-01)
+
+
+### Bug Fixes
+
+* add imports for intellisense ([32589be](https://github.com/engisalor/sketch-grammar-explorer/commit/32589be4fccde146a7f5db4c76a337f705ed4ead))
+
 ## [0.6.1](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.6.0...v0.6.1) (2023-03-01)
 
 This release fixes an issue where setuptools ignored subpackages.
