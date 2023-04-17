@@ -20,9 +20,9 @@ def clean_items(items, item_keys=["Word", "frq", "rel", "fpm", "reltt"]) -> list
 
 
 def clean_heads(heads) -> list:
-    """Extracts each block's fcrit attribute: ``head[0]["n"]``."""
+    """Extracts each block's fcrit attribute: ``head[0]["id"]``."""
     if len([x for x in heads if x]):
-        return [head[0].get("n") for head in heads]
+        return [head[0].get("id") for head in heads]
     else:
         return None
 
