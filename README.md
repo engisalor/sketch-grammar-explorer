@@ -49,13 +49,13 @@ Dependencies:
 
 ## TL;DR
 
-An abbreviated example of SGEX usage.
+An abbreviated example of SGEX for making calls to Sketch Engine.
 
 ```python
 import sgex
 
 # add API credentials to the server configuration
-config = {"ske": {**sgex.config.default["ske"], **{"username": "J. Doe", "api_key": "1234"}}}
+sgex.config.default["ske"] |= {"username": "J. Doe", "api_key": "1234"}
 
 # define API calls
 calls = [
@@ -70,7 +70,7 @@ calls = [
     sgex.Freqs({"q": 'alemma,"sleep"'})]
 
 # package calls
-package = sgex.Package(calls, "ske", config)
+package = sgex.Package(calls, "ske")
 
 # send requests
 package.send_requests()
@@ -132,9 +132,7 @@ print(sgex.config.default)
       '45': None}}} # wait 45 seconds for 900+ calls
 
 # add your API credentials for making calls to the "ske" server
-config = sgex.config.default
-config["ske"]["username"] = "J. Doe"
-config["ske"]["api_key"] = "1234"
+sgex.config.default["ske"] |= {"username": "J. Doe", "api_key": "1234"}
 ```
 
 ### 2. Making a `corp_info` API call
@@ -155,7 +153,10 @@ server = "ske"
 call = sgex.CorpInfo({"corpname": "preloaded/susanne"})
 
 # package the call
-package = sgex.Package(call, server, config)
+package = sgex.Package(call, server)
+
+# config dicts can also be passed explicitly
+# package = sgex.Package(call, server, config_dict)
 
 # inspect the package details
 print(package.calls)
@@ -396,7 +397,7 @@ Package.loglevel: str  # logging level
 Package.max_workers: int  # threads for asynchronous calls
 Package.responses: list  # call responses
 Package.max_responses: int  # max items to store in `Package.responses` (for large jobs)
-Package.session_params: dict(  # parameters for the `request-cache` session
+Package.session_params: dict(  # parameters for the `requests-cache` session
     cache_name="data",
     serializer="json",
     backend="filesystem",
@@ -426,10 +427,10 @@ These classes combine multiple API calls, parsing methods, etc., to execute larg
 `TTypeAnalysis` automates the steps for generating a DataFrame describing the corpus's composition.
 
 ```python
-from sgex.call import TTypeAnalysis
+from sgex.call.job import TTypeAnalysis
 
 # prepare the job
-ttypes = TTypeAnalysis("susanne", <server>, <config>)
+ttypes = TTypeAnalysis("susanne", <server>)
 
 # run the job
 ttypes.run()
@@ -447,10 +448,10 @@ print(ttypes.df.head(3))
 `SimpleFreqsQuery` automates making a `freqs` call with Simple Query syntax and processing JSON data into a DataFrame.
 
 ```python
-from sgex.call import SimpleFreqsQuery
+from sgex.call.job import SimpleFreqsQuery
 
 # prepare the job
-query = SimpleFreqsQuery("sleep", "susanne", "noske", ".config.yml")
+query = SimpleFreqsQuery("sleep", "susanne", "noske")
 
 # run the job
 query.run()

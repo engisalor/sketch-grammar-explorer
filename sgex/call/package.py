@@ -10,7 +10,7 @@ from requests_cache import CachedSession
 
 from sgex.call import call, hook
 from sgex.call.type import Call
-from sgex.config import credential_parameters
+from sgex.config import credential_parameters, default
 from sgex.config import load as load_config
 
 
@@ -77,7 +77,7 @@ class Package:
         if error and self.halt:
             raise Warning(f"requests halted with error: {error}")
 
-    def __init__(self, calls: list, server: str, config, **kwargs):
+    def __init__(self, calls: list, server: str, config: dict = default, **kwargs):
         if isinstance(calls, Call):
             calls = [calls]
         self.calls = calls

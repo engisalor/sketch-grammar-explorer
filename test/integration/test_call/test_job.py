@@ -6,7 +6,7 @@ from sgex.config import default
 
 class TestJob(unittest.TestCase):
     def test_ttype_analysis(self):
-        j = job.TTypeAnalysis("susanne", "noske", default)
+        j = job.TTypeAnalysis("susanne", "noske")
         j.run()
         self.assertEqual(len(j.df), 81)
 

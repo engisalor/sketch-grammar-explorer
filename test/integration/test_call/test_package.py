@@ -106,6 +106,18 @@ class TestPackageNOSKE(unittest.TestCase):
             t.View({**corpname, **q}),
             t.Wordlist({**corpname, **wordlist}),
         ]
+        cls.mock_config = {
+            "noske": {
+                **default["noske"],
+                **{"username": "J. Doe", "api_key": "__mock_api_key__"},
+            }
+        }
+
+    def test_package_NOSKE_use_default_config(self):
+        self.package = Package(self.calls, "noske", session_params=session_params)
+        self.package.session.cache.clear()
+        self.package.send_requests()
+        check_noske_responses(self)
 
     def test_package_NOSKE_send_sequential(self):
         self.package = Package(
@@ -158,13 +170,7 @@ class TestPackageNOSKE(unittest.TestCase):
             self.assertEqual(200, response.status_code)
 
     def test_package_NOSKE_credentials_not_redacted_json(self):
-        config = {
-            "noske": {
-                **default["noske"],
-                **{"username": "J. Doe", "api_key": "__mock_api_key__"},
-            }
-        }
-        self.package = Package(self.calls, "noske", config)
+        self.package = Package(self.calls, "noske", self.mock_config)
         self.package.session.hooks = {"response": []}
         self.package.session.cache.clear()
         self.package.send_requests()
@@ -173,13 +179,7 @@ class TestPackageNOSKE(unittest.TestCase):
             self.assertIn(b"__mock_api_key__", response.content)
 
     def test_package_NOSKE_credentials_redacted_json(self):
-        config = {
-            "noske": {
-                **default["noske"],
-                **{"username": "J. Doe", "api_key": "__mock_api_key__"},
-            }
-        }
-        self.package = Package(self.calls, "noske", config)
+        self.package = Package(self.calls, "noske", self.mock_config)
         self.package.session.cache.clear()
         self.package.send_requests()
         for response in self.package.responses:
@@ -188,12 +188,6 @@ class TestPackageNOSKE(unittest.TestCase):
 
     @unittest.skip("check if formats besides JSON need redacting (ignores XLSX)")
     def test_package_NOSKE_credentials_not_in_other_formats(self):
-        config = {
-            "noske": {
-                **default["noske"],
-                **{"username": "J. Doe", "api_key": "__mock_api_key__"},
-            }
-        }
         # run call types for each format and test for credential pollution
         for f in ["xml", "csv", "txt"]:
             format = {"format": f}
@@ -212,7 +206,7 @@ class TestPackageNOSKE(unittest.TestCase):
                 t.Wordlist({**format, **corpname, **wordlist}),
             ]
 
-            self.package = Package(calls, "noske", config)
+            self.package = Package(calls, "noske", self.mock_config)
             self.package.session.hooks = {"response": []}
             self.package.session.cache.clear()
             self.package.send_requests()

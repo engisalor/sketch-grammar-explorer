@@ -4,6 +4,7 @@ import pandas as pd
 from sgex.call.package import Package
 from sgex.call.query import simple_query
 from sgex.call.type import CorpInfo, Freqs, Wordlist
+from sgex.config import default
 from sgex.parse import corp_info, freqs, wordlist
 
 
@@ -13,7 +14,7 @@ class TTypeAnalysis:
     Args:
         corpname: Corpus.
         server: Server.
-        config: Configuration.
+        config: Configuration dict.
 
     Methods:
         get_corp_info: Makes a preliminary corp_info call.
@@ -70,7 +71,7 @@ class TTypeAnalysis:
         self.get_ttypes()
         self.make_df()
 
-    def __init__(self, corpname: str, server: str, config: dict) -> None:
+    def __init__(self, corpname: str, server: str, config: dict = default) -> None:
         self.corpname = corpname
         self.server = server
         self.config = config
@@ -102,7 +103,7 @@ class SimpleFreqsQuery:
     Args:
         corpname: Corpus.
         server: Server.
-        config: Configuration.
+        config: Configuration dict.
         fcrit: Attributes to query.
         fcrit_limit: Limit attributes to those with fewer than N values.
 
@@ -164,7 +165,7 @@ class SimpleFreqsQuery:
         query: str,
         corpname: str,
         server: str,
-        config: dict,
+        config: dict = default,
         fcrit=None,
         fcrit_limit: int = 0,
     ):
@@ -173,7 +174,6 @@ class SimpleFreqsQuery:
         self.server = server
         self.config = config
         self.fcrit_limit = fcrit_limit
-        self.corp_info_params = {"corpname": corpname}
         self.corp_info_params = {
             "corpname": corpname,
             "struct_attr_stats": 1,
