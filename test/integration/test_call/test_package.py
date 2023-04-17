@@ -1,6 +1,7 @@
 import pathlib
 import unittest
-from time import perf_counter
+from random import randint
+from time import perf_counter, sleep
 
 from urllib3.exceptions import HTTPError
 
@@ -219,6 +220,9 @@ class TestPackageNOSKE(unittest.TestCase):
 class TestPackageSKE(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # NOTE loads credentials from file and keyring
+        cls.config = load(".config.yml")
+        read_keyring(cls.config, "ske")
         pathlib.Path("test/tmp/file_cache").mkdir(exist_ok=True, parents=True)
         ske_corpname = {"corpname": "preloaded/susanne"}
         ske_ref_corpname = {"ref_corpname": "preloaded/susanne"}
@@ -240,13 +244,24 @@ class TestPackageSKE(unittest.TestCase):
             t.Wordlist({**ske_corpname, **wordlist}),
         ]
 
+    def test_package_SKE_redact_URL_creds(self):
+        call = self.ske_calls[randint(0, len(self.ske_calls) - 1)]  # nosec
+        self.package = Package(call, "ske", self.config, session_params=session_params)
+        self.package.session.cache.clear()
+        # original response URL has credentials
+        self.package.send_requests()
+        self.assertIn("api_key", self.package.responses[0].url)
+        # cached response URL lacks credentials
+        sleep(2)
+        self.package2 = Package(call, "ske", self.config, session_params=session_params)
+        self.package2.send_requests()
+        self.assertNotIn("api_key", self.package2.responses[0].url)
+
     def test_package_SKE_send_sequential(self):
-        # NOTE loads credentials from file and keyring
-        config = load(".config.yml")
-        read_keyring(config, "ske")
         self.package = Package(
-            self.ske_calls, "ske", config, session_params=session_params
+            self.ske_calls, "ske", self.config, session_params=session_params
         )
+        self.package.session.cache.clear()
         self.package.send_requests()
         self.assertEqual(self.package.errors, set())
         for response in self.package.responses:
