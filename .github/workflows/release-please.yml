@@ -16,4 +16,3 @@ jobs:
           extra-files: |
             sgex/_version.py
             CITATION.cff
-            setup.cfg
