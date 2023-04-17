@@ -56,6 +56,9 @@ class Package:
     def _add_response_to_instance(self, response: Response) -> None:
         if self.max_responses >= len(self.responses):
             self.responses.append(response)
+            if self.max_responses == len(self.responses):
+                m = f"reached max_responses ({self.max_responses})"
+                logging.warning(m)
 
     def _handle_errors(self, response: Response) -> None:
         error = None
