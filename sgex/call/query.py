@@ -1,6 +1,20 @@
 """Functions for assembling CQL rules from query strings."""
 import re
 
+escape_symbols = {
+    '"': r'\\"',
+    "$": r"\$",
+    "(": r"\(",
+    ")": r"\)",
+    "+": r"\+",
+    "[": r"\[",
+    "]": r"\]",
+    "^": r"\^",
+    "{": r"\{",
+    "}": r"\}",
+    "\\": "\\\\\\\\",
+}
+
 
 def query_to_cql(query: str):
     """Converts a word/phrase into a ``lc`` and ``lemma_lc`` CQL rule."""
@@ -61,8 +75,20 @@ def query_to_dict(query: str, atomic_hyphens: bool = True):
     return queries
 
 
+def query_escape(query: str):
+    """Escapes special CQL characters in a string.
+
+    Note:
+        Single backslashes are converted to four backslashes, which is needed to query
+        this literal character in current CQL behavior. Querying a single backslash in
+        SkE's simple query returns strings in angled brackets, not backslashes.
+    """
+    return "".join([escape_symbols.get(c, c) for c in query])
+
+
 def simple_query(query: str, atomic_hyphens=True):
     """Converts a query string into a CQL rule following SkE ``simple`` behavior."""
+    query = query_escape(query)
     queries = query_to_dict(query, atomic_hyphens)
     dt = queries.copy()
     all = []

@@ -65,6 +65,24 @@ class TestSimpleQueryInternal(unittest.TestCase):
         query = simple_query("1 * 3")
         self.assertEqual(clean(query), clean(ref))
 
+    def test_simple_query_escape(self):
+        refs = {
+            '"': r'q[lc="\\"" | lemma_lc="\\""]',
+            "$": r'q[lc="\$" | lemma_lc="\$"]',
+            "(": r'q[lc="\(" | lemma_lc="\("]',
+            ")": r'q[lc="\)" | lemma_lc="\)"]',
+            "+": r'q[lc="\+" | lemma_lc="\+"]',
+            "[": r'q[lc="\[" | lemma_lc="\["]',
+            "]": r'q[lc="\]" | lemma_lc="\]"]',
+            "^": r'q[lc="\^" | lemma_lc="\^"]',
+            "{": r'q[lc="\{" | lemma_lc="\{"]',
+            "}": r'q[lc="\}" | lemma_lc="\}"]',
+            "\\": r'q[lc="\\\\" | lemma_lc="\\\\"]',
+        }
+        for k in refs.keys():
+            query = simple_query(k)
+            self.assertEqual(clean(query), clean(refs[k]))
+
 
 class TestSimpleQuerySkE(unittest.TestCase):
     """Checks coherency of simple_query syntax with CQL manually retrieved from SkE.
