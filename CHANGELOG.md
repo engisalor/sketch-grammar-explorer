@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.3](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.6.2...v0.6.3) (2023-04-17)
+
+
+### Bug Fixes
+
+* fixes [#12](https://github.com/engisalor/sketch-grammar-explorer/issues/12) Set configuration once ([fb8e1dc](https://github.com/engisalor/sketch-grammar-explorer/commit/fb8e1dc5d0b4fdd48f8af438808b7b303c803f67))
+* fixes [#14](https://github.com/engisalor/sketch-grammar-explorer/issues/14) Labeled attributes cause problems ([f66d1f4](https://github.com/engisalor/sketch-grammar-explorer/commit/f66d1f4f429e520cb071db9b0d6c93a84ee708b6))
+* fixes [#15](https://github.com/engisalor/sketch-grammar-explorer/issues/15) simple_query escaping ([4b46c60](https://github.com/engisalor/sketch-grammar-explorer/commit/4b46c608d9ad36e313b03404a8c7146490673cde))
+* fixes [#16](https://github.com/engisalor/sketch-grammar-explorer/issues/16) Warn if max_responses reached ([1025ba3](https://github.com/engisalor/sketch-grammar-explorer/commit/1025ba31441f72909d8d2f430adb9d4cc3a299dc))
+
 ## [0.6.2](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.6.1...v0.6.2) (2023-03-01)
 
 This release excludes testing files from package distribution.
