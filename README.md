@@ -55,7 +55,7 @@ An abbreviated example of SGEX for making calls to Sketch Engine.
 import sgex
 
 # add API credentials to the server configuration
-sgex.config.default["ske"] |= {"username": "J. Doe", "api_key": "1234"}
+config = {"ske": sgex.config.default["ske"] | {"username": "J. Doe", "api_key": "1234"}}
 
 # define API calls
 calls = [
@@ -70,7 +70,7 @@ calls = [
     sgex.Freqs({"q": 'alemma,"sleep"'})]
 
 # package calls
-package = sgex.Package(calls, "ske")
+package = sgex.Package(calls, "ske", config)
 
 # send requests
 package.send_requests()
@@ -132,7 +132,7 @@ print(sgex.config.default)
       '45': None}}} # wait 45 seconds for 900+ calls
 
 # add your API credentials for making calls to the "ske" server
-sgex.config.default["ske"] |= {"username": "J. Doe", "api_key": "1234"}
+config = {"ske": sgex.config.default["ske"] | {"username": "J. Doe", "api_key": "1234"}}
 ```
 
 ### 2. Making a `corp_info` API call
@@ -153,10 +153,7 @@ server = "ske"
 call = sgex.CorpInfo({"corpname": "preloaded/susanne"})
 
 # package the call
-package = sgex.Package(call, server)
-
-# config dicts can also be passed explicitly
-# package = sgex.Package(call, server, config_dict)
+package = sgex.Package(call, server, config)
 
 # inspect the package details
 print(package.calls)
@@ -214,7 +211,7 @@ import os
 from sgex.config import load, default
 
 # make a config dict with credentials
-config = {"ske": {**default["ske"], **{"username": "J. Doe", "api_key": "1234"}}}
+config = {"ske": sgex.config.default["ske"] | {"username": "J. Doe", "api_key": "1234"}}
 
 # add the environment variable (for testing purposes)
 os.environ["SGEX_CONFIG_JSON"] = json.dumps(config)
@@ -430,7 +427,7 @@ These classes combine multiple API calls, parsing methods, etc., to execute larg
 from sgex.call.job import TTypeAnalysis
 
 # prepare the job
-ttypes = TTypeAnalysis("susanne", <server>)
+ttypes = TTypeAnalysis("susanne", server, config)
 
 # run the job
 ttypes.run()
@@ -451,7 +448,7 @@ print(ttypes.df.head(3))
 from sgex.call.job import SimpleFreqsQuery
 
 # prepare the job
-query = SimpleFreqsQuery("sleep", "susanne", "noske")
+query = SimpleFreqsQuery("sleep", "susanne", "noske", config)
 
 # run the job
 query.run()
