@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.3](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.6.3...v0.6.3) (2023-04-18)
+
+
+### Documentation
+
+* fix config settings ([20e130d](https://github.com/engisalor/sketch-grammar-explorer/commit/20e130d4cd3bfe1842ffc4f71766bfa76ccf6268))
+
+
+### Miscellaneous Chores
+
+* release 0.6.3.post1 ([a3b3425](https://github.com/engisalor/sketch-grammar-explorer/commit/a3b342508babcc5e2fc87932f99eb4140dbd0800))
+
 ## [0.6.3](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.6.2...v0.6.3) (2023-04-17)
 
 
