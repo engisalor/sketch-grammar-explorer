@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sgex"
-version = "0.6.3"  # x-release-please-version
+version = "0.6.4"  # x-release-please-version
 requires-python = ">=3.8"
 authors = [{name="Loryn Isaacs", email="50170623+engisalor@users.noreply.github.com"}]
 description = "Sketch Grammar Explorer (Sketch Engine API wrapper)"
