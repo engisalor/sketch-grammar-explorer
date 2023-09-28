@@ -1,5 +1,8 @@
 """Utility functions."""
+import json
+
 import pandas as pd
+import yaml
 
 
 def flatten_ls_of_dt(ls: list) -> dict:
@@ -26,3 +29,30 @@ def flatten_ls_of_dt(ls: list) -> dict:
                 return dt
 
     return _flatten(ls)
+
+
+def parse_json_or_yaml(val: str):
+    """Tries to parse a string as JSON, then as YAML."""
+    if isinstance(val, str):
+        try:
+            return json.loads(val)
+        except json.decoder.JSONDecodeError:
+            return yaml.safe_load(val)
+        except Exception as err:
+            raise err
+    else:
+        return val
+
+
+def read_yaml(file: str) -> dict:
+    """Reads a YAML file."""
+    with open(file) as stream:
+        dt = yaml.safe_load(stream)
+    return dt
+
+
+def read_json(file: str) -> dict:
+    """Reads a JSON file."""
+    with open(file) as f:
+        dt = json.load(f)
+    return dt
