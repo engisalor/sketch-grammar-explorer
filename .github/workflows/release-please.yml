@@ -14,5 +14,5 @@ jobs:
           package-name: release-please-action
           bump-minor-pre-major: true
           extra-files: |
-            sgex/_version.py
+            sgex/__init__.py
             CITATION.cff
