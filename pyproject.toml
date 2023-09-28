@@ -29,18 +29,12 @@ classifiers =[
     "Topic :: Text Processing :: Linguistic",
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
+
 dependencies = [
     "pandas",
     "pyyaml",
-    "requests",
-    "requests-cache",
-]
-
-[project.optional-dependencies]
-security = ["keyring"]
-export = [
-    "openpyxl ",
-    "defusedxml",
+    "aiohttp",
+    "aiofiles",
 ]
 
 [project.urls]
