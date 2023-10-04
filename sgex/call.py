@@ -28,9 +28,9 @@ class Call:
         Raises:
             ValueError: A required parameter is missing.
         """
-        if params.get("format"):
-            if params["format"] not in formats:
-                raise ValueError(f'format must be one of {formats}: {params["format"]}')
+        params["format"] = params.get("format", "json")
+        if params["format"] not in formats:
+            raise ValueError(f'format must be one of {formats}: {params["format"]}')
         for p in required:
             if not params.get(p):
                 raise ValueError(f"{p} parameter missing: {params}")
