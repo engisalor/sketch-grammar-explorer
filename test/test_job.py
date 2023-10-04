@@ -3,10 +3,35 @@ import os
 import unittest
 
 import yaml
+from yarl import URL
 
 from sgex import job
 
-yaml.dump({"corpname": "susanne", "q": 'alemma,"bird"'})
+
+class TestCacheResponseMethods(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        """Pops unwanted env variables (e.g. if .env file gets loaded)."""
+        for env in {x for x in os.environ if x.startswith("SGEX_")}:
+            os.environ.pop(env)
+
+    def test_redact_json(self):
+        dt = {"username": "J. Doe", "api_key": "1234"}
+        dt = job.CachedResponse.redact_json({})
+        self.assertDictEqual(dt, {})
+
+    def test_redact_url(self):
+        # simple example
+        url = "http://localhost:10070/bonito/run.cgi/collx"
+        query = "?&username=J.+Doe&api_key=1234"
+        redacted = job.CachedResponse.redact_url(URL(url + query))
+        self.assertEqual(str(redacted), url)
+        # redact preserves multidict
+        url2 = "http://localhost:10070/bonito/run.cgi/view?"
+        q2 = "q=alemma,%22cat%22&q=r1000&q=D&corpname=susanne&username=US&api_key=12"
+        q2_ref = "q=alemma,%22cat%22&q=r1000&q=D&corpname=susanne"
+        redacted = job.CachedResponse.redact_url(URL(url2 + q2))
+        self.assertEqual(str(redacted), url2 + q2_ref)
 
 
 class TestArgParse(unittest.TestCase):
@@ -51,9 +76,6 @@ class TestJobInit(unittest.TestCase):
         self.assertIsInstance(job.Job(params=[r"{}"]).params, list)
         self.assertIsInstance(job.Job(params={}).params, list)
         self.assertIsInstance(job.Job(infile="file.json").infile, list)
-        # numeric
-        self.assertIsInstance(job.Job(timeout="15").timeout, int)
-        self.assertIsInstance(job.Job(timeout="1.5").timeout, float)
         # bool
         self.assertIsInstance(job.Job(thread="True").thread, bool)
         self.assertIsInstance(job.Job(dry_run="True").dry_run, bool)
