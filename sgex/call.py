@@ -16,7 +16,7 @@ class Call:
 
     @staticmethod
     def validate_params(
-        params: dict, required: list, formats=["json", "xml", "xlsx", "csv", "txt"]
+        params: dict, required: list, formats=["json", "xml", "csv", "txt"]
     ):
         """Checks whether a call meets minimum API parameter/formatting requirements.
 
