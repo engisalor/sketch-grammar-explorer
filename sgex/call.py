@@ -1,8 +1,14 @@
 """API call classes."""
 import hashlib
 import json
+import re
+from dataclasses import dataclass, field
+from typing import List
 
+import pandas as pd
 import yaml
+
+from sgex.util import flatten_ls_of_dt
 
 
 class Call:
@@ -81,6 +87,12 @@ class Call:
         }
         return yaml.dump(dt, sort_keys=True, default_flow_style=True).strip("\n")
 
+    def check_format(self, required_format: str = "json") -> None:
+        if self.params["format"] != required_format:
+            raise ValueError(
+                f'usable with `json` data only, not `{self.params["format"]}`'
+            )
+
     def __repr__(self) -> str:
         return f"{self.type.capitalize()} {self.to_hash()[:7]} {self.to_yaml()}"
 
@@ -126,6 +138,42 @@ class CorpInfo(Call):
     Hint:
         Requires `["corpname"]`."""
 
+    def structures_from_json(
+        self, drop: list = ["attributes", "label", "dynamic", "fromattr"]
+    ) -> pd.DataFrame:
+        """Returns a DataFrame of corpus structures and their attributes (text types).
+
+        Args:
+            drop: Unwanted columns.
+        """
+        self.check_format()
+        if not self.params.get("struct_attr_stats", None) == 1:
+            raise ValueError("requires `struct_attr_stats=1` to be set in params")
+        df = pd.DataFrame()
+        for s in self.response.json().get("structures"):
+            temp = pd.DataFrame.from_records(s)
+            if not temp.empty:
+                temp.drop(["size", "label"], axis=1, inplace=True)
+                temp.rename({"name": "structure"}, axis=1, inplace=True)
+                temp = pd.concat([temp, pd.json_normalize(temp["attributes"])], axis=1)
+                temp.drop(drop, axis=1, inplace=True)
+                temp.rename({"name": "attribute"}, axis=1, inplace=True)
+                df = pd.concat([df, temp])
+        return df
+
+    def sizes_from_json(self) -> pd.DataFrame:
+        """Returns a DataFrame of corpus structure sizes (token/word counts)."""
+        self.check_format()
+        _json = self.response.json()
+        return pd.DataFrame(
+            {
+                "structure": [
+                    k.replace("count", "") for k in _json.get("sizes").keys()
+                ],
+                "size": [int(v) for v in _json.get("sizes").values()],
+            }
+        )
+
     def __init__(self, params: dict):
         super().__init__("corp_info", params, ["corpname"])
 
@@ -152,11 +200,66 @@ class Freqs(Call):
     Hint:
         Requires `["corpname", "q", "fcrit"]`."""
 
+    @staticmethod
+    def _clean_items(items, item_keys=["Word", "frq", "rel", "fpm", "reltt"]) -> list:
+        """Extracts desired items from block and flattens ``Word`` values."""
+        clean = []
+        for block in items:
+            b = []
+            for i in block:
+                dt = {k: v for k, v in i.items() if k in item_keys}
+                words = flatten_ls_of_dt(dt["Word"])
+                dt["value"] = "|".join(words["n"])
+                del dt["Word"]
+                b.append(dt)
+            clean.append(b)
+        return clean
+
+    @staticmethod
+    def _clean_heads(heads) -> list:
+        """Extracts each block's fcrit attribute: ``head[0]["id"]``."""
+        if len([x for x in heads if x]):
+            return [head[0].get("id") for head in heads]
+        else:
+            return None
+
+    def df_from_json(self) -> pd.DataFrame:
+        """Converts a single-/multi-block freqs JSON response to a DataFrame.
+
+        TODO:
+            fix: This use of `Desc` assumes a simple call w/o filters etc.
+            docs: "rel" in "Desc" refers to a query's fpm in the whole corpus
+                as shown in the user interface.
+        """
+        self.check_format()
+        _json = self.response.json()
+        blocks = _json.get("Blocks", [])
+        heads = self._clean_heads([block.get("Head") for block in blocks])
+        if not heads:
+            return pd.DataFrame()
+        else:
+            items = self._clean_items([block.get("Items") for block in blocks])
+            # combine extracted data
+            for b in range(len(blocks)):
+                for i in range(len(items[b])):
+                    items[b][i]["attribute"] = heads[b]
+            # convert to DataFrame
+            df = pd.DataFrame.from_records([x for y in items for x in y])
+            # get specific values
+            df["arg"] = _json.get("Desc", [])[0].get("arg", None)
+            df["nicearg"] = _json.get("Desc", [])[0].get("nicearg", None)
+            df["corpname"] = _json.get("request", {}).get("corpname", None)
+            #
+            df["total_fpm"] = _json.get("Desc", [])[0].get("rel", None)
+            df["total_frq"] = _json.get("Desc", [])[0].get("size", None)
+            df["fmaxitems"] = _json.get("request", {}).get("fmaxitems", None)
+            return df
+
     def __init__(self, params: dict):
         super().__init__("freqs", params, ["corpname", "q", "fcrit"])
 
 
-class Freqml(Call):
+class Freqml(Freqs):
     """Gets frequencies for a query (ml).
 
     Args:
@@ -169,7 +272,7 @@ class Freqml(Call):
         super().__init__("freqml", params, ["corpname", "q", "fcrit"])
 
 
-class Freqtt(Call):
+class Freqtt(Freqs):
     """Gets frequencies for a query (tt).
 
     Args:
@@ -204,6 +307,30 @@ class TextTypesWithNorms(Call):
     Hint:
         Requires `["corpname"]`."""
 
+    def text_types_from_json(
+        self, drops: tuple = ("doc.wordcount",), position: str = ""
+    ) -> list:
+        """Returns corpus text types.
+
+        Args:
+            drops: Corpus structures to exclude from returned list.
+            position: fcrit position (see SkE docs for `view` and `fcrit` syntax).
+
+        Notes:
+            - `drops` uses a `startswith` string method; excluding a class of
+                structures can be accomplished with, e.g., `drops=("doc.",)`.
+            - `position` can be used for generating ready-to-use fcrit lists.
+        """
+        self.check_format()
+        _json = self.response.json()
+        blocks = [x for x in _json.get("Blocks")]
+        ttypes = [x["Line"][0]["name"] for x in blocks]
+        if drops:
+            out = [x for x in ttypes if not x.startswith(drops)]
+        if position:
+            out = [f"{x} {position}" for x in ttypes]
+        return out
+
     def __init__(self, params: dict):
         super().__init__("texttypes_with_norms", params, ["corpname"])
 
@@ -235,6 +362,60 @@ class View(Call):
         Requires `["corpname", "q"]`.
     """
 
+    @staticmethod
+    def _line_to_annotation(line: dict) -> dict:
+        """Build a dictionary of lists of tokens, tags, etc., from a View call line.
+
+        Args:
+            line: an item in response `Lines`. See note about required parameters.
+
+        Note:
+            Requires View data with `attrs="word,tag,lemma", attr_allpos="all"`.
+        """
+        line_attrs = []
+        line_strs = []
+        for section in ["Left", "Kwic", "Right"]:
+            line_attrs.extend([x["str"] for x in line[section] if x["class"] == "attr"])
+            line_strs.extend([x["str"] for x in line[section] if x["class"] != "attr"])
+            line_pos = []
+            line_lemma = []
+            for e in line_attrs:
+                attrs_split = re.findall("/([^/]+)/(.+)", e)
+                if len(attrs_split) != 1 or len(attrs_split[0]) != 2:
+                    raise ValueError(f"can't split pos & lemma in {e}")
+                pos = "".join([i for i in attrs_split[0][0] if not i.isdigit()])
+                line_pos.append(pos)
+                line_lemma.append(attrs_split[0][1])
+            token = {str(x): line_strs[x].strip() for x in range(len(line_strs))}
+            pos = {str(x): line_pos[x].strip() for x in range(len(line_pos))}
+            lemma = {str(x): line_lemma[x].strip() for x in range(len(line_lemma))}
+        return {
+            "toknum": line["toknum"],
+            "token": token,
+            "pos": pos,
+            "lemma": lemma,
+        }
+
+    def lines_to_annotation(self) -> list:
+        """Returns a list of lines converted to annotation dicts from a View call.
+
+        Note:
+            Requires View data with `attrs="word,tag,lemma"`, `attr_allpos="all"` and
+            `"refs": "<desired structures>"`.
+
+            Returns a fairly generic JSON structure for sentence annotation that can be
+            manipulated to a specific format.
+        """
+        items = []
+        _json = self.response.json()
+        for line in _json["Lines"]:
+            new = self._line_to_annotation(line)
+            new["corpus"] = _json["request"]["corpname"]
+            new["refs"] = line["Refs"]
+            new["desc"] = _json["Desc"]
+            items.append(new)
+        return items
+
     def __init__(self, params: dict):
         if not params.get("asyn"):
             params["asyn"] = 0
@@ -249,6 +430,21 @@ class Wordlist(Call):
 
     Hint:
         Requires `["corpname", "wltype", "wlattr"]`."""
+
+    def df_from_json(self) -> pd.DataFrame:
+        """Returns a DataFrame with attribute frequencies.
+
+        Notes:
+            - Usable for text type analysis w/ `wltype=simple` and if a structure is
+                supplied to `wlattr`, e.g., `doc.file`.
+        """
+        self.check_format()
+        _json = self.response.json()
+        df = pd.DataFrame.from_records(_json.get("Items"))
+        df["attribute"] = _json.get("request").get("wlattr")
+        df = df.round(2)
+        df.sort_values("frq", ascending=False, inplace=True)
+        return df
 
     def __init__(self, params: dict):
         super().__init__("wordlist", params, ["corpname", "wltype", "wlattr"])
@@ -286,3 +482,81 @@ class Wsketch(Call):
 
     def __init__(self, params: dict):
         super().__init__("wsketch", params, ["corpname", "lemma"])
+
+
+@dataclass
+class Data:
+    """Dataclass to store lists of calls by subclass.
+
+    Attributes:
+        An attribute for storing a list of each of the `Call` types.
+    """
+
+    attrvals: List[AttrVals] = field(default_factory=list)
+    call: List[Call] = field(default_factory=list)
+    collx: List[Collx] = field(default_factory=list)
+    corpinfo: List[CorpInfo] = field(default_factory=list)
+    extractkeywords: List[ExtractKeywords] = field(default_factory=list)
+    freqml: List[Freqml] = field(default_factory=list)
+    freqs: List[Freqs] = field(default_factory=list)
+    freqtt: List[Freqtt] = field(default_factory=list)
+    subcorp: List[Subcorp] = field(default_factory=list)
+    texttypeswithnorms: List[TextTypesWithNorms] = field(default_factory=list)
+    thes: List[Thes] = field(default_factory=list)
+    view: List[View] = field(default_factory=list)
+    wordlist: List[Wordlist] = field(default_factory=list)
+    wsdiff: List[Wsdiff] = field(default_factory=list)
+    wsketch: List[Wsketch] = field(default_factory=list)
+
+    def add(self, call: Call | list[Call]):
+        """Adds an object or list of objects of `Call` class or subclasses to `Data`.
+
+        Args:
+            call: An object of `Call` class or subclass or list of these.
+
+        Notes:
+            Sorts objects by type, storing them in an attribute of the same name
+            (lowercase). E.g., `CorpInfo` calls are stored in `self.corpinfo`.
+
+            This is the primary method for adding data, rather than instantiation.
+        """
+        if not isinstance(call, list):
+            call = [call]
+        for c in call:
+            _type = type(c).__name__.lower()
+            getattr(self, _type).append(c)
+
+    def to_list(self) -> list[Call]:
+        """Returns a flat list of all calls stored in `Data`."""
+        return [y for x in self.__dict__.values() for y in x]
+
+    def len(self):
+        """Calculates the number of stored calls."""
+        return len(self.to_list())
+
+    def reset(self):
+        """Clears list values for all call data."""
+        self.attrvals = []
+        self.call = []
+        self.collx = []
+        self.corpinfo = []
+        self.extractkeywords = []
+        self.freqs = []
+        self.freqml = []
+        self.freqtt = []
+        self.subcorp = []
+        self.texttypeswithnorms = []
+        self.thes = []
+        self.view = []
+        self.wordlist = []
+        self.wsdiff = []
+        self.wsketch = []
+
+    def __repr__(self) -> str:
+        return "____Data____\n" + "\n".join(
+            [
+                f"{k} ({len(v)})    {v[:min(len(v), 3)]}"
+                for k, v in self.__dict__.items()
+                if v
+            ]
+        )
