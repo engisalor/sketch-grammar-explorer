@@ -100,29 +100,28 @@ class CachedResponse:
 class Job:
     """Main class for controlling the Sketch Engine API."""
 
-    def parse_file(self):
-        """Loads calls from a json/jsonl/yaml file."""
-        if self.infile:
-            for f in [Path(x) for x in self.infile if x]:
-                if f.suffix == ".json":
-                    self.calls.extend(util.read_json(f))
-                elif f.suffix == ".yml":
-                    self.calls.extend(util.read_yaml(f))
-                elif f.suffix == ".jsonl":
-                    self.calls.extend(pd.read_json(f, lines=True).to_dict("records"))
+    def parse_params(self):
+        """Loads calls from `params` and `infile` args and adds to `self.data`."""
+        if not self.params_parsed:
+            calls = self.params
+            if self.infile:
+                for f in [Path(x) for x in self.infile if x]:
+                    if f.suffix == ".json":
+                        calls.extend(util.read_json(f))
+                    elif f.suffix == ".yml":
+                        calls.extend(util.read_yaml(f))
+                    elif f.suffix == ".jsonl":
+                        calls.extend(pd.read_json(f, lines=True).to_dict("records"))
+            for c in [x for x in calls if x]:
+                params = {k: v for k, v in c.items() if k != "call_type"}
+                self.data.add(getattr(call, c["call_type"])(params))
+            self.params_parsed = True
 
     def clear_cache_func(self):
         """Deletes the cache dir and all its content."""
         if self.clear_cache:
             shutil.rmtree(self.cache_dir)
             self.cache_dir.mkdir(exist_ok=True)
-
-    def assemble_calls(self):
-        """Converts parameters from input sources to `call.Call` objects."""
-        self.calls = [
-            getattr(call, self.call_type)(p) for p in self.calls if isinstance(p, dict)
-        ]
-        self.calls_len = len(self.calls)
 
     def dry_run_func(self):
         """Prints all settings for a dry run."""
@@ -135,7 +134,7 @@ class Job:
         waits = []
         for k, v in self.wait_dict.items():
             if v:
-                if len(self.calls) <= v:
+                if self.data.len() <= v:
                     waits.append(float(k))
         if not waits:
             waits.append(max([float(k) for k in self.wait_dict.keys()]))
@@ -186,14 +185,14 @@ class Job:
             async with aiohttp.ClientSession(**kwargs) as session:
                 res = await asyncio.gather(
                     *(
-                        self.send_call(call, session, **get_kwargs)
-                        for call in self.calls
+                        self.send_call(c, session, **get_kwargs)
+                        for c in self.data.to_list()
                     ),
                     return_exceptions=True,
                 )
                 self.exceptions = [
-                    (res[x], self.calls[x])
-                    for x in range(len(self.calls))
+                    (res[x], self.data.to_list()[x])
+                    for x in range(self.data.len())
                     if not isinstance(res[x], str)
                 ]
 
@@ -201,9 +200,7 @@ class Job:
         """Main function to execute a job."""
         t0 = perf_counter()
         self.cache_dir.mkdir(exist_ok=True)
-        self.calls += self.params
-        self.parse_file()
-        self.assemble_calls()
+        self.parse_params()
         self.set_wait()
         self.clear_cache_func()
         asyncio.run(self.send_calls(**kwargs))
@@ -212,13 +209,15 @@ class Job:
 
     def __repr__(self) -> str:
         dt = {
-            k: v
-            for k, v in self.__dict__.items()
-            if k not in ["calls", "original_args"]
+            k: v for k, v in self.__dict__.items() if k not in ["data", "original_args"]
         }
-        calls = "____Calls____ (up to 10 shown)\n"
+        calls = "____Data____\n"
         calls += "\n".join(
-            [str(self.calls[x]) for x in range(len(self.calls)) if x < 10]
+            [
+                f"{k} ({len(v)})    {v[:min(len(v), 3)]}"
+                for k, v in self.data.__dict__.items()
+                if v
+            ]
         )
         attrs = "____Attributes____\n"
         for k, v in dt.items():
@@ -235,8 +234,8 @@ class Job:
         self,
         api_key: str | None = None,
         cache_dir: str = "data",
-        call_type: str | None = None,
         clear_cache: bool = False,
+        data: call.Data = None,
         default_servers: dict = default_servers,
         dry_run: bool = False,
         infile: str | list | None = None,
@@ -249,8 +248,8 @@ class Job:
         # original arguments
         self.api_key = api_key
         self.cache_dir = cache_dir
-        self.call_type = call_type
         self.clear_cache = clear_cache
+        self.data = None
         self.default_servers = default_servers
         self.dry_run = dry_run
         self.infile = infile
@@ -261,8 +260,9 @@ class Job:
         self.wait_dict = wait_dict
         # additional args
         self.original_args = self.__dict__.copy()
+        self.data = call.Data()
+        self.params_parsed = False
         self.server = self.default_servers.get(self.server, self.server)
-        self.calls = []
         if not self.cache_dir:
             self.cache_dir = "data"
         self.cache_dir = Path(self.cache_dir)
@@ -312,17 +312,15 @@ def parse_args(args):
         help="cache directory",
     )
     parser.add_argument(
-        "-t",
-        "--call-type",
-        choices=[x.__name__ for x in call.Call.__subclasses__()],
-        default=os.environ.get("SGEX_CALL_TYPE"),
-        help="API call type",
-    ),
-    parser.add_argument(
         "--clear-cache",
         action="store_true",
         default=os.environ.get("SGEX_CLEAR_CACHE", False),
         help="clear cache directory (no arguments; ignored if `--dry-run`)",
+    )
+    parser.add_argument(
+        "--data",
+        default=None,
+        help="placeholder for API call data: not for CLI usage",
     )
     parser.add_argument(
         "--default-servers",
