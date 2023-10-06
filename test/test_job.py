@@ -1,6 +1,7 @@
 import json
 import os
 import unittest
+from time import sleep
 
 import yaml
 from yarl import URL
@@ -86,18 +87,21 @@ class TestJobInit(unittest.TestCase):
 
 
 class TestJobInitParseParams(unittest.TestCase):
+    def setUp(self):
+        sleep(0.5)
+
     @classmethod
     def setUpClass(cls):
         """Pops unwanted env variables (e.g. if .env file gets loaded)."""
         for env in {x for x in os.environ if x.startswith("SGEX_")}:
             os.environ.pop(env)
         cls.params = [
-            {"corpname": "susanne", "q": 'alemma,"bird"'},
-            {"corpname": "susanne", "q": 'alemma,"apple"'},
-            {"corpname": "susanne", "q": 'alemma,"carrot"'},
-            {"corpname": "susanne", "q": 'alemma,"lettuce"'},
-            {"corpname": "susanne", "q": 'alemma,"dog"'},
-            {"corpname": "susanne", "q": 'alemma,"cat"'},
+            {"call_type": "Collx", "corpname": "susanne", "q": 'alemma,"bird"'},
+            {"call_type": "Collx", "corpname": "susanne", "q": 'alemma,"apple"'},
+            {"call_type": "Collx", "corpname": "susanne", "q": 'alemma,"carrot"'},
+            {"call_type": "Collx", "corpname": "susanne", "q": 'alemma,"lettuce"'},
+            {"call_type": "Collx", "corpname": "susanne", "q": 'alemma,"dog"'},
+            {"call_type": "Collx", "corpname": "susanne", "q": 'alemma,"cat"'},
         ]
         cls.infiles = ["test/example.json", "test/example.jsonl", "test/example.yml"]
 
@@ -109,12 +113,14 @@ class TestJobInitParseParams(unittest.TestCase):
         j = job.Job(params=yaml.dump(self.params[0]))
         self.assertListEqual(j.params, self.params[:1])
         # json passed as environment variable
-        SGEX_PARAMS = """{"corpname": "susanne",  "q": "alemma,\\"bird\\""}"""
+        SGEX_PARAMS = """{"call_type": "Collx", "corpname": "susanne",  "q": "alemma,\\"bird\\""}"""  # noqa: E501
         args = job.parse_args(["-p", SGEX_PARAMS])
         j = job.Job(**vars(args))
         self.assertListEqual(j.params, self.params[:1])
         # yaml passed as environment variable
-        SGEX_PARAMS = """{corpname: susanne, q: 'alemma,"bird"'}"""
+        SGEX_PARAMS = (
+            """{"call_type": "Collx", corpname: susanne, q: 'alemma,"bird"'}"""
+        )
         args = job.parse_args(["-p", SGEX_PARAMS])
         j = job.Job(**vars(args))
         self.assertListEqual(j.params, self.params[:1])
@@ -140,43 +146,38 @@ class TestJobInitParseParams(unittest.TestCase):
             ]
         )
         j = job.Job(**vars(args))
-        j.parse_file()
-        for x in range(len(j.calls)):
-            self.assertDictEqual(j.calls[x], self.params[x])
+        j.parse_params()
+        self.assertEqual(j.data.len(), 4)
 
-    def test_job_parse_file(self):
-        # str infile
-        j = job.Job(infile=self.infiles[0])
-        j.parse_file()
-        self.assertListEqual(j.calls, self.params[:1])
-        # list infile
+    def test_job_parse_files(self):
         j = job.Job(infile=self.infiles)
-        j.parse_file()
-        for x in range(len(self.params)):
-            self.assertDictEqual(j.calls[x], self.params[x])
-        # missing infile
+        j.parse_params()
+        self.assertEqual(j.data.len(), len(self.params))
+
+    def test_job_parse_file_missing(self):
         j = job.Job(infile="test/missing.json")
         with self.assertRaises(FileNotFoundError):
-            j.parse_file()
+            j.parse_params()
 
     def test_set_wait_default(self):
+        j = None
         j = job.Job()
-        j.calls = ["hello"] * 5
+        j.data.collx = self.params[:1] * 5
         j.set_wait()
         self.assertEqual(j.wait, 0)
-        j.calls = ["hello"] * 87
+        j.data.collx = self.params[:1] * 87
         j.set_wait()
         self.assertEqual(j.wait, 0.5)
-        j.calls = ["hello"] * 1002
+        j.data.collx = self.params[:1] * 1002
         j.set_wait()
         self.assertEqual(j.wait, 45)
 
     def test_set_wait_custom(self):
-        j = job.Job(wait_dict={"3": 6, "8": 12, "4": 18, "21": None})
-        j.calls = ["hello"] * 4
+        j = job.Job(wait_dict={"3": 6, "4": 12, "8": 18, "21": None})
+        j.data.collx = self.params[:1] * 2
         j.set_wait()
         self.assertEqual(j.wait, 3)
-        j.calls = ["hello"] * 17
+        j.data.collx = self.params[:1] * 7
         j.set_wait()
         self.assertEqual(j.wait, 4)
 
@@ -184,7 +185,7 @@ class TestJobInitParseParams(unittest.TestCase):
         args = job.parse_args(["-w", '{"3": 6, "8": 12, "4": 18, "21": null}'])
         j = job.Job(**vars(args))
         self.assertDictEqual(j.wait_dict, {"3": 6, "8": 12, "4": 18, "21": None})
-        j.calls = ["hello"] * 4
+        j.data.collx = self.params[:1] * 4
         j.set_wait()
         self.assertEqual(j.wait, 3)
 

@@ -1,3 +1,3 @@
-{"corpname": "susanne", "q": "alemma,\"apple\""}
-{"corpname": "susanne", "q": "alemma,\"carrot\""}
-{"corpname": "susanne", "q": "alemma,\"lettuce\""}
+{"call_type": "Collx", "corpname": "susanne", "q": "alemma,\"apple\""}
+{"call_type": "Collx", "corpname": "susanne", "q": "alemma,\"carrot\""}
+{"call_type": "Collx", "corpname": "susanne", "q": "alemma,\"lettuce\""}

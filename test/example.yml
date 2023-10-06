@@ -1,2 +1,2 @@
-- {corpname: susanne, q: 'alemma,"dog"'}
-- {corpname: susanne, q: 'alemma,"cat"'}
+- {call_type: Collx, corpname: susanne, q: 'alemma,"dog"'}
+- {call_type: Collx, corpname: susanne, q: 'alemma,"cat"'}

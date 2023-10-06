@@ -1,7 +1,9 @@
 import hashlib
 import json
 import os
+import shutil
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from time import perf_counter
 
@@ -19,10 +21,9 @@ class TestJobIntegration(unittest.TestCase):
         cls.settings = dict(
             api_key=1234,
             cache_dir="test/data",
-            call_type="Collx",
             clear_cache=True,
             dry_run=False,
-            params={"corpname": "susanne", "q": 'alemma,"bird"'},
+            params={"call_type": "Collx", "corpname": "susanne", "q": 'alemma,"bird"'},
             username="J. Doe",
             wait_dict={"0": None},
         )
@@ -38,14 +39,25 @@ class TestJobIntegration(unittest.TestCase):
         cls.tup3 = (cls.meta_file1, {"url": cls.url1})
         cls.tup4 = (cls.meta_file2, {"url": cls.url2})
 
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree("test/data/")
+        os.mkdir("test/data")
+
+    def test_data_not_shared_between_instances(self):
+        empty = job.Job()
+        j = job.Job(**self.settings)
+        j.run()
+        self.assertEqual(empty.data.len(), 0)
+
     def test_sequential_job_wait(self):
         """Note: could fail if CPU executes the query very slowly."""
-        settings = self.settings.copy()
+        settings = deepcopy(self.settings)
         seconds = 2
         settings["wait_dict"] = {str(seconds): None}
         settings["params"] = [
             settings["params"],
-            {"corpname": "susanne", "q": 'alemma,"cat"'},
+            {"call_type": "Collx", "corpname": "susanne", "q": 'alemma,"cat"'},
         ]
         j = job.Job(**settings)
         t0 = perf_counter()
@@ -54,11 +66,11 @@ class TestJobIntegration(unittest.TestCase):
         self.assertGreaterEqual(t1 - t0, seconds)
 
     def test_async_job(self):
-        settings = self.settings.copy()
+        settings = deepcopy(self.settings)
         settings["thread"] = True
         settings["params"] = [
-            {"corpname": "susanne", "q": 'alemma,"bird"'},
-            {"corpname": "susanne", "q": 'alemma,"dog"'},
+            {"call_type": "Collx", "corpname": "susanne", "q": 'alemma,"bird"'},
+            {"call_type": "Collx", "corpname": "susanne", "q": 'alemma,"dog"'},
         ]
         j = job.Job(**settings)
         j.run()
@@ -71,31 +83,33 @@ class TestJobIntegration(unittest.TestCase):
     def test_get_from_cache(self):
         j = job.Job(**self.settings)
         j.run()
-        self.assertFalse(j.calls[0].response.is_cached)
-        settings = self.settings.copy()
+        self.assertFalse(j.data.to_list()[0].response.is_cached)
+        settings = deepcopy(self.settings)
         settings["clear_cache"] = False
         j = job.Job(**settings)
         j.run()
-        self.assertTrue(j.calls[0].response.is_cached)
+        self.assertTrue(j.data.to_list()[0].response.is_cached)
 
     def test_clear_cache(self):
         j = job.Job(**self.settings)
         j.run()
-        self.assertFalse(j.calls[0].response.is_cached)
-        settings = self.settings.copy()
+        self.assertFalse(j.data.to_list()[0].response.is_cached)
+        settings = deepcopy(self.settings)
         j = job.Job(**settings)
         j.run()
-        self.assertFalse(j.calls[0].response.is_cached)
+        self.assertFalse(j.data.to_list()[0].response.is_cached)
 
     def test_dry_run_does_nothing(self):
-        settings = self.settings.copy()
+        settings = deepcopy(self.settings)
         settings["dry_run"] = True
+        settings["params"]["q"] = 'alemma,"random"'
         j = job.Job(**settings)
         j.run()
-        self.assertIsNone(getattr(j.calls[0], "response", None))
+        with self.assertRaises(AttributeError):
+            j.data.to_list()[0].response
 
     def test_call_without_credentials(self):
-        settings = self.settings.copy()
+        settings = deepcopy(self.settings)
         settings["username"] = None
         settings["api_key"] = None
         j = job.Job(**settings)
@@ -104,25 +118,33 @@ class TestJobIntegration(unittest.TestCase):
 
     def test_add_timeout_from_kwargs(self):
         """Note: could fail if CPU executes the query very quickly."""
-        settings = self.settings.copy()
-        settings["params"] = {"corpname": "susanne", "q": "alemma,[]{,10}"}
+        settings = deepcopy(self.settings)
+        settings["params"] = {
+            "call_type": "Collx",
+            "corpname": "susanne",
+            "q": "alemma,[]{,10}",
+        }
         timeout = aiohttp.ClientTimeout(total=0.01)
         j = job.Job(**settings)
         j.run(timeout=timeout)
         self.assertIsInstance(j.exceptions[0][0], TimeoutError)
 
     def test_hashes_match_pre_post_request(self):
-        settings = self.settings.copy()
-        settings["params"] = {"corpname": "susanne", "q": ["alemma,[]{,10}", "r10"]}
+        settings = deepcopy(self.settings)
+        settings["params"] = {
+            "call_type": "Collx",
+            "corpname": "susanne",
+            "q": ["alemma,[]{,10}", "r10"],
+        }
         j = job.Job(**settings)
         j.run()
-        pre_hash = j.calls[0].to_hash()
-        post_request = json.loads(j.calls[0].response.text)["request"]
+        pre_hash = j.data.to_list()[0].to_hash()
+        post_request = json.loads(j.data.to_list()[0].response.text)["request"]
         post_hash = call.Call("any", post_request).to_hash()
         self.assertEqual(pre_hash, post_hash)
 
     def test_save_to_json(self):
-        settings = self.settings.copy()
+        settings = deepcopy(self.settings)
         settings["params"]["format"] = "json"
         j = job.Job(**settings)
         j.run()
@@ -133,7 +155,7 @@ class TestJobIntegration(unittest.TestCase):
     def test_save_to_csv(self):
         file = "test/data/9cf98dbe4fe7d735ba79a97b1cbc569c.csv"
         ref = "831bf8370fa5c368e375d4f3ad924776"
-        settings = self.settings.copy()
+        settings = deepcopy(self.settings)
         settings["params"]["format"] = "csv"
         j = job.Job(**settings)
         j.run()
@@ -144,7 +166,7 @@ class TestJobIntegration(unittest.TestCase):
     def test_save_to_txt(self):
         file = "test/data/57274b193187873b0214500a47bcb813.txt"
         ref = "043770be298d93b74cc4106d740f3ddd"
-        settings = self.settings.copy()
+        settings = deepcopy(self.settings)
         settings["params"]["format"] = "txt"
         j = job.Job(**settings)
         j.run()
@@ -155,7 +177,7 @@ class TestJobIntegration(unittest.TestCase):
     def test_save_to_xml(self):
         file = "test/data/111f7991212b34b9a7100289bbc7a922.xml"
         ref = "6e53cc5e69e21289a23871d8cf572eae"
-        settings = self.settings.copy()
+        settings = deepcopy(self.settings)
         settings["params"]["format"] = "xml"
         j = job.Job(**settings)
         j.run()
