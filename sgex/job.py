@@ -81,6 +81,14 @@ class CachedResponse:
             setattr(self, k, v)
         self.print_ske_error(dt)
 
+    def json(self):
+        """Returns a JSON object if this content type is available."""
+        content_type = self.headers.get("Content-Type")
+        if "application/json" in content_type:
+            return json.loads(self.text)
+        else:
+            raise ValueError(f"usable with `json` data only, not `{content_type}`")
+
     def __init__(self, file_meta: Path, file_text: Path) -> None:
         self.file_meta = file_meta
         self.file_text = file_text
