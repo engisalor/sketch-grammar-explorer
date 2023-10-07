@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sgex"
 version = "0.6.3"  # x-release-please-version
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 authors = [{name="Loryn Isaacs", email="50170623+engisalor@users.noreply.github.com"}]
 description = "Sketch Grammar Explorer (Sketch Engine API wrapper)"
 keywords = [
@@ -15,14 +15,10 @@ keywords = [
     "text analysis",
     "natural language processing",
 ]
-readme = "README.md"
+readme = "README_pypi.md"
 license = {file = "LICENSE"}
 classifiers =[
     "Development Status :: 4 - Beta",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
@@ -31,10 +27,10 @@ classifiers =[
 ]
 
 dependencies = [
+    "aiofiles",
+    "aiohttp",
     "pandas",
     "pyyaml",
-    "aiohttp",
-    "aiofiles",
 ]
 
 [project.urls]
