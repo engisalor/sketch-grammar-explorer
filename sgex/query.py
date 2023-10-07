@@ -143,11 +143,10 @@ def simple_query(query: str, atomic_hyphens: bool = True, clean: bool = True) ->
 
     Example:
         >>> simple_query("re-do")
-        'q( [lc="re-do" | lemma_lc="re-do"] | \
+        '( [lc="re-do" | lemma_lc="re-do"] | \
 [lc="re" | lemma_lc="re"] \
 [lc="-" | lemma_lc="-"] \
-[lc="do" | lemma_lc="do"] \
-)'
+[lc="do" | lemma_lc="do"] )'
     """
     if clean:
         query = _clean_query(query)
@@ -160,12 +159,12 @@ def simple_query(query: str, atomic_hyphens: bool = True, clean: bool = True) ->
         for c in v.keys():
             v[c] = [_query_to_cql(phrase) for phrase in v[c]]
             if len(v[c]) > 1:
-                v[c] = "( " + " | ".join(v[c]) + " )"
+                v[c] = "( " + " | ".join(v[c]) + " ) "
             else:
                 v[c] = " | ".join(v[c])
             ls.append(v[c])
         all.append("".join(ls))
-    cql = "q" + "|".join(all)
+    cql = "|".join(all).strip()
     cql = cql.replace("*", ".*").replace("?", ".")
     return cql
 

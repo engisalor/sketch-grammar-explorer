@@ -11,73 +11,73 @@ class TestSimpleQueryInternal(unittest.TestCase):
     """Checks internal coherency of simple_query syntax."""
 
     def test_one_word(self):
-        ref = 'q[lc="1" | lemma_lc="1"]'
+        ref = '[lc="1" | lemma_lc="1"]'
         q = query.simple_query("1")
         self.assertEqual(clean(q), clean(ref))
 
     def test_two_word(self):
-        ref = 'q[lc="1A" | lemma_lc="1A"][lc="1B" | lemma_lc="1B"]'
+        ref = '[lc="1A" | lemma_lc="1A"][lc="1B" | lemma_lc="1B"]'
         q = query.simple_query("1A 1B")
         self.assertEqual(clean(q), clean(ref))
 
     def test_pipe(self):
-        ref = 'q[lc="1" | lemma_lc="1"]|[lc="2" | lemma_lc="2"]'
+        ref = '[lc="1" | lemma_lc="1"]|[lc="2" | lemma_lc="2"]'
         q = query.simple_query("1 | 2")
         self.assertEqual(clean(q), clean(ref))
 
     def test_single_hyphen(self):
-        ref = 'q[lc="1A-1B" | lemma_lc="1A-1B"]'
+        ref = '[lc="1A-1B" | lemma_lc="1A-1B"]'
         q = query.simple_query("1A-1B", False)
         self.assertEqual(clean(q), clean(ref))
 
     def test_single_hyphen_atomic(self):
-        ref = 'q( [lc="1A-1B" | lemma_lc="1A-1B"] | [lc="1A" | lemma_lc="1A"] [lc="-" | lemma_lc="-"] [lc="1B" | lemma_lc="1B"] )'  # noqa: E501
+        ref = '( [lc="1A-1B" | lemma_lc="1A-1B"] | [lc="1A" | lemma_lc="1A"] [lc="-" | lemma_lc="-"] [lc="1B" | lemma_lc="1B"] )'  # noqa: E501
         q = query.simple_query("1A-1B", True)
         self.assertEqual(clean(q), clean(ref))
 
     def test_double_hyphen(self):
-        ref = 'q( [lc="1A1B" | lemma_lc="1A1B"] | [lc="1A" | lemma_lc="1A"] [lc="1B" | lemma_lc="1B"] | [lc="1A-1B" | lemma_lc="1A-1B"] )'  # noqa: E501
+        ref = '( [lc="1A1B" | lemma_lc="1A1B"] | [lc="1A" | lemma_lc="1A"] [lc="1B" | lemma_lc="1B"] | [lc="1A-1B" | lemma_lc="1A-1B"] )'  # noqa: E501
         q = query.simple_query("1A--1B", False)
         self.assertEqual(clean(q), clean(ref))
 
     def test_double_hypen_atomic(self):
-        ref = 'q( [lc="1A1B" | lemma_lc="1A1B"] | [lc="1A" | lemma_lc="1A"] [lc="1B" | lemma_lc="1B"] | [lc="1A-1B" | lemma_lc="1A-1B"] | [lc="1A" | lemma_lc="1A"] [lc="-" | lemma_lc="-"] [lc="1B" | lemma_lc="1B"] )'  # noqa: E501
+        ref = '( [lc="1A1B" | lemma_lc="1A1B"] | [lc="1A" | lemma_lc="1A"] [lc="1B" | lemma_lc="1B"] | [lc="1A-1B" | lemma_lc="1A-1B"] | [lc="1A" | lemma_lc="1A"] [lc="-" | lemma_lc="-"] [lc="1B" | lemma_lc="1B"] )'  # noqa: E501
         q = query.simple_query("1A--1B", True)
         self.assertEqual(clean(q), clean(ref))
 
     def test_double_hyphen_pipe_atomic(self):
-        ref = 'q( [lc="1A1B" | lemma_lc="1A1B"] | [lc="1A" | lemma_lc="1A"] [lc="1B" | lemma_lc="1B"] | [lc="1A-1B" | lemma_lc="1A-1B"] | [lc="1A" | lemma_lc="1A"] [lc="-" | lemma_lc="-"] [lc="1B" | lemma_lc="1B"] )[lc="1C" | lemma_lc="1C"]|[lc="2" | lemma_lc="2"]'  # noqa: E501
+        ref = '( [lc="1A1B" | lemma_lc="1A1B"] | [lc="1A" | lemma_lc="1A"] [lc="1B" | lemma_lc="1B"] | [lc="1A-1B" | lemma_lc="1A-1B"] | [lc="1A" | lemma_lc="1A"] [lc="-" | lemma_lc="-"] [lc="1B" | lemma_lc="1B"] )[lc="1C" | lemma_lc="1C"]|[lc="2" | lemma_lc="2"]'  # noqa: E501
         q = query.simple_query("1A--1B 1C | 2")
         self.assertEqual(clean(q), clean(ref))
 
     def test_qmark(self):
-        ref = 'q[lc="1A." | lemma_lc="1A."]'
+        ref = '[lc="1A." | lemma_lc="1A."]'
         q = query.simple_query("1A?")
         self.assertEqual(clean(q), clean(ref))
 
     def test_asterisk_in_word(self):
-        ref = 'q[lc="1A.*" | lemma_lc="1A.*"]'
+        ref = '[lc="1A.*" | lemma_lc="1A.*"]'
         q = query.simple_query("1A*")
         self.assertEqual(clean(q), clean(ref))
 
     def test_asterisk_whole_word(self):
-        ref = 'q[lc="1" | lemma_lc="1"][lc=".*" | lemma_lc=".*"][lc="3" | lemma_lc="3"]'
+        ref = '[lc="1" | lemma_lc="1"][lc=".*" | lemma_lc=".*"][lc="3" | lemma_lc="3"]'
         q = query.simple_query("1 * 3")
         self.assertEqual(clean(q), clean(ref))
 
     def test_simple_query_escape(self):
         refs = {
-            '"': r'q[lc="\\"" | lemma_lc="\\""]',
-            "$": r'q[lc="\$" | lemma_lc="\$"]',
-            "(": r'q[lc="\(" | lemma_lc="\("]',
-            ")": r'q[lc="\)" | lemma_lc="\)"]',
-            "+": r'q[lc="\+" | lemma_lc="\+"]',
-            "[": r'q[lc="\[" | lemma_lc="\["]',
-            "]": r'q[lc="\]" | lemma_lc="\]"]',
-            "^": r'q[lc="\^" | lemma_lc="\^"]',
-            "{": r'q[lc="\{" | lemma_lc="\{"]',
-            "}": r'q[lc="\}" | lemma_lc="\}"]',
-            "\\": r'q[lc="\\\\" | lemma_lc="\\\\"]',
+            '"': r'[lc="\\"" | lemma_lc="\\""]',
+            "$": r'[lc="\$" | lemma_lc="\$"]',
+            "(": r'[lc="\(" | lemma_lc="\("]',
+            ")": r'[lc="\)" | lemma_lc="\)"]',
+            "+": r'[lc="\+" | lemma_lc="\+"]',
+            "[": r'[lc="\[" | lemma_lc="\["]',
+            "]": r'[lc="\]" | lemma_lc="\]"]',
+            "^": r'[lc="\^" | lemma_lc="\^"]',
+            "{": r'[lc="\{" | lemma_lc="\{"]',
+            "}": r'[lc="\}" | lemma_lc="\}"]',
+            "\\": r'[lc="\\\\" | lemma_lc="\\\\"]',
         }
         for k in refs.keys():
             q = query.simple_query(k)
@@ -93,42 +93,42 @@ class TestSimpleQuerySkE(unittest.TestCase):
     """
 
     def test_one_word(self):
-        ref = 'q[lc="gender" | lemma_lc="gender"]'
+        ref = '[lc="gender" | lemma_lc="gender"]'
         q = query.simple_query("gender", False)
         self.assertEqual(clean(q), clean(ref))
 
     def test_two_word(self):
-        ref = 'q[lc="gender" | lemma_lc="gender"][lc="based" | lemma_lc="based"]'
+        ref = '[lc="gender" | lemma_lc="gender"][lc="based" | lemma_lc="based"]'
         q = query.simple_query("gender based", False)
         self.assertEqual(clean(q), clean(ref))
 
     def test_pipe(self):
-        ref = 'q[lc="united" | lemma_lc="united"][lc="nations" | lemma_lc="nations"] | [lc="UN" | lemma_lc="UN"]'  # noqa: E501
+        ref = '[lc="united" | lemma_lc="united"][lc="nations" | lemma_lc="nations"] | [lc="UN" | lemma_lc="UN"]'  # noqa: E501
         q = query.simple_query("united nations | UN", False)
         self.assertEqual(clean(q), clean(ref))
 
     def test_single_hyphen(self):
-        ref = 'q[lc="gender-based" | lemma_lc="gender-based"]'
+        ref = '[lc="gender-based" | lemma_lc="gender-based"]'
         q = query.simple_query("gender-based", False)
         self.assertEqual(clean(q), clean(ref))
 
     def test_double_hyphen(self):
-        ref = 'q( [lc="genderbased" | lemma_lc="genderbased"] | [lc="gender" | lemma_lc="gender"] [lc="based" | lemma_lc="based"] | [lc="gender-based" | lemma_lc="gender-based"] )'  # noqa: E501
+        ref = '( [lc="genderbased" | lemma_lc="genderbased"] | [lc="gender" | lemma_lc="gender"] [lc="based" | lemma_lc="based"] | [lc="gender-based" | lemma_lc="gender-based"] )'  # noqa: E501
         q = query.simple_query("gender--based", False)
         self.assertEqual(clean(q), clean(ref))
 
     def test_qmark(self):
-        ref = 'q[lc="gender." | lemma_lc="gender."]'
+        ref = '[lc="gender." | lemma_lc="gender."]'
         q = query.simple_query("gender?", False)
         self.assertEqual(clean(q), clean(ref))
 
     def test_asterisk_in_word(self):
-        ref = 'q[lc="gender.*" | lemma_lc="gender.*"]'
+        ref = '[lc="gender.*" | lemma_lc="gender.*"]'
         q = query.simple_query("gender*", False)
         self.assertEqual(clean(q), clean(ref))
 
     def test_asterisk_whole_word(self):
-        ref = 'q[lc="gender" | lemma_lc="gender"][lc=".*" | lemma_lc=".*"][lc="violence" | lemma_lc="violence"]'  # noqa: E501
+        ref = '[lc="gender" | lemma_lc="gender"][lc=".*" | lemma_lc=".*"][lc="violence" | lemma_lc="violence"]'  # noqa: E501
         q = query.simple_query("gender * violence", False)
         self.assertEqual(clean(q), clean(ref))
 
