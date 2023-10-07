@@ -83,21 +83,21 @@ class TestJobIntegration(unittest.TestCase):
     def test_get_from_cache(self):
         j = job.Job(**self.settings)
         j.run()
-        self.assertFalse(j.data.to_list()[0].response.is_cached)
+        self.assertFalse(j.data.list()[0].response.is_cached)
         settings = deepcopy(self.settings)
         settings["clear_cache"] = False
         j = job.Job(**settings)
         j.run()
-        self.assertTrue(j.data.to_list()[0].response.is_cached)
+        self.assertTrue(j.data.list()[0].response.is_cached)
 
     def test_clear_cache(self):
         j = job.Job(**self.settings)
         j.run()
-        self.assertFalse(j.data.to_list()[0].response.is_cached)
+        self.assertFalse(j.data.list()[0].response.is_cached)
         settings = deepcopy(self.settings)
         j = job.Job(**settings)
         j.run()
-        self.assertFalse(j.data.to_list()[0].response.is_cached)
+        self.assertFalse(j.data.list()[0].response.is_cached)
 
     def test_dry_run_does_nothing(self):
         settings = deepcopy(self.settings)
@@ -106,7 +106,7 @@ class TestJobIntegration(unittest.TestCase):
         j = job.Job(**settings)
         j.run()
         with self.assertRaises(AttributeError):
-            j.data.to_list()[0].response
+            j.data.list()[0].response.text
 
     def test_call_without_credentials(self):
         settings = deepcopy(self.settings)
@@ -129,6 +129,19 @@ class TestJobIntegration(unittest.TestCase):
         j.run(timeout=timeout)
         self.assertIsInstance(j.exceptions[0][0], TimeoutError)
 
+    def test_add_timeout_from_get_kwargs(self):
+        """Note: could fail if CPU executes the query very quickly."""
+        settings = deepcopy(self.settings)
+        settings["params"] = {
+            "call_type": "Collx",
+            "corpname": "susanne",
+            "q": "alemma,[]{,10}",
+        }
+        timeout = aiohttp.ClientTimeout(total=0.01)
+        j = job.Job(**settings)
+        j.run(get_kwargs={"timeout": timeout})
+        self.assertIsInstance(j.exceptions[0][0], TimeoutError)
+
     def test_hashes_match_pre_post_request(self):
         settings = deepcopy(self.settings)
         settings["params"] = {
@@ -138,12 +151,15 @@ class TestJobIntegration(unittest.TestCase):
         }
         j = job.Job(**settings)
         j.run()
-        pre_hash = j.data.to_list()[0].to_hash()
-        post_request = json.loads(j.data.to_list()[0].response.text)["request"]
-        post_hash = call.Call("any", post_request).to_hash()
-        self.assertEqual(pre_hash, post_hash)
+        c = call.Collx(
+            {
+                "corpname": "susanne",
+                "q": ["alemma,[]{,10}", "r10"],
+            }
+        )
+        self.assertEqual(c.hash(), j.data.list()[0].hash())
 
-    def test_save_to_json(self):
+    def test_save_json(self):
         settings = deepcopy(self.settings)
         settings["params"]["format"] = "json"
         j = job.Job(**settings)

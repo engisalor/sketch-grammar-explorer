@@ -4,35 +4,8 @@ import unittest
 from time import sleep
 
 import yaml
-from yarl import URL
 
 from sgex import job
-
-
-class TestCacheResponseMethods(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        """Pops unwanted env variables (e.g. if .env file gets loaded)."""
-        for env in {x for x in os.environ if x.startswith("SGEX_")}:
-            os.environ.pop(env)
-
-    def test_redact_json(self):
-        dt = {"username": "J. Doe", "api_key": "1234"}
-        dt = job.CachedResponse.redact_json({})
-        self.assertDictEqual(dt, {})
-
-    def test_redact_url(self):
-        # simple example
-        url = "http://localhost:10070/bonito/run.cgi/collx"
-        query = "?&username=J.+Doe&api_key=1234"
-        redacted = job.CachedResponse.redact_url(URL(url + query))
-        self.assertEqual(str(redacted), url)
-        # redact preserves multidict
-        url2 = "http://localhost:10070/bonito/run.cgi/view?"
-        q2 = "q=alemma,%22cat%22&q=r1000&q=D&corpname=susanne&username=US&api_key=12"
-        q2_ref = "q=alemma,%22cat%22&q=r1000&q=D&corpname=susanne"
-        redacted = job.CachedResponse.redact_url(URL(url2 + q2))
-        self.assertEqual(str(redacted), url2 + q2_ref)
 
 
 class TestArgParse(unittest.TestCase):
@@ -84,6 +57,10 @@ class TestJobInit(unittest.TestCase):
         self.assertIs(job.Job(thread="true").thread, True)
         self.assertIs(job.Job(dry_run="true").dry_run, True)
         self.assertIs(job.Job(clear_cache="true").clear_cache, True)
+
+    def test_job_init_enforce_sequential_for_ske(self):
+        self.assertIs(job.Job(server="local", thread="true").thread, True)
+        self.assertIs(job.Job(server="ske", thread="true").thread, False)
 
 
 class TestJobInitParseParams(unittest.TestCase):

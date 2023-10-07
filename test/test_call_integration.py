@@ -4,7 +4,35 @@ import shutil
 import unittest
 from copy import deepcopy
 
+from yarl import URL
+
 from sgex import call, job
+
+
+class TestCacheResponseMethods(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        """Pops unwanted env variables (e.g. if .env file gets loaded)."""
+        for env in {x for x in os.environ if x.startswith("SGEX_")}:
+            os.environ.pop(env)
+
+    def test_redact_json(self):
+        dt = {"username": "J. Doe", "api_key": "1234"}
+        dt = call.CachedResponse.redact_json({})
+        self.assertDictEqual(dt, {})
+
+    def test_redact_url(self):
+        # simple example
+        url = "http://localhost:10070/bonito/run.cgi/collx"
+        query = "?&username=J.+Doe&api_key=1234"
+        redacted = call.CachedResponse.redact_url(URL(url + query))
+        self.assertEqual(str(redacted), url)
+        # redact preserves multidict
+        url2 = "http://localhost:10070/bonito/run.cgi/view?"
+        q2 = "q=alemma,%22cat%22&q=r1000&q=D&corpname=susanne&username=US&api_key=12"
+        q2_ref = "q=alemma,%22cat%22&q=r1000&q=D&corpname=susanne"
+        redacted = call.CachedResponse.redact_url(URL(url2 + q2))
+        self.assertEqual(str(redacted), url2 + q2_ref)
 
 
 class TestData(unittest.TestCase):
@@ -29,8 +57,8 @@ class TestData(unittest.TestCase):
         data.add(call.CorpInfo(self.params))
         self.assertEqual(data.corpinfo[1].params["corpname"], "susanne")
         self.assertEqual(data.len(), 2)
-        self.assertEqual(data.to_list()[0].params["corpname"], "susanne")
-        self.assertEqual(data.to_list()[1].params["corpname"], "susanne")
+        self.assertEqual(data.list()[0].params["corpname"], "susanne")
+        self.assertEqual(data.list()[1].params["corpname"], "susanne")
 
     def test_data_rest(self):
         data = call.Data()
