@@ -2,99 +2,25 @@
 """Main module for executing API jobs."""
 import argparse
 import asyncio
-import json
 import os
 import shutil
 import sys
 from pathlib import Path
-from time import perf_counter
 
-import aiofiles
 import aiohttp
 import pandas as pd
-from multidict import MultiDict
-from yarl import URL
 
-from sgex import call as call
+from sgex import call as _call
 from sgex import util
+
+# from time import perf_counter
+
 
 wait_dict = {"0": 9, "0.5": 99, "4": 899, "45": None}
 default_servers = {
     "local": "http://localhost:10070/bonito/run.cgi",
     "ske": "https://api.sketchengine.eu/bonito/run.cgi",
 }
-
-
-class CachedResponse:
-    """A mock Response class for managing caching."""
-
-    @staticmethod
-    def redact_json(dt: dict) -> str:
-        """Removes API credentials from a dict."""
-        if dt.get("request"):
-            _ = dt["request"].pop("api_key", None)
-            _ = dt["request"].pop("username", None)
-        return dt
-
-    @staticmethod
-    def redact_url(url: URL) -> URL:
-        """Removes API credentials from a yarl url."""
-        dt = MultiDict(url.query)
-        _ = dt.popall("api_key", None)
-        _ = dt.popall("username", None)
-        return url.with_query(dt)
-
-    def print_ske_error(self, meta):
-        if meta["ske_error"] and meta["ske_error"] != "unimplemented":
-            print(f'... {meta["ske_error"]}')
-
-    async def set(self, response: aiohttp.ClientResponse):
-        """Parses a Response and saves to cache."""
-        meta = {
-            "url": str(self.redact_url(response.url)),
-            "status": response.status,
-            "reason": response.reason,
-            "headers": dict(response.headers),
-        }
-        if "application/json" in response.headers.get("Content-Type"):
-            j = await response.json()
-            meta["ske_error"] = j.get("error", None)
-            self.print_ske_error(meta)
-            self.text = json.dumps(self.redact_json(j), indent=2)
-        else:
-            meta["ske_error"] = "unimplemented"
-            self.text = await response.text()
-            self.text = self.text.lstrip("\ufeff")
-        for k, v in meta.items():
-            setattr(self, k, v)
-        async with aiofiles.open(self.file_meta, "w") as f:
-            await f.write(json.dumps(meta, indent=2))
-        async with aiofiles.open(self.file_text, "w") as f:
-            await f.write(self.text)
-
-    def get(self):
-        """Retrieves a cached response."""
-        dt = util.read_json(self.file_meta)
-        with open(self.file_text) as f:
-            dt |= {"text": f.read()}
-        for k, v in dt.items():
-            setattr(self, k, v)
-        self.print_ske_error(dt)
-
-    def json(self):
-        """Returns a JSON object if this content type is available."""
-        content_type = self.headers.get("Content-Type")
-        if "application/json" in content_type:
-            return json.loads(self.text)
-        else:
-            raise ValueError(f"usable with `json` data only, not `{content_type}`")
-
-    def __init__(self, file_meta: Path, file_text: Path) -> None:
-        self.file_meta = file_meta
-        self.file_text = file_text
-        self.is_cached = False
-        if self.file_meta.exists() and self.file_text.exists():
-            self.is_cached = True
 
 
 class Job:
@@ -114,7 +40,7 @@ class Job:
                         calls.extend(pd.read_json(f, lines=True).to_dict("records"))
             for c in [x for x in calls if x]:
                 params = {k: v for k, v in c.items() if k != "call_type"}
-                self.data.add(getattr(call, c["call_type"])(params))
+                self.data.add(getattr(_call, c["call_type"])(params))
             self.params_parsed = True
 
     def clear_cache_func(self):
@@ -141,12 +67,12 @@ class Job:
         self.wait = min(waits)
 
     async def send_call(
-        self, call: call.Call, session: aiohttp.ClientSession, **kwargs
+        self, call: _call.Call, session: aiohttp.ClientSession, **kwargs
     ) -> None:
         """Gets API data, whether it's cached locally or requires an API request."""
-        file = Path(self.cache_dir) / Path(call.to_hash())
+        file = Path(self.cache_dir) / Path(call.hash())
         _format = call.params.get("format", "json")
-        call.response = CachedResponse(
+        call.response = _call.CachedResponse(
             file.with_suffix(".meta.json"), file.with_suffix(f".{_format}")
         )
         if call.response.is_cached:
@@ -176,36 +102,36 @@ class Job:
         if not self.dry_run:
             self.wait_current = 0 - self.wait
             if not self.thread:
-                print(f"... sequential - wait {self.wait}s")
+                # print(f"... sequential - wait {self.wait}s")
                 connector = aiohttp.TCPConnector(limit_per_host=1)
             else:
                 connector = aiohttp.TCPConnector()
-                print("... concurrent")
+                # print("... concurrent")
             kwargs = dict(connector=connector, raise_for_status=True) | kwargs
             async with aiohttp.ClientSession(**kwargs) as session:
                 res = await asyncio.gather(
                     *(
                         self.send_call(c, session, **get_kwargs)
-                        for c in self.data.to_list()
+                        for c in self.data.list()
                     ),
                     return_exceptions=True,
                 )
                 self.exceptions = [
-                    (res[x], self.data.to_list()[x])
+                    (res[x], self.data.list()[x])
                     for x in range(self.data.len())
                     if not isinstance(res[x], str)
                 ]
 
     def run(self, **kwargs):
         """Main function to execute a job."""
-        t0 = perf_counter()
+        # t0 = perf_counter()
         self.cache_dir.mkdir(exist_ok=True)
         self.parse_params()
         self.set_wait()
         self.clear_cache_func()
         asyncio.run(self.send_calls(**kwargs))
         self.dry_run_func()
-        print(round(perf_counter() - t0, 4))
+        # print(round(perf_counter() - t0, 4))
 
     def __repr__(self) -> str:
         dt = {
@@ -235,7 +161,7 @@ class Job:
         api_key: str | None = None,
         cache_dir: str = "data",
         clear_cache: bool = False,
-        data: call.Data = None,
+        data: _call.Data = None,
         default_servers: dict = default_servers,
         dry_run: bool = False,
         infile: str | list | None = None,
@@ -260,9 +186,12 @@ class Job:
         self.wait_dict = wait_dict
         # additional args
         self.original_args = self.__dict__.copy()
-        self.data = call.Data()
+        self.data = _call.Data()
         self.params_parsed = False
         self.server = self.default_servers.get(self.server, self.server)
+        if self.server == "https://api.sketchengine.eu/bonito/run.cgi" and self.thread:
+            print("`thread` is disabled for the `ske` server")
+            self.thread = False
         if not self.cache_dir:
             self.cache_dir = "data"
         self.cache_dir = Path(self.cache_dir)
