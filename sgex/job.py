@@ -137,7 +137,7 @@ class Job:
         dt = {
             k: v for k, v in self.__dict__.items() if k not in ["data", "original_args"]
         }
-        calls = "____Data____\n"
+        calls = "<class 'sgex.call.Data'>\n"
         calls += "\n".join(
             [
                 f"{k} ({len(v)})    {v[:min(len(v), 3)]}"
@@ -145,7 +145,7 @@ class Job:
                 if v
             ]
         )
-        attrs = "____Attributes____\n"
+        attrs = "<class 'sgex.job.Job'>\n"
         for k, v in dt.items():
             if k not in ["username", "api_key"]:
                 attrs += f"{(k)}    {str(v)[:min(len(str(v)),80)]}\n"

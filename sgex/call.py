@@ -646,7 +646,7 @@ class Data:
         self.wsketch = []
 
     def __repr__(self) -> str:
-        return "____Data____\n" + "\n".join(
+        return "<class 'sgex.call.Data'>\n" + "\n".join(
             [
                 f"{k} ({len(v)})    {v[:min(len(v), 3)]}"
                 for k, v in self.__dict__.items()
