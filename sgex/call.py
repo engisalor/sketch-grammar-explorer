@@ -3,12 +3,98 @@ import hashlib
 import json
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import List
 
+import aiofiles
+import aiohttp
 import pandas as pd
 import yaml
+from multidict import MultiDict
+from yarl import URL
 
-from sgex.util import flatten_ls_of_dt
+from sgex import util
+
+
+class CachedResponse:
+    """A mock Response class for managing caching."""
+
+    @staticmethod
+    def redact_json(dt: dict) -> str:
+        """Removes API credentials from a dict."""
+        if dt.get("request"):
+            _ = dt["request"].pop("api_key", None)
+            _ = dt["request"].pop("username", None)
+        return dt
+
+    @staticmethod
+    def redact_url(url: URL) -> URL:
+        """Removes API credentials from a yarl url."""
+        dt = MultiDict(url.query)
+        _ = dt.popall("api_key", None)
+        _ = dt.popall("username", None)
+        return url.with_query(dt)
+
+    def print_ske_error(self, meta):
+        if meta["ske_error"] and meta["ske_error"] != "unimplemented":
+            print(f'... {meta["ske_error"]}')
+
+    async def set(self, response: aiohttp.ClientResponse):
+        """Parses a Response and saves to cache."""
+        meta = {
+            "url": str(self.redact_url(response.url)),
+            "status": response.status,
+            "reason": response.reason,
+            "headers": dict(response.headers),
+        }
+        if "application/json" in response.headers.get("Content-Type"):
+            j = await response.json()
+            meta["ske_error"] = j.get("error", None)
+            self.print_ske_error(meta)
+            self.text = json.dumps(self.redact_json(j), indent=2)
+        else:
+            meta["ske_error"] = "unimplemented"
+            self.text = await response.text()
+            self.text = self.text.lstrip("\ufeff")
+        for k, v in meta.items():
+            setattr(self, k, v)
+        async with aiofiles.open(self.file_meta, "w") as f:
+            await f.write(json.dumps(meta, indent=2))
+        async with aiofiles.open(self.file_text, "w") as f:
+            await f.write(self.text)
+
+    def get(self):
+        """Retrieves a cached response."""
+        dt = util.read_json(self.file_meta)
+        with open(self.file_text) as f:
+            dt |= {"text": f.read()}
+        for k, v in dt.items():
+            setattr(self, k, v)
+        self.print_ske_error(dt)
+
+    def json(self):
+        """Returns a JSON object if this content type is available."""
+        content_type = self.headers.get("Content-Type")
+        if "application/json" in content_type:
+            return json.loads(self.text)
+        else:
+            raise ValueError(f"usable with `json` data only, not `{content_type}`")
+
+    def hash(self) -> str:
+        """Generates a hash of `response.request` w/ an ordered JSON representation."""
+        dt = {
+            (k): (str(v) if isinstance(v, (int, float)) else v)
+            for k, v in self.response["request"].items()
+        }
+        _json = json.dumps(dt, sort_keys=True)
+        return hashlib.blake2b(_json.encode()).hexdigest()[0:32]
+
+    def __init__(self, file_meta: Path, file_text: Path) -> None:
+        self.file_meta = file_meta
+        self.file_text = file_text
+        self.is_cached = False
+        if self.file_meta.exists() and self.file_text.exists():
+            self.is_cached = True
 
 
 class Call:
@@ -67,7 +153,7 @@ class Call:
 
         return _inner(value)
 
-    def to_json(self) -> str:
+    def json(self) -> str:
         """Converts call parameters to a JSON string."""
         dt = {
             (k): (str(v) if isinstance(v, (int, float)) else v)
@@ -75,11 +161,11 @@ class Call:
         }
         return json.dumps(dt, sort_keys=True)
 
-    def to_hash(self) -> str:
-        """Generates a hash of call parameters from an ordered JSON representation."""
-        return hashlib.blake2b(self.to_json().encode()).hexdigest()[0:32]
+    def hash(self) -> str:
+        """Generates a hash of call parameters w/ an ordered JSON representation."""
+        return hashlib.blake2b(self.json().encode()).hexdigest()[0:32]
 
-    def to_yaml(self) -> str:
+    def yaml(self) -> str:
         """Converts call parameters to a YAML string."""
         dt = {
             (k): (str(v) if isinstance(v, (int, float)) else v)
@@ -94,13 +180,20 @@ class Call:
             )
 
     def __repr__(self) -> str:
-        return f"{self.type.capitalize()} {self.to_hash()[:7]} {self.to_yaml()}"
+        return f"{self.type.capitalize()} {self.hash()[:7]} {self.yaml()}"
 
-    def __init__(self, type: str, params: dict, required: list = ["corpname"]):
+    def __init__(
+        self,
+        type: str,
+        params: dict,
+        required: list = ["corpname"],
+        response: CachedResponse = None,
+    ):
         self.validate_params(params, required)
         self.params = self.normalize_params(params)
         self.required = set(required)
         self.type = type
+        self.response = response
 
 
 class AttrVals(Call):
@@ -208,7 +301,7 @@ class Freqs(Call):
             b = []
             for i in block:
                 dt = {k: v for k, v in i.items() if k in item_keys}
-                words = flatten_ls_of_dt(dt["Word"])
+                words = util.flatten_ls_of_dt(dt["Word"])
                 dt["value"] = "|".join(words["n"])
                 del dt["Word"]
                 b.append(dt)
@@ -526,13 +619,13 @@ class Data:
             _type = type(c).__name__.lower()
             getattr(self, _type).append(c)
 
-    def to_list(self) -> list[Call]:
+    def list(self) -> list[Call]:
         """Returns a flat list of all calls stored in `Data`."""
         return [y for x in self.__dict__.values() for y in x]
 
     def len(self):
         """Calculates the number of stored calls."""
-        return len(self.to_list())
+        return len(self.list())
 
     def reset(self):
         """Clears list values for all call data."""
