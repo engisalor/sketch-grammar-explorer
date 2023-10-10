@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.7.0...v0.7.1) (2023-10-10)
+
+
+### Bug Fixes
+
+* argparse verbose store_true ([79d7065](https://github.com/engisalor/sketch-grammar-explorer/commit/79d7065303cd80b9260f91cf54677f06438fbf48))
+
 ## [0.7.0](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.6.3...v0.7.0) (2023-10-10)
 
 
