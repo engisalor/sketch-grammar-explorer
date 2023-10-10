@@ -5,14 +5,14 @@ import shutil
 import unittest
 from copy import deepcopy
 from pathlib import Path
-from time import perf_counter
+from time import perf_counter, sleep
 
 import aiohttp
 
 from sgex import call, job
 
 
-class TestJobIntegration(unittest.TestCase):
+class TestJob(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Pops unwanted env variables (e.g. if .env file gets loaded)."""
@@ -42,6 +42,7 @@ class TestJobIntegration(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree("test/data/")
+        sleep(0.5)
         os.mkdir("test/data")
 
     def test_data_not_shared_between_instances(self):
@@ -81,23 +82,29 @@ class TestJobIntegration(unittest.TestCase):
                 self.assertEqual(data[k], tup[1][k])
 
     def test_get_from_cache(self):
+        """Note: could fail if file read is very slow."""
         j = job.Job(**self.settings)
         j.run()
-        self.assertFalse(j.data.list()[0].response.is_cached)
+        time_call = j.summary()["seconds"]
         settings = deepcopy(self.settings)
         settings["clear_cache"] = False
         j = job.Job(**settings)
         j.run()
-        self.assertTrue(j.data.list()[0].response.is_cached)
+        time_cache = j.summary()["seconds"]
+        self.assertLess(time_cache, time_call / 100)
 
     def test_clear_cache(self):
+        def count_files():
+            return len(list(Path(self.settings["cache_dir"]).glob("*")))
+
         j = job.Job(**self.settings)
         j.run()
-        self.assertFalse(j.data.list()[0].response.is_cached)
+        self.assertEquals(count_files(), 2)
         settings = deepcopy(self.settings)
+        settings["params"]["q"] = 'alc,"night"'
         j = job.Job(**settings)
         j.run()
-        self.assertFalse(j.data.list()[0].response.is_cached)
+        self.assertEquals(count_files(), 2)
 
     def test_dry_run_does_nothing(self):
         settings = deepcopy(self.settings)
@@ -115,32 +122,6 @@ class TestJobIntegration(unittest.TestCase):
         j = job.Job(**settings)
         j.run()
         self.assertTrue(self.file1.exists())
-
-    def test_add_timeout_from_kwargs(self):
-        """Note: could fail if CPU executes the query very quickly."""
-        settings = deepcopy(self.settings)
-        settings["params"] = {
-            "call_type": "Collx",
-            "corpname": "susanne",
-            "q": "alemma,[]{,10}",
-        }
-        timeout = aiohttp.ClientTimeout(total=0.01)
-        j = job.Job(**settings)
-        j.run(timeout=timeout)
-        self.assertIsInstance(j.exceptions[0][0], TimeoutError)
-
-    def test_add_timeout_from_get_kwargs(self):
-        """Note: could fail if CPU executes the query very quickly."""
-        settings = deepcopy(self.settings)
-        settings["params"] = {
-            "call_type": "Collx",
-            "corpname": "susanne",
-            "q": "alemma,[]{,10}",
-        }
-        timeout = aiohttp.ClientTimeout(total=0.01)
-        j = job.Job(**settings)
-        j.run(get_kwargs={"timeout": timeout})
-        self.assertIsInstance(j.exceptions[0][0], TimeoutError)
 
     def test_hashes_match_pre_post_request(self):
         settings = deepcopy(self.settings)
@@ -200,6 +181,126 @@ class TestJobIntegration(unittest.TestCase):
         with open(file, "rb") as file:
             md5 = hashlib.file_digest(file, "md5").hexdigest()
         self.assertEqual(md5, ref)
+
+
+class TestJobErrors(unittest.TestCase):
+    """Note: some tests could fail if CPU executes very quickly/slowly."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Pops unwanted env variables (e.g. if .env file gets loaded)."""
+        for env in {x for x in os.environ if x.startswith("SGEX_")}:
+            os.environ.pop(env)
+        cls.settings = dict(
+            cache_dir="test/data",
+            clear_cache=True,
+            wait_dict={"0": None},
+        )
+        dt = {"call_type": "Collx", "corpname": "susanne"}
+        cls.normal_call = dt | {"q": 'alemma,"bird"'}
+        cls.ske_error_call = dt | {"q": 'anot_an_attr,"dog"'}
+        cls.slow_call = dt | {"q": "alemma,[]{,10}"}
+        cls.calls = [cls.ske_error_call, cls.slow_call, cls.normal_call]
+        cls.timeout = aiohttp.ClientTimeout(sock_read=0.3)  # total=.3 causes failures
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree("test/data/")
+        sleep(0.5)
+        os.mkdir("test/data")
+
+    def test_add_timeout_from_kwargs(self):
+        j = job.Job(params=self.slow_call, **self.settings)
+        j.run(timeout=self.timeout)
+        self.assertIsInstance(j.errors[0][0], TimeoutError)
+
+    def test_add_timeout_from_get_kwargs(self):
+        j = job.Job(params=self.slow_call, **self.settings)
+        j.run(get_kwargs={"timeout": self.timeout})
+        self.assertIsInstance(j.errors[0][0], TimeoutError)
+
+    def test_ske_error(self):
+        j = job.Job(params=self.ske_error_call, **self.settings)
+        j.run()
+        self.assertEqual(
+            j.data.collx[0].response.ske_error, "AttrNotFound (not_an_attr)"
+        )
+        self.assertEqual(j.errors[0][0], "AttrNotFound (not_an_attr)")
+
+    def test_ske_error_and_exception_with_summary(self):
+        sleep(15)  # waiting allows server to clear
+        j = job.Job(params=self.calls, **self.settings)
+        j.run(timeout=self.timeout)
+        self.assertEqual(len(j.errors), 2)
+        summary = j.summary()
+        self.assertEqual(summary["calls"], 3)
+
+    def test_ske_error_and_exception_async(self):
+        sleep(15)  # waiting allows server to clear
+        settings = deepcopy({k: v for k, v in self.settings.items() if k != "params"})
+        settings["thread"] = True
+        j = job.Job(params=self.calls, **settings)
+        j.run(timeout=self.timeout)
+        self.assertEqual(len(j.errors), 2)
+
+
+@unittest.skip("slow, demanding tests that can require GBs in RAM and disk space")
+class TestStressTest(unittest.TestCase):
+    """Note: avoiding all exceptions is challenging for all possible call combinations.
+
+    This depends on the number of calls, their complexity and hardware: one test may
+    fail but getting them all to pass may be unnecessary or imply some tradeoffs.
+
+    Depending on the state of the NoSkE server, it may be necessary to restart it in
+    between these tests to get accurate results/execution times."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Pops unwanted env variables (e.g. if .env file gets loaded)."""
+        for env in {x for x in os.environ if x.startswith("SGEX_")}:
+            os.environ.pop(env)
+        cls.settings = dict(
+            cache_dir="test/data",
+            clear_cache=True,
+            wait_dict={"0": None},
+            verbose=True,
+        )
+        cls.dt = {"call_type": "View", "corpname": "susanne"}
+
+    def test_large_calls_sequential(self):
+        """Note: ~2 GB of memory/disk space."""
+        params = []
+        for x in range(100000, 10050):
+            params.append(self.dt | {"q": 'alc,".*"', "pagesize": x})
+        j = job.Job(params=params, **self.settings)
+        j.run()
+        self.assertListEqual(j.errors, [])
+
+    def test_large_calls_async(self):
+        """Note: ~2 GB of memory/disk space. Adjust range to avoid memory issues."""
+        params = []
+        for x in range(100000, 100010):
+            params.append(self.dt | {"q": 'alc,".*"', "pagesize": x})
+        j = job.Job(params=params, thread=True, **self.settings)
+        j.run()
+        self.assertListEqual(j.errors, [])
+
+    def test_many_calls_sequential(self):
+        """Note: slow."""
+        params = []
+        for x in range(1000):
+            params.append(self.dt | {"q": f'alc,"[#{x}]"'})
+        j = job.Job(params=params, **self.settings)
+        j.run()
+        self.assertListEqual(j.errors, [])
+
+    def test_many_calls_async(self):
+        params = []
+        for x in range(1000):
+            params.append(self.dt | {"q": f'alc,"[#{x}]"'})
+        j = job.Job(params=params, thread=True, **self.settings)
+        j.run()
+        self.assertListEqual(j.errors, [])
 
 
 if __name__ == "__main__":

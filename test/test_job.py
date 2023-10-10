@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import unittest
 from time import sleep
@@ -61,6 +62,13 @@ class TestJobInit(unittest.TestCase):
     def test_job_init_enforce_sequential_for_ske(self):
         self.assertIs(job.Job(server="local", thread="true").thread, True)
         self.assertIs(job.Job(server="ske", thread="true").thread, False)
+
+    def test_set_verbosity(self):
+        j = job.Job()
+        self.assertEqual(logging.root.level, logging.WARNING)
+        j = job.Job(verbose=True)
+        j.verbose
+        self.assertEqual(logging.root.level, logging.INFO)
 
 
 class TestJobInitParseParams(unittest.TestCase):
