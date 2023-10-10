@@ -1,3 +1,6 @@
+# Copyright (c) 2022-2023 Loryn Isaacs
+# This file is part of Sketch Grammar Explorer, licensed under BSD-3
+# See the LICENSE file at https://github.com/engisalor/sketch-grammar-explorer/
 """API call classes."""
 import hashlib
 import json
@@ -16,8 +19,35 @@ from yarl import URL
 from sgex import util
 
 
+@dataclass
 class CachedResponse:
-    """A mock Response class for managing caching."""
+    """A mock Response class for managing caching.
+
+    Args:
+        file_meta: Where call metadata is saved.
+        file_text: Where call text data is saved.
+
+    Methods:
+        set: Saves newly requested data.
+        get: Loads cached data.
+
+    Attributes:
+        url: yarl URL for the call.
+        status: Response status.
+        reason: Response reason.
+        headers: Response headers.
+        ske_error: Detected SkE server error (e.g. for a malformed CQL rule).
+        text: Response text.
+    """
+
+    file_meta: Path
+    file_text: Path
+    url: URL = field(default_factory=URL)
+    status: int = field(default_factory=int)
+    reason: str = field(default_factory=str)
+    headers: dict = field(default_factory=dict)
+    ske_error: str = field(default_factory=str)
+    text: str = field(default_factory=str)
 
     @staticmethod
     def redact_json(dt: dict) -> str:
@@ -35,42 +65,45 @@ class CachedResponse:
         _ = dt.popall("username", None)
         return url.with_query(dt)
 
-    def print_ske_error(self, meta):
-        if meta["ske_error"] and meta["ske_error"] != "unimplemented":
-            print(f'... {meta["ske_error"]}')
-
     async def set(self, response: aiohttp.ClientResponse):
         """Parses a Response and saves to cache."""
-        meta = {
-            "url": str(self.redact_url(response.url)),
-            "status": response.status,
-            "reason": response.reason,
-            "headers": dict(response.headers),
-        }
+        self.url = str(self.redact_url(response.url))
+        self.status = response.status
+        self.reason = response.reason
+        self.headers = dict(response.headers)
         if "application/json" in response.headers.get("Content-Type"):
             j = await response.json()
-            meta["ske_error"] = j.get("error", None)
-            self.print_ske_error(meta)
+            self.ske_error = j.get("error", "")
             self.text = json.dumps(self.redact_json(j), indent=2)
         else:
-            meta["ske_error"] = "unimplemented"
+            self.ske_error = "unimplemented"
             self.text = await response.text()
             self.text = self.text.lstrip("\ufeff")
-        for k, v in meta.items():
-            setattr(self, k, v)
-        async with aiofiles.open(self.file_meta, "w") as f:
-            await f.write(json.dumps(meta, indent=2))
-        async with aiofiles.open(self.file_text, "w") as f:
-            await f.write(self.text)
+        if self.ske_error in ["", "unimplemented"]:
+            async with aiofiles.open(self.file_meta, "w") as f:
+                await f.write(
+                    json.dumps(
+                        {
+                            "url": self.url,
+                            "status": self.status,
+                            "reason": self.reason,
+                            "headers": self.headers,
+                            "ske_error": self.ske_error,
+                        },
+                        indent=2,
+                    )
+                )
+            async with aiofiles.open(self.file_text, "w") as f:
+                await f.write(self.text)
 
     def get(self):
         """Retrieves a cached response."""
-        dt = util.read_json(self.file_meta)
-        with open(self.file_text) as f:
-            dt |= {"text": f.read()}
-        for k, v in dt.items():
-            setattr(self, k, v)
-        self.print_ske_error(dt)
+        if self.file_meta.exists() and self.file_text.exists():
+            dt = util.read_json(self.file_meta)
+            with open(self.file_text) as f:
+                dt |= {"text": f.read()}
+            for k, v in dt.items():
+                setattr(self, k, v)
 
     def json(self):
         """Returns a JSON object if this content type is available."""
@@ -89,12 +122,14 @@ class CachedResponse:
         _json = json.dumps(dt, sort_keys=True)
         return hashlib.blake2b(_json.encode()).hexdigest()[0:32]
 
-    def __init__(self, file_meta: Path, file_text: Path) -> None:
-        self.file_meta = file_meta
-        self.file_text = file_text
-        self.is_cached = False
-        if self.file_meta.exists() and self.file_text.exists():
-            self.is_cached = True
+    def __repr__(self) -> str:
+        attrs = "<class 'sgex.call.CachedResponse'>\n"
+        for k, v in self.__dict__.items():
+            if k != "text":
+                attrs += f"{(k)}    {str(v)[:min(len(str(v)),80)]}\n"
+            if k == "text":
+                attrs += f"{(k)}    <{len(v.encode())} bytes>"
+        return attrs
 
 
 class Call:
@@ -582,7 +617,14 @@ class Data:
     """Dataclass to store lists of calls by subclass.
 
     Attributes:
-        An attribute for storing a list of each of the `Call` types.
+        One attribute for each of the `Call` types. E.g., `Data.view` accesses a list
+        of stored concordance data.
+
+    Methods:
+        add: Appends new call data to the appropriate call type.
+        list: Returns a list of all `Call` data.
+        len: Returns the total number of stored calls.
+        reset: Clears data for all call types.
     """
 
     attrvals: List[AttrVals] = field(default_factory=list)
