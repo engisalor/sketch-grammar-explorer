@@ -1,11 +1,17 @@
 #!/usr/bin/python3
+# Copyright (c) 2022-2023 Loryn Isaacs
+# This file is part of Sketch Grammar Explorer, licensed under BSD-3
+# See the LICENSE file at https://github.com/engisalor/sketch-grammar-explorer/
 """Main module for executing API jobs."""
 import argparse
 import asyncio
+import logging
 import os
 import shutil
 import sys
+from collections import Counter
 from pathlib import Path
+from time import perf_counter
 
 import aiohttp
 import pandas as pd
@@ -13,8 +19,8 @@ import pandas as pd
 from sgex import call as _call
 from sgex import util
 
-# from time import perf_counter
-
+log_format = "%(message)s"
+logging.basicConfig(format=log_format, level=logging.WARNING)
 
 wait_dict = {"0": 9, "0.5": 99, "4": 899, "45": None}
 default_servers = {
@@ -24,7 +30,31 @@ default_servers = {
 
 
 class Job:
-    """Main class for controlling the Sketch Engine API."""
+    """Main class for controlling the Sketch Engine API.
+
+    Args:
+        api_key: Server API key.
+        cache_dir: Where data is saved.
+        clear_cache: Clear the cache before executing.
+        data: See `data` attribute.
+        default_servers: Default servers to choose from.
+        dry_run: Print job settings without executing.
+        infile: Input file with lists of calls (JSON, JSONL, YAML).
+        params: Call parameters.
+        server: Active server for job.
+        thread: Asynchronous requests.
+        username: Server username.
+        verbose: Print more details.
+        wait_dict: Call throttling rules.
+
+    Methods:
+        run: Executes an instantiated `Job`.
+        summary: Returns a summary of an executed `Job`.
+
+    Attributes:
+        data: Where call data is stored. See `call.Data` and `call.CachedResponse`
+            dataclasses for more info.
+    """
 
     def parse_params(self):
         """Loads calls from `params` and `infile` args and adds to `self.data`."""
@@ -75,7 +105,7 @@ class Job:
         call.response = _call.CachedResponse(
             file.with_suffix(".meta.json"), file.with_suffix(f".{_format}")
         )
-        if call.response.is_cached:
+        if call.response.file_meta.exists() and call.response.file_text.exists():
             call.response.get()
         else:
             if self.username and self.api_key:
@@ -95,18 +125,28 @@ class Job:
             ) as response:
                 await call.response.set(response)
 
-        return str(call)
+        return (call.response.ske_error, str(call))
 
     async def send_calls(self, get_kwargs: dict = {}, **kwargs):
         """Executes a list of calls."""
         if not self.dry_run:
             self.wait_current = 0 - self.wait
+            if (
+                not kwargs.get("timeout", None)
+                and not get_kwargs.get("timeout", None)
+                and self.server.startswith("http://localhost")
+            ):
+                logging.info("timeout disabled on localhost")
+                kwargs["timeout"] = aiohttp.ClientTimeout(
+                    total=None, connect=None, sock_connect=None, sock_read=None
+                )
             if not self.thread:
-                # print(f"... sequential - wait {self.wait}s")
+                logging.info(f"sequential - wait {self.wait}")
                 connector = aiohttp.TCPConnector(limit_per_host=1)
             else:
-                connector = aiohttp.TCPConnector()
-                # print("... concurrent")
+                connector = aiohttp.TCPConnector(limit_per_host=20)
+                logging.info("concurrent")
+
             kwargs = dict(connector=connector, raise_for_status=True) | kwargs
             async with aiohttp.ClientSession(**kwargs) as session:
                 res = await asyncio.gather(
@@ -116,22 +156,49 @@ class Job:
                     ),
                     return_exceptions=True,
                 )
-                self.exceptions = [
-                    (res[x], self.data.list()[x])
-                    for x in range(self.data.len())
-                    if not isinstance(res[x], str)
-                ]
+                self.errors = []
+                for x in range(len(res)):
+                    if not isinstance(res[x], tuple):
+                        self.errors.append((res[x], self.data.list()[x], x))
+                    elif res[x][0] not in ["", "unimplemented"]:
+                        self.errors.append(res[x] + (x,))
 
     def run(self, **kwargs):
-        """Main function to execute a job."""
-        # t0 = perf_counter()
+        """Main function to execute a job.
+
+        Args:
+            kwargs: Arguments passed to the `aiohttp` session.
+            get_kwargs: Can also be used to pass args to the `aiohttp` `get()` method.
+        """
+        t0 = perf_counter()
         self.cache_dir.mkdir(exist_ok=True)
         self.parse_params()
         self.set_wait()
         self.clear_cache_func()
         asyncio.run(self.send_calls(**kwargs))
+        self.time = perf_counter() - t0
+        if self.verbose:
+            self.summary(True)
         self.dry_run_func()
-        # print(round(perf_counter() - t0, 4))
+
+    def summary(self, print_summary: bool = False) -> dict:
+        "Returns a dict with a job execution summary, or prints if `summary(True)`."
+        if not getattr(self, "time", None):
+            if not print_summary:
+                return {}
+        else:
+            dt = {
+                "seconds": round(self.time, 4),
+                "calls": self.data.len(),
+                "errors": Counter([str(x[0]) for x in self.errors]),
+            }
+        if not print_summary:
+            return dt
+        else:
+            print(f'seconds  {dt["seconds"]}')
+            print(f'calls    {dt["calls"]}')
+            print(f"errors   {len(self.errors)}")
+            print("\n".join([f"- {v}    {k}" for k, v in dt["errors"].items()]))
 
     def __repr__(self) -> str:
         dt = {
@@ -169,13 +236,14 @@ class Job:
         server: str = "local",
         thread: bool = False,
         username: str | None = None,
+        verbose: bool = False,
         wait_dict: dict = wait_dict,
     ) -> None:
         # original arguments
         self.api_key = api_key
         self.cache_dir = cache_dir
         self.clear_cache = clear_cache
-        self.data = None
+        self.data = data
         self.default_servers = default_servers
         self.dry_run = dry_run
         self.infile = infile
@@ -183,14 +251,19 @@ class Job:
         self.server = server
         self.thread = thread
         self.username = username
+        self.verbose = verbose
         self.wait_dict = wait_dict
         # additional args
         self.original_args = self.__dict__.copy()
+        if self.verbose:
+            logging.getLogger().setLevel(logging.INFO)
+        else:
+            logging.getLogger().setLevel(logging.WARNING)
         self.data = _call.Data()
         self.params_parsed = False
         self.server = self.default_servers.get(self.server, self.server)
         if self.server == "https://api.sketchengine.eu/bonito/run.cgi" and self.thread:
-            print("`thread` is disabled for the `ske` server")
+            logging.info("`thread` is disabled for the `ske` server")
             self.thread = False
         if not self.cache_dir:
             self.cache_dir = "data"
@@ -296,6 +369,12 @@ def parse_args(args):
         type=str,
         default=os.environ.get("SGEX_USERNAME"),
         help="API username, if required by server",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        default=os.environ.get("SGEX_VERBOSE", False),
+        help="print details while running",
     )
     parser.add_argument(
         "-w",
