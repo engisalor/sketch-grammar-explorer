@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.7.0](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.6.3...v0.7.0) (2023-10-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove deprecated files: breaks 0.6.3
+
+### Features
+
+* rewrite main API controller script (WIP) ([54245cb](https://github.com/engisalor/sketch-grammar-explorer/commit/54245cb837660aeedf511fbd0493c593aaa9e15e))
+
+### Bug Fixes
+
+* add Data class and various call type methods ([352a0d6](https://github.com/engisalor/sketch-grammar-explorer/commit/352a0d63fc75f11b152f7a5f4edf6c040fcb3ca7))
+* add json, yaml loading functions ([937bf57](https://github.com/engisalor/sketch-grammar-explorer/commit/937bf573058437ce40479bb19a2b3f23e16dd9cf))
+* add json() method to CachedResponse ([74e6684](https://github.com/engisalor/sketch-grammar-explorer/commit/74e668461740008d4a38b0fb1a6395f8bf90e9c2))
+* add query module w/ simple & fuzzy funcs ([ed78595](https://github.com/engisalor/sketch-grammar-explorer/commit/ed78595cc538e90ea338a4db4577403a305b3a74))
+* Call.validate_params make format explicit ([4bd0f9c](https://github.com/engisalor/sketch-grammar-explorer/commit/4bd0f9c48ab5010e3c3402cce2f20ac5d00a4fc1))
+* disable thread for ske server, refactor ([b253a59](https://github.com/engisalor/sketch-grammar-explorer/commit/b253a598e0bc231917d54aac1c83fed94213cb85))
+* move CachedResponse to call, rename to_ funcs ([d9b0b22](https://github.com/engisalor/sketch-grammar-explorer/commit/d9b0b2273a8d2071e542c2807fe5d793444414e0))
+* redo CachedResponse ([63c13ea](https://github.com/engisalor/sketch-grammar-explorer/commit/63c13ea570aad81fdbfec40cbff96890db3c61f5))
+* remove initial 'q' from simple_query output ([b66f6d6](https://github.com/engisalor/sketch-grammar-explorer/commit/b66f6d6828e4a01fa5558c7531737876da64b8cd))
+* remove xlsx as an available format ([ea79ba0](https://github.com/engisalor/sketch-grammar-explorer/commit/ea79ba03371578317aec96f6efc96f5fc1fb3810))
+* rewrite api call classes ([820fb06](https://github.com/engisalor/sketch-grammar-explorer/commit/820fb0643552e0361ed7536175dfa472cbe9f2ba))
+* set call_type in params, new Data dataclass ([d07e573](https://github.com/engisalor/sketch-grammar-explorer/commit/d07e573d8830829b6a0f5951e48a664fdbd4e2c9))
+* upate package init, gh workflow ([47143e6](https://github.com/engisalor/sketch-grammar-explorer/commit/47143e652dd701d9034711318c7aeca048b129ad))
+* update query ([453de4c](https://github.com/engisalor/sketch-grammar-explorer/commit/453de4c6ebcf98561e346c515105bbc6a65c949d))
+* update repr strings ([954d170](https://github.com/engisalor/sketch-grammar-explorer/commit/954d170b78ecfd4ac1ee6cc1c90167f5bc18e8bf))
+* various improvements to job module ([5ebbaba](https://github.com/engisalor/sketch-grammar-explorer/commit/5ebbaba7924942a332c4f7868321860e7dcc21c0))
+* various job improvements ([606b82c](https://github.com/engisalor/sketch-grammar-explorer/commit/606b82c62ac8893c647be66f5ccef2d9fa0b6e79))
+
+
 ## [0.6.3](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.6.2...v0.6.3) (2023-04-17)
 
 
