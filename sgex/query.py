@@ -1,3 +1,6 @@
+# Copyright (c) 2022-2023 Loryn Isaacs
+# This file is part of Sketch Grammar Explorer, licensed under BSD-3
+# See the LICENSE file at https://github.com/engisalor/sketch-grammar-explorer/
 """Functions for assembling CQL rules from strings."""
 import re
 from collections import OrderedDict
@@ -288,9 +291,3 @@ def fuzzy_query(
             if tokens[x].startswith("[]"):
                 tokens.pop(x)
     return " ".join(tokens[: min(max_length, len(tokens))])
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()
