@@ -16,3 +16,4 @@ jobs:
           extra-files: |
             sgex/__init__.py
             CITATION.cff
+            pyproject.toml
