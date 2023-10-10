@@ -8,7 +8,7 @@
 
 ## Introduction
 
-Sketch Grammar Explorer is an API wrapper for [Sketch Engine](https://www.sketchengine.eu/), a language corpus management software useful for many types of linguistic research. The goal is to build a flexible scaffold for any kind of programmatic work with Sketch Engine and [NoSketch Engine](https://nlp.fi.muni.cz/trac/noske).
+Sketch Grammar Explorer is an API wrapper for [Sketch Engine](https://www.sketchengine.eu/), a corpus management software useful for linguistic research. The goal is to build a flexible scaffold for any kind of programmatic work with Sketch Engine and [NoSketch Engine](https://nlp.fi.muni.cz/trac/noske).
 
 **UPDATE**
 
@@ -24,11 +24,9 @@ Get a [Sketch Engine API key](https://www.sketchengine.eu/documentation/api-docu
 
 ## Getting started
 
-How to use the API with a local NoSketch Engine server.
+A quick intro on the API (examples use a local NoSketch Engine server).
 
->Note: most things are identical for SkE's main server, apart from using credentials and more call types being available.
->
->SGEX currently uses the underlying Bonito API, with URLs ending in `/bonito/run.cgi`.
+>Most things are identical for SkE's main server, apart from using credentials and more call types being available. SGEX currently uses the Bonito API, with URLs ending in `/bonito/run.cgi`, not newer paths like `/search/corp_info`.
 
 ### Package modules
 
@@ -45,24 +43,27 @@ Calls are made with the `job` module, which can also be run as a script. The `Jo
 from sgex.job import Job
 
 j = Job(
-	# to define API calls
+	# define API calls
 	infile: str | list | None = None,
 	params: str | list | None = None,
-	# to set server info
+	# set server info
 	server: str = "local",
 	default_servers: dict = default_servers,
-	# to supply credentials
+	# supply credentials
 	api_key: str | None = None,
 	username: str | None = None,
-	# to manage caching
+	# manage caching
 	cache_dir: str = "data",
 	clear_cache: bool = False,
-	# to run asynchronous requests
+	# run asynchronous requests
 	thread: bool = False,
-	# to control request throttling
+	# control request throttling
 	wait_dict: dict = wait_dict,
-	# to make a dry run
-	dry_run: bool = False)
+	# make a dry run
+	dry_run: bool = False,
+	# change verbosity
+	verbose: bool = False,
+	)
 
 j.run()
 ```
@@ -82,7 +83,7 @@ Here's how to make a request:
 ... server="ske") 	# use SkE main server
 ...
 
-# this example uses a local server
+# this example uses a local server (the default)
 >>> j = Job(
 ...	params={"call_type": "View", "corpname": "susanne", "q": 'alemma,"bird"'})
 ...
@@ -90,19 +91,24 @@ Here's how to make a request:
 # run the job
 >>> j.run()
 
-# results are stored in Job.data by call type
+# get a summary
+>>> dt = j.summary()
+>>> for k,v in dt.items():
+... 	print(k, ("<float>" if k == "seconds" else v))
+...
+seconds <float>
+calls 1
+errors Counter()
+
+# results are stored in Job.data.<call_type_lowercase>
 >>> j.data.view
 [View 8cdfca2 {asyn: '0', corpname: susanne, format: json, q: 'alemma,"bird"'}]
 
-# the response gets cached in `data/<CALL_HASH>.json`: repeating the same request pulls from the cache
+# the response gets cached in `data/<hash>.json`: repeating the same request pulls from the cache
 
-# the response object has a few attributes but is simplified for caching
->>> j.data.view[0].response.status
-200
-
-# data is accessible via `.text` or `.json()` (if using JSON)
->>> j.data.view[0].response.text[:50]
-'{\n  "Lines": [\n    {\n      "toknum": 23026,\n      '
+# data is accessible via `.text` or `.json()`
+>>> j.data.view[0].response.json()["concsize"]  # the number of concordances for "bird"
+12
 
 ```
 
@@ -171,11 +177,17 @@ Response data can be manipulated by accessing the lists of calls stored in `Job.
 
 ```
 
+## Next steps
+
+A few more considerations for doing corpus linguistics with SGEX.
+
 ### The `Data` and `Call` classes
 
 `Data` is a dataclass used in `Job` to store API data and make associated methods easily available. Whenever requests are made from a list of dictionary parameters, the responses are automatically sorted by `call_type`. Each call type has a list, which gets appended each time a request is made. These lists of responses can be processed using methods shared by a given call type.
 
-Every call type is a subclass of the `call.Call` base class. All calls share some universal methods, including simple parameter verification to reduce API errors. Every subclass (`Freqs`, `View`, `CorpInfo`, etc.) can also have its own methods for data processing tasks. These methods tend to focus on manipulating JSON data; manipulating other response formats like CSV is also possible.
+Every call type is a subclass of the `call.Call` base class. All calls share some universal methods, including simple parameter verification to reduce API errors. Every subclass (`Freqs`, `View`, `CorpInfo`, etc.) can also have its own methods for data processing tasks. These methods tend to focus on manipulating JSON data, which is the only complete format for the API; manipulating other response formats like CSV is also possible.
+
+>At least while SGEX is in beta, existing methods aren't stable for production purposes: using your own custom method, like the following example, is a safer bet.
 
 ### Custom corpus data manipulation techniques
 
@@ -207,10 +219,10 @@ Adding custom methods to a call type is easy:
 
 There are a couple conventions to follow to keep methods organized:
 
-- a method should be designed for one call type
-- use `self.check_format("json")` to ensure this is enforced
-- its name should end in the required data format (`_from_json`)
-- the docstring should specify required parameters (e.g., `"Requires a corp_info call with these parameters: {"x": "y"}`)
+- design a method for one call type
+- use `self.check_format("json")` to enforce the proper response data format
+- add the required data format as a suffix to the method name (`_from_json`)
+- specify required parameters in the docstring (e.g., `"Requires a corp_info call with these parameters: {"x": "y"}`)
 
 Feel free to suggest more methods for call types if you think they're broadly useful.
 
@@ -225,7 +237,7 @@ wait_dict = {"0": 9, "0.5": 99, "4": 899, "45": None}
 In other words:
 
 - no wait applied for 9 calls or fewer
-- half a second added for up to 99 calls
+- 0.5 seconds added for up to 99 calls
 - 4 seconds added for up to 899 calls
 - 45 seconds added for any number above that
 
@@ -234,15 +246,25 @@ In other words:
 The `aiohttp` package is used to implement async requests.
 This is activated with `Job(thread=True)`; it's usable with local servers only.
 
+The number of connections for async calling is adjustable by adding a kwarg when running a job. The default of 20 should increase rates while reducing errors, although this depends on how many calls are made, their complexity, and the hardware.
+
+```py
+Job.run(connector=aiohttp.TCPConnector(limit_per_host=int))
+```
+
+>If a large asynchronous job raises a few exceptions caused by the server struggling to handle requests, it's often simpler to just run the job again. This retries failed calls and loads successful ones from the cache. Trying to adjust the `connector` to eliminate one or two exceptions out of 1,000 calls isn't necessary.
+>
+>If calls are complex and the corpus is large, using sequential calling might be the best option.
+
 ### Getting different data formats
 
 Data can be retrieved in JSON, XML, CSV or TXT formats with `Job(params={"format": "csv"})` etc. Only JSON is universal: most API call types can only return some of these formats.
 
 ### How caching works
 
-A simple filesystem cache is used to store response data. These are named with a hashing function and are accompanied with response metadata. Once a call is cached, identical requests are loaded from the cache.
+A simple filesystem cache is used to store response data. These are named with a hashing function and are accompanied with response metadata. Once a call is cached, identical requests are loaded from the cache. Calls with `format="json"` and no exceptions or SkE errors get cached. Data in other formats (CSV, XML) are always cached since error handling isn't implemented.
 
->Note: response data can include credentials in several locations. SGEX strips credentials before caching URLs and JSON data.
+>Response data can include credentials in several locations. SGEX strips credentials before caching URLs and JSON data, although inspecting data before sharing it is still prudent.
 
 ### Simple queries
 
@@ -268,7 +290,7 @@ A simple filesystem cache is used to store response data. These are named with a
 
 ```
 
->Note: numbers, URLs and other challenging tokens are parsed to some extent, but these can prevent `fuzzy_query` from finding concordances.
+>Numbers, URLs and other challenging tokens are parsed to some extent, but these can prevent `fuzzy_query` from finding concordances.
 
 ### Checking hashes
 
@@ -297,16 +319,16 @@ To cache data, each unique call is identified by hashing an ordered JSON represe
 
 ### Adding a timeout / changing `aiohttp` behavior
 
-No timeouts are enforced by default, which lets expensive queries run as needed. A timeout can be enforced by adding it to `Job` kwargs. (Use this technique to pass other args to the `aiohttp` session as well.)
+Timeouts are disabled for the `local` server, which lets expensive queries run as needed. Other servers use the `aiohttp` default of 5 minutes. Enforce a custom timeout by adding it to `Job` kwargs. (Use this technique to pass other args to the `aiohttp` session as well.)
 
 ```py
 >>> from sgex.job import Job
 >>> import aiohttp
 
 # add a very short timeout for testing
->>> timeout = aiohttp.ClientTimeout(total=0.01)
+>>> timeout = aiohttp.ClientTimeout(sock_read=0.01)
 
-# make a call with a demanding CQL query
+# design a call with a demanding CQL query
 >>> j = Job(
 ...	params={
 ...	"call_type": "Collx",
@@ -314,16 +336,17 @@ No timeouts are enforced by default, which lets expensive queries run as needed.
 ...	"q": "alemma,[]{,10}"})
 ...
 
-# add args for session
+# run with additional session args
 >>> j.run(timeout=timeout)
 
-# check for timeout exceptions
->>> j.exceptions
-[(TimeoutError(), Collx 3d918a5 {corpname: susanne, format: json, q: 'alemma,[]{,10}'})]
+
+# check for timeout exception [(error, call, index), ...]
+>>> j.errors
+[(ServerTimeoutError('Timeout on reading data from socket'), Collx 3d918a5 {corpname: susanne, format: json, q: 'alemma,[]{,10}'}, 0)]
 
 ```
 
->Note: even if a request is timed-out by the client, a server may still try to compute results (which can continue taking up resources on a local machine).
+>Even if a request is timed-out by the client, a server may still try to compute results (and continue taking up resources on a local machine, causing unexpected exceptions).
 
 ## Running as a script
 
@@ -357,6 +380,7 @@ usage: SGEX [-h] [-k API_KEY] [--cache-dir CACHE_DIR] [--clear-cache] [--data DA
 | -s --server | `"local"` (default) | `local`, `ske` or a URL to another server |
 | -x, --thread | (disabled by default) | run asynchronously, if allowed by server |
 | -u --username | `"J. Doe"` | API username, if required by server |
+| -v --verbose | (disabled by default) | print details while running |
 | -w --wait-dict | `'{"0": 10, "1": null}'` (wait zero seconds for =<10 calls and 1 second for 10<) | wait period between calls |
 
 ## Environment variables
@@ -414,4 +438,4 @@ If you use SGEX, please cite it. This paper introduces the package in the contex
 }
 ```
 
-See the [Zenodo DOI](https://zenodo.org/record/6812334) for citing the software itself.
+See [Zenodo](https://zenodo.org/record/6812334) for citing specific versions of the software.

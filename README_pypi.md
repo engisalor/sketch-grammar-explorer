@@ -8,7 +8,7 @@
 
 ## Introduction
 
-Sketch Grammar Explorer is an API wrapper for [Sketch Engine](https://www.sketchengine.eu/), a language corpus management software useful for many types of linguistic research. The goal is to build a flexible scaffold for any kind of programmatic work with Sketch Engine and [NoSketch Engine](https://nlp.fi.muni.cz/trac/noske).
+Sketch Grammar Explorer is an API wrapper for [Sketch Engine](https://www.sketchengine.eu/), a corpus management software useful for linguistic research. The goal is to build a flexible scaffold for any kind of programmatic work with Sketch Engine and [NoSketch Engine](https://nlp.fi.muni.cz/trac/noske).
 
 **UPDATE**
 
@@ -24,11 +24,9 @@ Get a [Sketch Engine API key](https://www.sketchengine.eu/documentation/api-docu
 
 ## Getting started
 
-How to use the API with a local NoSketch Engine server.
+A quick intro on the API (examples use a local NoSketch Engine server).
 
->Note: most things are identical for SkE's main server, apart from using credentials and more call types being available.
->
->SGEX currently uses the underlying Bonito API, with URLs ending in `/bonito/run.cgi`.
+>Most things are identical for SkE's main server, apart from using credentials and more call types being available. SGEX currently uses the Bonito API, with URLs ending in `/bonito/run.cgi`, not newer paths like `/search/corp_info`.
 
 ### Package modules
 
@@ -45,26 +43,29 @@ Calls are made with the `job` module, which can also be run as a script. The `Jo
 from sgex.job import Job
 
 j = Job(
-	# to define API calls
+	# define API calls
 	infile: str | list | None = None,
 	params: str | list | None = None,
-	# to set server info
+	# set server info
 	server: str = "local",
 	default_servers: dict = default_servers,
-	# to supply credentials
+	# supply credentials
 	api_key: str | None = None,
 	username: str | None = None,
-	# to manage caching
+	# manage caching
 	cache_dir: str = "data",
 	clear_cache: bool = False,
-	# to run asynchronous requests
+	# run asynchronous requests
 	thread: bool = False,
-	# to control request throttling
+	# control request throttling
 	wait_dict: dict = wait_dict,
-	# to make a dry run
-	dry_run: bool = False)
+	# make a dry run
+	dry_run: bool = False,
+	# change verbosity
+	verbose: bool = False,
+	)
 
 j.run()
 ```
 
-See the [code repository](https://github.com/engisalor/sketch-grammar-explorer) for full documentation.
+*See the [code repository](https://github.com/engisalor/sketch-grammar-explorer) for full documentation.*
