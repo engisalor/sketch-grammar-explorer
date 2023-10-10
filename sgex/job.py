@@ -373,6 +373,7 @@ def parse_args(args):
     parser.add_argument(
         "-v",
         "--verbose",
+        action="store_true",
         default=os.environ.get("SGEX_VERBOSE", False),
         help="print details while running",
     )
