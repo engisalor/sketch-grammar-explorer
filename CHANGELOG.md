@@ -9,9 +9,7 @@
 
 ### Features
 
-* remove deprecated files: breaks 0.6.3 ([ed57e0e](https://github.com/engisalor/sketch-grammar-explorer/commit/ed57e0e353aa2baa26d1bd1025fbbfd1391fea54))
 * rewrite main API controller script (WIP) ([54245cb](https://github.com/engisalor/sketch-grammar-explorer/commit/54245cb837660aeedf511fbd0493c593aaa9e15e))
-
 
 ### Bug Fixes
 
@@ -33,20 +31,6 @@
 * various improvements to job module ([5ebbaba](https://github.com/engisalor/sketch-grammar-explorer/commit/5ebbaba7924942a332c4f7868321860e7dcc21c0))
 * various job improvements ([606b82c](https://github.com/engisalor/sketch-grammar-explorer/commit/606b82c62ac8893c647be66f5ccef2d9fa0b6e79))
 
-
-### Documentation
-
-* clean up readme to prepare for new release ([2481621](https://github.com/engisalor/sketch-grammar-explorer/commit/2481621c1562893e11beb0c8c09fee61e916f1b0))
-* fix config settings ([20e130d](https://github.com/engisalor/sketch-grammar-explorer/commit/20e130d4cd3bfe1842ffc4f71766bfa76ccf6268))
-* rewrite readme ([2eaee86](https://github.com/engisalor/sketch-grammar-explorer/commit/2eaee86add34676e6739de93a81b54f7b4b9ca07))
-* update readme ([5b57fe7](https://github.com/engisalor/sketch-grammar-explorer/commit/5b57fe774f5cd2468bf0a2ecf1210d42566a6c87))
-
-
-### Miscellaneous Chores
-
-* release 0.6.3.post1 ([a3b3425](https://github.com/engisalor/sketch-grammar-explorer/commit/a3b342508babcc5e2fc87932f99eb4140dbd0800))
-* release-as: 0.7.0 ([e239565](https://github.com/engisalor/sketch-grammar-explorer/commit/e239565129a0a10f410a80f7b6ed385e6ad4a336))
-* release-as: 0.7.0 ([fcb669a](https://github.com/engisalor/sketch-grammar-explorer/commit/fcb669af459192c94c07957ae2d7f0b29695aaa9))
 
 ## [0.6.3](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.6.2...v0.6.3) (2023-04-17)
 
