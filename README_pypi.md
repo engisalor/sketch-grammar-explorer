@@ -45,7 +45,7 @@ from sgex.job import Job
 j = Job(
 	# define API calls
 	infile: str | list | None = None,
-	params: str | list | None = None,
+	params: str | dict | list | None = None,
 	# set server info
 	server: str = "local",
 	default_servers: dict = default_servers,
