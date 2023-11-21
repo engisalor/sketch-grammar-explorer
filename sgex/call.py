@@ -74,7 +74,7 @@ class CachedResponse:
         if "application/json" in response.headers.get("Content-Type"):
             j = await response.json()
             self.ske_error = j.get("error", "")
-            self.text = json.dumps(self.redact_json(j), indent=2)
+            self.text = json.dumps(self.redact_json(j), indent=2, ensure_ascii=False)
         else:
             self.ske_error = "unimplemented"
             self.text = await response.text()
@@ -91,6 +91,7 @@ class CachedResponse:
                             "ske_error": self.ske_error,
                         },
                         indent=2,
+                        ensure_ascii=False,
                     )
                 )
             async with aiofiles.open(self.file_text, "w") as f:
@@ -119,7 +120,7 @@ class CachedResponse:
             (k): (str(v) if isinstance(v, (int, float)) else v)
             for k, v in self.response["request"].items()
         }
-        _json = json.dumps(dt, sort_keys=True)
+        _json = json.dumps(dt, sort_keys=True, ensure_ascii=False)
         return hashlib.blake2b(_json.encode()).hexdigest()[0:32]
 
     def __repr__(self) -> str:
@@ -194,7 +195,7 @@ class Call:
             (k): (str(v) if isinstance(v, (int, float)) else v)
             for k, v in self.params.items()
         }
-        return json.dumps(dt, sort_keys=True)
+        return json.dumps(dt, sort_keys=True, ensure_ascii=False)
 
     def hash(self) -> str:
         """Generates a hash of call parameters w/ an ordered JSON representation."""
@@ -206,7 +207,9 @@ class Call:
             (k): (str(v) if isinstance(v, (int, float)) else v)
             for k, v in self.params.items()
         }
-        return yaml.dump(dt, sort_keys=True, default_flow_style=True).strip("\n")
+        return yaml.dump(
+            dt, sort_keys=True, default_flow_style=True, allow_unicode=True
+        ).strip("\n")
 
     def check_format(self, required_format: str = "json") -> None:
         if self.params["format"] != required_format:
