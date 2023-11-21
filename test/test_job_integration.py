@@ -99,12 +99,12 @@ class TestJob(unittest.TestCase):
 
         j = job.Job(**self.settings)
         j.run()
-        self.assertEquals(count_files(), 2)
+        self.assertEqual(count_files(), 2)
         settings = deepcopy(self.settings)
         settings["params"]["q"] = 'alc,"night"'
         j = job.Job(**settings)
         j.run()
-        self.assertEquals(count_files(), 2)
+        self.assertEqual(count_files(), 2)
 
     def test_dry_run_does_nothing(self):
         settings = deepcopy(self.settings)
