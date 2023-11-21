@@ -232,7 +232,7 @@ class Job:
         default_servers: dict = default_servers,
         dry_run: bool = False,
         infile: str | list | None = None,
-        params: str | list | None = None,
+        params: str | dict | list | None = None,
         server: str = "local",
         thread: bool = False,
         username: str | None = None,
@@ -286,7 +286,7 @@ class Job:
                 setattr(self, x, [val])
         self.params = [util.parse_json_or_yaml(x) for x in self.params]
         # boolean
-        for x in ["thread", "dry_run", "clear_cache"]:
+        for x in ["thread", "dry_run", "clear_cache", "verbose"]:
             val = getattr(self, x)
             if isinstance(val, str):
                 if val.lower() == "true":
