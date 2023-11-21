@@ -122,6 +122,21 @@ class TestJobInitParseParams(unittest.TestCase):
         for x in range(2):
             self.assertDictEqual(j.params[x], self.params[x])
 
+    def test_job_parse_shell_bool(self):
+        args = job.parse_args(
+            [
+                "--thread",
+                "--dry-run",
+                "--clear-cache",
+                "--verbose",
+            ]
+        )
+        j = job.Job(**vars(args))
+        self.assertTrue(j.thread)
+        self.assertTrue(j.dry_run)
+        self.assertTrue(j.clear_cache)
+        self.assertTrue(j.verbose)
+
     def test_job_parse_shell_multiple_infile_arg(self):
         args = job.parse_args(
             [
