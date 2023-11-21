@@ -225,21 +225,21 @@ class TestView(unittest.TestCase):
         shutil.rmtree("test/data")
         os.mkdir("test/data")
 
-    def test_line_to_annotation(self):
+    def test_line_to_tacred(self):
         settings = deepcopy(self.settings)
         settings["params"]["wlattr"] = "word"
         j = job.Job(**settings)
         j.run()
         line = j.data.view[0].response.json()["Lines"][0]
-        dt = call.View._line_to_annotation(line)
+        dt = call.View._line_to_tacred(line)
         with open("test/annotation_line.json") as f:
             ref = json.load(f)
         self.assertDictEqual(dt, ref)
 
-    def test_lines_to_annotation(self):
+    def test_lines_to_tacred(self):
         settings = deepcopy(self.settings)
         settings["params"]["wlattr"] = "word"
         j = job.Job(**settings)
         j.run()
-        ls = j.data.view[0].lines_to_annotation()
+        ls = j.data.view[0].lines_to_tacred()
         self.assertEqual(len(ls), 12)
