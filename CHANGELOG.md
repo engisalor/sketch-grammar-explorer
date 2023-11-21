@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.2](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.7.1...v0.7.2) (2023-11-21)
+
+
+### Bug Fixes
+
+* enforce verbose type, params type hint ([f06011b](https://github.com/engisalor/sketch-grammar-explorer/commit/f06011b17ca7f67fa35c91f2cfd316219785c8b6))
+* rename View.lines_to_annotation to ..._tacred ([cc42973](https://github.com/engisalor/sketch-grammar-explorer/commit/cc4297344781aa863edd338dd4e875a4e8b1f792))
+* use unicode for json.dumps and yaml.dump ([68bb90b](https://github.com/engisalor/sketch-grammar-explorer/commit/68bb90b739f948b2aa42ade110bf8004ceb3de26))
+
+
+### Documentation
+
+* update readme ([d9fba24](https://github.com/engisalor/sketch-grammar-explorer/commit/d9fba24f3b21c0823dc845f3d3460b7a6fb2f170))
+
 ## [0.7.1](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.7.0...v0.7.1) (2023-10-10)
 
 
