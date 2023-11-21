@@ -494,8 +494,8 @@ class View(Call):
     """
 
     @staticmethod
-    def _line_to_annotation(line: dict) -> dict:
-        """Build a dictionary of lists of tokens, tags, etc., from a View call line.
+    def _line_to_tacred(line: dict) -> dict:
+        """Builds a dictionary of lists of tokens, tags, etc., from a View call line.
 
         Args:
             line: an item in response `Lines`. See note about required parameters.
@@ -527,20 +527,20 @@ class View(Call):
             "lemma": lemma,
         }
 
-    def lines_to_annotation(self) -> list:
+    def lines_to_tacred(self) -> list:
         """Returns a list of lines converted to annotation dicts from a View call.
 
         Note:
             Requires View data with `attrs="word,tag,lemma"`, `attr_allpos="all"` and
             `"refs": "<desired structures>"`.
 
-            Returns a fairly generic JSON structure for sentence annotation that can be
-            manipulated to a specific format.
+            Returns a JSON structure for sentence annotation that approximates the
+            TACRED dataset format: https://doi.org/10.35111/m0kp-4w25.
         """
         items = []
         _json = self.response.json()
         for line in _json["Lines"]:
-            new = self._line_to_annotation(line)
+            new = self._line_to_tacred(line)
             new["corpus"] = _json["request"]["corpname"]
             new["refs"] = line["Refs"]
             new["desc"] = _json["Desc"]
