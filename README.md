@@ -341,8 +341,8 @@ Timeouts are disabled for the `local` server, which lets expensive queries run a
 
 
 # check for timeout exception [(error, call, index), ...]
->>> j.errors
-[(ServerTimeoutError('Timeout on reading data from socket'), Collx 3d918a5 {corpname: susanne, format: json, q: 'alemma,[]{,10}'}, 0)]
+>>> type(j.errors[0][0])
+<class 'aiohttp.client_exceptions.ServerTimeoutError'>
 
 ```
 
