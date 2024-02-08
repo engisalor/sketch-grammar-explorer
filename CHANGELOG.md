@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.3](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.7.2...v0.7.3) (2024-02-08)
+
+
+### Bug Fixes
+
+* add util functions ([c1d8470](https://github.com/engisalor/sketch-grammar-explorer/commit/c1d8470b51c9cc43758fb1d06f50adc4a3a64d72))
+
+
+### Documentation
+
+* fix timeout doctest ([216064c](https://github.com/engisalor/sketch-grammar-explorer/commit/216064c774dc4713065007113b37ac24f7668a54))
+
 ## [0.7.2](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.7.1...v0.7.2) (2023-11-21)
 
 
