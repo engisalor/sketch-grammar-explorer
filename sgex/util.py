@@ -1,5 +1,7 @@
 """Utility functions."""
 import json
+import re
+from urllib import parse
 
 import pandas as pd
 import yaml
@@ -56,3 +58,55 @@ def read_json(file: str) -> dict:
     with open(file) as f:
         dt = json.load(f)
     return dt
+
+
+def url_from_cql(
+    cql: str,
+    corpname: str,
+    base_url: str = "http://localhost:10070/#concordance?",
+    default_attr: str = "lemma_lc",
+) -> str:
+    """Returns a concordance URL for a given CQL rule, corpus and server.
+
+    Args:
+        cql: CQL rule.
+        corpname: Corpus name for API access.
+        base_url: Server URL to the concordance viewer
+        default_attr: CQL default attribute.
+
+    Notes:
+        Tested on simple rules so far. Currently limited to viewing concordances.
+    """
+    params = {
+        "corpname": corpname,
+        "cql": cql,
+        "viewmode": "sen",
+        "tab": "advanced",
+        "queryselector": "cql",
+        "showresults": "1",
+        "default_attr": default_attr,
+    }
+    query = parse.urlencode(params, quote_via=parse.quote)
+    base = parse.urlsplit(base_url, allow_fragments=False)
+    return base._replace(query=query).geturl()
+
+
+def detect_cql_type(rule: str) -> str:
+    """Categorizes a CQL rule into one of several types.
+
+    Args:
+        rule: CQL rule.
+
+    Returns:
+        - `ID` if a list of token ids similar to `[#1234|#5678|...]`.
+        - `CQL` for anything else.
+    """
+    r = rule.replace(" ", "")
+    _type = []
+    if re.match(r"^[ \[\]#\d|]+$", r):
+        _type.append("ID")
+    else:
+        _type.append("CQL")
+    if len(_type) != 1:  # QA mechanism for future elif statements
+        raise ValueError(f"Error detecting CQL rule type: {_type} for {rule}")
+    return _type[0]

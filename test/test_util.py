@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from sgex.util import flatten_ls_of_dt
+from sgex import util
 
 
 class Test_Flatten(unittest.TestCase):
@@ -35,7 +35,25 @@ class Test_Flatten(unittest.TestCase):
             "shortname": ["A", "B", "C"],
             "primary": [True, np.nan, True],
         }
-        self.assertEqual(str(flatten_ls_of_dt(ls_of_dict)), str(flat_dict))
+        self.assertEqual(str(util.flatten_ls_of_dt(ls_of_dict)), str(flat_dict))
+
+
+class Test_Util(unittest.TestCase):
+    def test_detect_cql_type(self):
+        t1 = "[#1|#2000|#456789]"
+        self.assertEqual(util.detect_cql_type(t1), "ID")
+        t1b = "[#1 | #2000 | #456789 ]"
+        self.assertEqual(util.detect_cql_type(t1b), "ID")
+        t2 = '[lemma="apple"]'
+        self.assertEqual(util.detect_cql_type(t2), "CQL")
+
+    def test_url_from_cql(self):
+        cql = '[lemma="work"]'
+        corpname = "susanne"
+        base = "http://localhost:10070/#concordance?"
+        url = util.url_from_cql(cql, corpname, base)
+        ref = "http://localhost:10070/#concordance?corpname=susanne&cql=%5Blemma%3D%22work%22%5D&viewmode=sen&tab=advanced&queryselector=cql&showresults=1&default_attr=lemma_lc"  # noqa: E501
+        self.assertEqual(url, ref)
 
 
 if __name__ == "__main__":
