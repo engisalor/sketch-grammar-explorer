@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.4](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.7.3...v0.7.4) (2024-05-11)
+
+
+### Bug Fixes
+
+* add makefile w/ api-doc curl command ([37f8f65](https://github.com/engisalor/sketch-grammar-explorer/commit/37f8f65fa1e22749dde5ccff64b76214a42a3332))
+
+
+### Documentation
+
+* add stratified random sampling example ([ba011d7](https://github.com/engisalor/sketch-grammar-explorer/commit/ba011d794c748c1853f04ad4075364814e13d430))
+
 ## [0.7.3](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.7.2...v0.7.3) (2024-02-08)
 
 
