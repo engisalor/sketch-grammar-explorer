@@ -8,6 +8,7 @@ build/
 *.egg-info
 dist/
 tmp/
+openapi.yaml
 
 !.gitignore
 !requirements.txt
