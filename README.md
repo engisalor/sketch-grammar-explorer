@@ -10,10 +10,6 @@
 
 Sketch Grammar Explorer is an API wrapper for [Sketch Engine](https://www.sketchengine.eu/), a corpus management software useful for linguistic research. The goal is to build a flexible scaffold for any kind of programmatic work with Sketch Engine and [NoSketch Engine](https://nlp.fi.muni.cz/trac/noske).
 
-**UPDATE**
-
-SGEX `0.7.0+` is another redesign of the package meant to facilitate enhancements. The workflow is improved and it's streamlined for adapting to SkE's updated API schema. Old methods are deprecated and unavailable in new releases.
-
 ## Installation
 
 Clone SGEX or install it with `pip install sgex` (main dependencies are `pandas pyyaml aiohttp aiofiles`).
@@ -347,6 +343,79 @@ Timeouts are disabled for the `local` server, which lets expensive queries run a
 ```
 
 >Even if a request is timed-out by the client, a server may still try to compute results (and continue taking up resources on a local machine, causing unexpected exceptions).
+
+### Example: make a stratified random sample with a series of API calls
+
+Data from different call types can be utilized together to construct more complex queries and custom operations. For example, the `random sample` feature in Sketch Engine's interface uses simple randomization, yet some analyses might require a stratified sampling technique (taking a separate random sample for each category in a text type). This can be done with the code below.
+
+This includes three API call types:
+
+1. a `CorpInfo` call
+2. a `AttrVals` call
+3. a series of `View` calls (64, requested concurrently)
+
+It retrieves 5 random concordances for each `doc.file` text type in the `susanne` corpus for cases of "the" and a following token.
+
+```py
+>>> from sgex.job import Job
+
+# 1. check the corpus's attributes
+>>> j = Job(params={"call_type": "CorpInfo", "corpname": "susanne", "struct_attr_stats": 1})
+>>> j.run()
+>>> j.data.corpinfo[0].structures_from_json()
+  structure  attribute  size
+0      font       type     2
+0      head       type     2
+0       doc       file    64
+1       doc          n    12
+2       doc  wordcount     1
+
+# 2. get values for one text type
+# (make sure avmaxitems is >= the size of the text type)
+>>> j0 = Job(params={"call_type": "AttrVals", "corpname": "susanne", "avattr": "doc.file", "avmaxitems": 1000000})
+>>> j0.run()
+>>> values = j0.data.attrvals[0].response.json()["suggestions"]
+
+# the query ['a<default_attribute>,"<cql_rule>"', "r<sample_size>"]
+>>> q = [f'alemma,"the" []', "r5"]
+>>> call_template = {
+...    "call_type": "View",
+...    "corpname": "susanne",
+...    "viewmode": "sen",
+...    "pagesize": 1000, # make greater than "r<int>"" to get everything in one request
+...    "attrs": "word,tag,lemma",
+...    "attr_allpos": "all"}
+
+# generate list of calls
+>>> calls = []
+>>> for value in values:
+...    within = f' within <doc file="{value}" />'
+...    calls.append(call_template | {"q": [q[0] + within, q[1]]})
+
+# 3. execute job
+>>> j1 = Job(params=calls, thread=True)
+>>> j1.run()
+
+# process data as needed
+# (print the query for the first sample)
+>>> print(j1.data.view[0].response.json()["request"]["q"])
+['alemma,"the" [] within <doc file="A01" />', 'r5']
+
+# (print the KWICs for the first sample)
+>>> for x in range(5):
+...    kwic = j1.data.view[0].response.json()["Lines"][x]["Kwic"]
+...    tokens = []
+...    for dt in kwic:
+...        if dt["class"] != "attr":
+...            tokens.append(dt["str"].strip())
+...    print(" ".join(tokens))
+the jury
+the Fulton
+the state
+the recommendations
+the jury
+
+```
 
 ## Running as a script
 
