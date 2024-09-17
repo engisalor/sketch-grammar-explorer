@@ -244,6 +244,87 @@ class TestJobErrors(unittest.TestCase):
         self.assertEqual(len(j.errors), 2)
 
 
+class TestRunRepeat(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        """Pops unwanted env variables (e.g. if .env file gets loaded)."""
+        for env in {x for x in os.environ if x.startswith("SGEX_")}:
+            os.environ.pop(env)
+        cls.kwargs = dict(thread=True, cache_dir="test/data", clear_cache=True)
+        cls.params = {
+            "call_type": "View",
+            "corpname": "susanne",
+            "q": 'aword,"work"',
+            "kwicleftctx": 0,
+            "kwicrightctx": 0,
+            "pagesize": 10,
+        }
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree("test/data/")
+        sleep(0.5)
+        os.mkdir("test/data")
+
+    def test_run_repeat(self):
+        j = job.Job(params=self.params, **self.kwargs)
+        j.run_repeat()
+        # parameter handling
+        self.assertEqual(len(j.params), 10)
+        self.assertEqual(j.params[0]["fromp"], 1)
+        self.assertEqual(j.params[-1]["fromp"], 10)
+        # data retrieval
+        self.assertEqual(j.data.len(), 10)
+        self.assertEqual(j.data.view[0].response.json()["fromp"], 1)
+        self.assertEqual(j.data.view[-1].response.json()["fromp"], 10)
+
+    def test_run_repeat_starting_fromp_two_max_pages(self):
+        j = job.Job(params=self.params | {"fromp": 2}, **self.kwargs)
+        j.run_repeat(max_pages=2)
+        # parameter handling
+        self.assertEqual(len(j.params), 2)
+        self.assertEqual(j.params[0]["fromp"], 2)
+        self.assertEqual(j.params[-1]["fromp"], 3)
+        # data retrieval
+        self.assertEqual(j.data.len(), 2)
+        self.assertEqual(j.data.view[0].response.json()["fromp"], 2)
+        self.assertEqual(j.data.view[-1].response.json()["fromp"], 3)
+
+    def test_run_repeat_starting_fromp_five(self):
+        j = job.Job(params=self.params | {"fromp": 5}, **self.kwargs)
+        j.run_repeat()
+        # parameter handling
+        self.assertEqual(len(j.params), 6)
+        self.assertEqual(j.params[0]["fromp"], 5)
+        self.assertEqual(j.params[-1]["fromp"], 10)
+        # data retrieval
+        self.assertEqual(j.data.len(), 6)
+        self.assertEqual(j.data.view[0].response.json()["fromp"], 5)
+        self.assertEqual(j.data.view[-1].response.json()["fromp"], 10)
+
+    def test_run_repeat_max_pages(self):
+        j = job.Job(params=self.params, **self.kwargs)
+        j.run_repeat(max_pages=2)
+        # parameter handling
+        self.assertEqual(len(j.params), 2)
+        self.assertEqual(j.params[0]["fromp"], 1)
+        self.assertEqual(j.params[-1]["fromp"], 2)
+        # data retrieval
+        self.assertEqual(j.data.len(), 2)
+        self.assertEqual(j.data.view[0].response.json()["fromp"], 1)
+        self.assertEqual(j.data.view[-1].response.json()["fromp"], 2)
+
+    def test_run_repeat_errors(self):
+        # too many calls
+        with self.assertRaises(ValueError):
+            j = job.Job(params=[self.params] * 2, **self.kwargs)
+            j.run_repeat()
+        # wrong call type
+        with self.assertRaises(ValueError):
+            j = job.Job(params=self.params | {"call_type": "Freqs"}, **self.kwargs)
+            j.run_repeat()
+
+
 @unittest.skip("slow, demanding tests that can require GBs in RAM and disk space")
 class TestStressTest(unittest.TestCase):
     """Note: avoiding all exceptions is challenging for all possible call combinations.
