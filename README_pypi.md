@@ -10,10 +10,6 @@
 
 Sketch Grammar Explorer is an API wrapper for [Sketch Engine](https://www.sketchengine.eu/), a corpus management software useful for linguistic research. The goal is to build a flexible scaffold for any kind of programmatic work with Sketch Engine and [NoSketch Engine](https://nlp.fi.muni.cz/trac/noske).
 
-**UPDATE**
-
-SGEX `0.7.0+` is another redesign of the package meant to facilitate enhancements. The workflow is improved and it's streamlined for adapting to SkE's updated API schema. Old methods are deprecated and unavailable in new releases.
-
 ## Installation
 
 Clone SGEX or install it with `pip install sgex` (main dependencies are `pandas pyyaml aiohttp aiofiles`).

@@ -150,6 +150,27 @@ collx (3)    [Collx bc5d89b {corpname: susanne, format: json, q: 'alemma,"apple"
 
 ```
 
+### Making multiple calls for concordances
+
+The `View` call retrieves concordances by page, defaulting to page 1. Its `fromp` and `pagesize` parameters adjust the current page and max number of concordances per page. Using a large `pagesize` is often fine to get data in one request, but it may be better to use several. For this, try `Job.run_repeat()`, which gets the first page, calculates how many pages remain, and then gets remaining pages (or up to `max_pages`, if defined).
+
+This example gets all the hits for `work` in the Susanne corpus in sets of 10 concordances per page. There are 93 in total, meaning that 10 requests are made (`fromp=1` through `fromp=10`).
+
+```py
+>>> from sgex.job import Job
+
+# run job
+>>> j = Job(params={"call_type": "View", "corpname": "susanne", "q": 'aword,"work"', "fromp": 1, "pagesize": 10})
+>>> j.run_repeat(max_pages=0) # optionally set max_pages to stop after n pages
+
+# the 93 concordances were retrieved in 10 calls
+>>> j.data.view[0].response.json()["concsize"] == 93
+True
+>>> len(j.data.view) == 10
+True
+
+```
+
 ### Manipulating data
 
 Response data can be manipulated by accessing the lists of calls stored in `Job.data`. A few methods are included so far, such as `Freqs.df_from_json()`, which transforms a JSON frequency query to a DataFrame.
@@ -213,14 +234,7 @@ Adding custom methods to a call type is easy:
 
 ```
 
-There are a couple conventions to follow to keep methods organized:
-
-- design a method for one call type
-- use `self.check_format("json")` to enforce the proper response data format
-- add the required data format as a suffix to the method name (`_from_json`)
-- specify required parameters in the docstring (e.g., `"Requires a corp_info call with these parameters: {"x": "y"}`)
-
-Feel free to suggest more methods for call types if you think they're broadly useful.
+Feel free to suggest more methods for call types if you think they're useful. Be sure to explain the purpose and required parameters in the docstring (e.g., `"Requires a corp_info call with these parameters: {"x": "y"}`).
 
 ### Request throttling
 
@@ -337,8 +351,8 @@ Timeouts are disabled for the `local` server, which lets expensive queries run a
 
 
 # check for timeout exception [(error, call, index), ...]
->>> type(j.errors[0][0])
-<class 'aiohttp.client_exceptions.ServerTimeoutError'>
+>>> isinstance(j.errors[0][0], aiohttp.client_exceptions.ServerTimeoutError)
+True
 
 ```
 
