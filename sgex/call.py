@@ -127,7 +127,7 @@ class CachedResponse:
         attrs = "<class 'sgex.call.CachedResponse'>\n"
         for k, v in self.__dict__.items():
             if k != "text":
-                attrs += f"{(k)}    {str(v)[:min(len(str(v)),80)]}\n"
+                attrs += f"{(k)}    {str(v)[:min(len(str(v)), 80)]}\n"
             if k == "text":
                 attrs += f"{(k)}    <{len(v.encode())} bytes>"
         return attrs
@@ -490,7 +490,7 @@ class View(Call):
         params (dict): Call parameters.
 
     Hint:
-        Requires `["corpname", "q"]`.
+        Requires `["corpname"]` and either `"q"` or `"json"`.
     """
 
     @staticmethod
@@ -550,7 +550,7 @@ class View(Call):
     def __init__(self, params: dict):
         if not params.get("asyn"):
             params["asyn"] = 0
-        super().__init__("view", params, ["corpname", "q"])
+        super().__init__("view", params, ["corpname"])
 
 
 class Wordlist(Call):
