@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.5](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.7.4...v0.7.5) (2024-09-17)
+
+
+### Bug Fixes
+
+* add run_repeat ([3460c83](https://github.com/engisalor/sketch-grammar-explorer/commit/3460c837906a3cdcfc1aa797e161f8fd3d59cd17))
+* add View.ttypes_to_df ([a7b9a83](https://github.com/engisalor/sketch-grammar-explorer/commit/a7b9a83644a06bb187701f42e8ad00e0f43020a2))
+* closes [#25](https://github.com/engisalor/sketch-grammar-explorer/issues/25) ([4401a5b](https://github.com/engisalor/sketch-grammar-explorer/commit/4401a5b32557482ba8ce706cc9f8503fd4f35713))
+* summary errors on dry run ([c4b89ef](https://github.com/engisalor/sketch-grammar-explorer/commit/c4b89eff9953a1eea01c38507980ef9cc563d29e))
+
+
+### Documentation
+
+* add run_repeat ([b840aec](https://github.com/engisalor/sketch-grammar-explorer/commit/b840aec74d157a211ee371c33f82aad5e7378c96))
+
 ## [0.7.4](https://github.com/engisalor/sketch-grammar-explorer/compare/v0.7.3...v0.7.4) (2024-05-11)
 
 
