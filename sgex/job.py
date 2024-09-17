@@ -10,6 +10,8 @@ import os
 import shutil
 import sys
 from collections import Counter
+from copy import deepcopy
+from math import ceil
 from pathlib import Path
 from time import perf_counter
 
@@ -181,6 +183,60 @@ class Job:
             self.summary(True)
         self.dry_run_func()
 
+    def run_repeat(self, max_pages=0, **kwargs):
+        """Executes one View call repeatedly, incrementing `fromp` to more results.
+
+        Args:
+            max_pages: Limit the number of pages to retrieve (`0` is no limit).
+            kwargs: Arguments passed to the `aiohttp` session.
+            get_kwargs: Can also be used to pass args to the `aiohttp` `get()` method.
+
+        Notes:
+            - Only applies to call types with a `fromp` parameter (`View`).
+            - Only accepts params dicts with a single call.
+            - Use `Job.params["pagesize"]` to set the maximum hits per page
+                (default = `100`).
+
+        Examples:
+            - Get all pages with `fromp=1` and `max_pages=0`.
+            - Skip first two pages with `fromp=3` and `max_pages=0`.
+            - Get pages 2-3 with `fromp=2` and `max_pages=2`.
+
+        Warnings:
+            - Keeping `thread=False` is recommended, especially for sizeable requests.
+            - `pagesize` may exceed `100,000` to get many MB of data in one call, but
+               large values or using `max_pages=0` to retrieve many concordances can
+               cause server and memory issues.
+        """
+        if self.params[0]["call_type"] not in ["View"] or not len(self.params) == 1:
+            raise ValueError("Only accepts one View call: `len(Job.params) == 1`")
+        if self.dry_run:
+            logging.warning("`dry_run` is not available for `run_repeat()`")
+        if not self.params[0].get("fromp"):
+            self.params[0]["fromp"] = 1
+        logging.info("INITIAL CALL")
+        self.run(**kwargs)
+        _json = self.data.view[0].response.json()
+        if _json["concsize"]:
+            concsize = _json["concsize"]
+        n_pages = ceil(concsize / self.params[0]["pagesize"])
+        if n_pages == 1:
+            logging.info(f"{concsize} hits retrieved - no additional calls needed")
+        else:
+            logging.info("SECONDARY CALLS")
+            self.data = _call.Data()
+            self.params_parsed = False
+            self.clear_cache = False
+            if not self.params[0].get("pagesize"):
+                self.params[0]["pagesize"] = 100
+            n_pages = n_pages - self.params[0]["fromp"] + 1
+            if max_pages > 0 and max_pages < n_pages:
+                n_pages = max_pages
+            self.params = [deepcopy(self.params[0]) for x in range(n_pages)]
+            for x in range(len(self.params)):
+                self.params[x]["fromp"] = x + self.params[0]["fromp"]
+            self.run(**kwargs)
+
     def summary(self, print_summary: bool = False) -> dict:
         "Returns a dict with a job execution summary, or prints if `summary(True)`."
         if not getattr(self, "time", None):
@@ -215,7 +271,7 @@ class Job:
         attrs = "<class 'sgex.job.Job'>\n"
         for k, v in dt.items():
             if k not in ["username", "api_key"]:
-                attrs += f"{(k)}    {str(v)[:min(len(str(v)),80)]}\n"
+                attrs += f"{(k)}    {str(v)[:min(len(str(v)), 80)]}\n"
             else:
                 if v:
                     attrs += f"{(k)}    *\n"
