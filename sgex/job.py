@@ -243,18 +243,17 @@ class Job:
             if not print_summary:
                 return {}
         else:
-            dt = {
-                "seconds": round(self.time, 4),
-                "calls": self.data.len(),
-                "errors": Counter([str(x[0]) for x in self.errors]),
-            }
+            dt = {"seconds": round(self.time, 4), "calls": self.data.len()}
+            if not self.dry_run:
+                dt |= {"errors": Counter([str(x[0]) for x in self.errors])}
         if not print_summary:
             return dt
         else:
             print(f'seconds  {dt["seconds"]}')
             print(f'calls    {dt["calls"]}')
-            print(f"errors   {len(self.errors)}")
-            print("\n".join([f"- {v}    {k}" for k, v in dt["errors"].items()]))
+            if not self.dry_run:
+                print(f"errors   {len(self.errors)}")
+                print("\n".join([f"- {v}    {k}" for k, v in dt["errors"].items()]))
 
     def __repr__(self) -> str:
         dt = {
