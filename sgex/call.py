@@ -547,6 +547,78 @@ class View(Call):
             items.append(new)
         return items
 
+    def ttypes_to_df(self, ttypes: list) -> pd.DataFrame:
+        """Returns a DataFrame with token number and text types for each concordance.
+
+        Args:
+            ttypes: A list of text types (corpus attributes) to analyze. Must correspond
+                with the `refs` View call parameter (see example).
+
+        Notes:
+            - Requires a View call with `refs` (see example for a proper comma-separated
+                string). `refs` must start with `#` (retrieves `toknum`) and each text
+                type should be prepended with `=` to return the value w/o its label.
+            - Use `Job.run_repeat()` to get all View concordances, otherwise results are
+                limited to the first page (`fromp=1`). See `Job.run_repeat()` docstring.
+            - Set View parameters `kwicleftctx` and `kwicrightctx` to `0` to minimize
+                download size (if the concordance itself can be discarded).
+
+        Example:
+            ```py
+            >>> from sgex.job import Job
+
+            # corpus text types (only include pertinent ones)
+            >>> ttypes_susanne = ["doc.file", "doc.n"]
+
+            # view call params
+            >>> params={
+            ... "call_type": "View",
+            ... "corpname": "susanne",
+            ... "q": 'aword,"work"',
+            ... "refs": "#," + ",".join(["=" + x for x in ttypes_susanne]),
+            ... "kwicleftctx": 0,
+            ... "kwicrightctx": 0,
+            ... "pagesize": 10}
+            ...
+
+            # run job (local noske server with Susanne corpus loaded)
+            >>> j = Job(params=params)
+            >>> j.run_repeat()
+
+            # make DF for one call (each DF is one page)
+            >>> df = j.data.view[0].ttypes_to_df(ttypes_susanne)
+            >>> len(df) == params["pagesize"]
+            True
+
+            # make DF for all calls
+            >>> dfs = [j.data.view[x].ttypes_to_df(ttypes_susanne)
+            ... for x in range(len(j.data.view))]
+            >>> df = pd.concat(dfs)
+            >>> len(df) == j.data.view[0].response.json()["concsize"]
+            True
+
+            # then use pd.value_counts() for frequency analysis
+            # for all text types (exclude token number)
+            >>> res = df.value_counts(list(df.columns)[1:])
+
+            # for one text type
+            >>> res = df.value_counts(["doc.file"])
+
+            # for specific text types matching a value
+            >>> res = df.query('`doc.file` == "A10"').value_counts(ttypes_susanne)
+
+            # tip: use df.value_counts([<columns>]).reset_index() to return a DF
+            ```
+        """
+        self.check_format()
+        _json = self.response.json()
+        data = [x["Refs"] for x in _json["Lines"]]
+        columns = ["#"] + ttypes
+        df = pd.DataFrame(data, columns=columns)
+        df["#"] = df["#"].str.replace("#", "")
+        df["#"] = df["#"].astype(int)
+        return df
+
     def __init__(self, params: dict):
         if not params.get("asyn"):
             params["asyn"] = 0
